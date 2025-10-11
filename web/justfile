@@ -1,0 +1,15 @@
+[private]
+default:
+  @just --list
+
+setup:
+  @pnpm install
+
+fmt:
+  @pnpm run fmt
+
+check:
+  @pnpm run check
+
+dev:
+  @pnpm run dev

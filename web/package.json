@@ -1,0 +1,20 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "fmt": "prettier --write **/*.{ts,css}",
+    "check": "prettier --check **/*.{ts,css}"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "eslint": "^9.37.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vite-plugin-svgr": "^4.5.0"
+  }
+}
