@@ -34,3 +34,6 @@ build:
   @dx bundle --platform desktop \
     --package-types "macos" \
     --package-types "dmg"
+
+install: build
+  @cp -af target/dx/octoscope/bundle/macos/bundle/macos/Octoscope.app /Applications/.

@@ -2948,6 +2948,7 @@ dependencies = [
  "dioxus",
  "dioxus-desktop",
  "dotenvy",
+ "tokio",
  "tracing",
  "tracing-oslog",
  "tracing-subscriber",
