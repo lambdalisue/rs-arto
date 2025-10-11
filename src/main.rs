@@ -1,4 +1,5 @@
 mod components;
+mod markdown;
 mod state;
 
 use dioxus::desktop::Config;
