@@ -1,5 +1,6 @@
 mod components;
 
+use dioxus::prelude::Element;
 use tracing_subscriber::filter::EnvFilter;
 
 fn main() {
@@ -23,5 +24,24 @@ fn main() {
         )
         .init();
 
-    dioxus::launch(components::app::App);
+    launch(components::app::App);
+}
+
+#[cfg(target_os = "macos")]
+fn launch(app: fn() -> Element) {
+    use dioxus::desktop::{Config, WindowBuilder};
+
+    let config = Config::new().with_window(
+        WindowBuilder::new()
+            .with_title("Octoscope")
+            .with_focused(!cfg!(debug_assertions)), // Avoid focus stealing in debug mode
+    );
+    dioxus::LaunchBuilder::desktop()
+        .with_cfg(config)
+        .launch(app);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn launch(app: fn() -> Element) {
+    dioxus::launch(app);
 }

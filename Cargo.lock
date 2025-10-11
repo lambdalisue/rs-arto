@@ -2946,6 +2946,7 @@ name = "octoscope"
 version = "0.1.0"
 dependencies = [
  "dioxus",
+ "dioxus-desktop",
  "dotenvy",
  "tracing",
  "tracing-subscriber",
