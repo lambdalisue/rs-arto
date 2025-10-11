@@ -1,0 +1,3 @@
+[private]
+default:
+  @just --list
