@@ -2,6 +2,7 @@ mod components;
 
 use dioxus::prelude::Element;
 use tracing_subscriber::filter::EnvFilter;
+use tracing_subscriber::prelude::*;
 
 fn main() {
     // Load environment variables from .env file
@@ -12,19 +13,31 @@ fn main() {
     // Initialize tracing with pretty formatter and env filter
     // Can be configured via RUST_LOG environment variable
     // Examples: RUST_LOG=debug, RUST_LOG=octoscope=trace, RUST_LOG=octoscope::markdown=debug
-    tracing_subscriber::fmt()
-        .pretty()
-        .without_time()
-        .with_target(false)
-        .with_thread_ids(false)
-        .with_file(true)
-        .with_line_number(true)
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    init_tracing();
 
     launch(components::app::App);
+}
+
+fn init_tracing() {
+    let registry = tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with(
+            tracing_subscriber::fmt::layer()
+                .pretty()
+                .without_time()
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_file(true)
+                .with_line_number(true),
+        );
+
+    #[cfg(target_os = "macos")]
+    let registry = registry.with(tracing_oslog::OsLogger::new(
+        "com.lambdalisue.Octoscope",
+        "defaut",
+    ));
+
+    registry.init();
 }
 
 #[cfg(target_os = "macos")]

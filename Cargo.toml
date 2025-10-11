@@ -13,6 +13,9 @@ dotenvy = "0.15.7"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+tracing-oslog = "0.3.0"
+
 [features]
 default = ["desktop"]
 web = ["dioxus/web"]
