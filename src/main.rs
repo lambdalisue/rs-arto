@@ -1,39 +1,27 @@
-use dioxus::prelude::*;
+mod components;
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("/assets/dist/main.css");
-const MAIN_SCRIPT: Asset = asset!("/assets/dist/main.js");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
+use tracing_subscriber::filter::EnvFilter;
 
 fn main() {
-    dioxus::launch(App);
-}
-
-#[component]
-fn App() -> Element {
-    rsx! {
-        document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
-        document::Script { r#type: "module", src: MAIN_SCRIPT }
-        Hero {}
-
+    // Load environment variables from .env file
+    if let Ok(dotenv) = dotenvy::dotenv() {
+        println!("Loaded .env file from: {}", dotenv.display());
     }
-}
 
-#[component]
-pub fn Hero() -> Element {
-    rsx! {
-        div {
-            id: "hero",
-            img { src: HEADER_SVG, id: "header" }
-            div { id: "links",
-                a { href: "https://dioxuslabs.com/learn/0.6/", "📚 Learn Dioxus" }
-                a { href: "https://dioxuslabs.com/awesome", "🚀 Awesome Dioxus" }
-                a { href: "https://github.com/dioxus-community/", "📡 Community Libraries" }
-                a { href: "https://github.com/DioxusLabs/sdk", "⚙️ Dioxus Development Kit" }
-                a { href: "https://marketplace.visualstudio.com/items?itemName=DioxusLabs.dioxus", "💫 VSCode Extension" }
-                a { href: "https://discord.gg/XgGxMSkvUM", "👋 Community Discord" }
-            }
-        }
-    }
+    // Initialize tracing with pretty formatter and env filter
+    // Can be configured via RUST_LOG environment variable
+    // Examples: RUST_LOG=debug, RUST_LOG=octoscope=trace, RUST_LOG=octoscope::markdown=debug
+    tracing_subscriber::fmt()
+        .pretty()
+        .without_time()
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_file(true)
+        .with_line_number(true)
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
+
+    dioxus::launch(components::app::App);
 }
