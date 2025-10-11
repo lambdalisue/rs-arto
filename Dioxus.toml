@@ -1,4 +1,6 @@
 [application]
+name = "Octoscope"
+default_platform = "desktop"
 
 [web.app]
 
@@ -22,4 +24,9 @@ script = []
 
 [bundle]
 publisher = "lambdalisue"
-identifier = "com.lambdalisue"
+identifier = "com.lambdalisue.Octoscope"
+
+[bundle.macos]
+info_plist_path = "assets/mac/Info.plist"
+files = {}
+hardened_runtime = true
