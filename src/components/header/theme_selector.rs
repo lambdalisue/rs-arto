@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use dioxus_sdk::theme::{use_system_theme, SystemTheme};
 
+use crate::components::icon::{Icon, IconName};
 use crate::state::AppState;
 use crate::theme::ThemePreference;
 
@@ -86,7 +87,7 @@ pub fn ThemeSelector() -> Element {
                     current_theme.set(ThemePreference::Light);
                 },
                 title: "Light theme",
-                "☀️ Light"
+                Icon { name: IconName::Sun, size: 18 }
             }
 
             button {
@@ -97,7 +98,7 @@ pub fn ThemeSelector() -> Element {
                     current_theme.set(ThemePreference::Dark);
                 },
                 title: "Dark theme",
-                "🌙 Dark"
+                Icon { name: IconName::Moon, size: 18 }
             }
 
             button {
@@ -108,7 +109,7 @@ pub fn ThemeSelector() -> Element {
                     current_theme.set(ThemePreference::Auto);
                 },
                 title: "Auto theme (follows system)",
-                "🔄 Auto"
+                Icon { name: IconName::DeviceDesktop, size: 18 }
             }
         }
     }

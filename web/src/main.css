@@ -1,5 +1,7 @@
 @import url("./css/variables.css");
+@import url("./css/icon.css");
 @import url("./css/header.css");
+@import url("./css/theme-selector.css");
 @import url("./css/markdown-viewer.css");
 
 /* App-wide styling */

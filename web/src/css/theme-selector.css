@@ -1,3 +1,23 @@
+:root {
+  --theme-btn-light-bg: #f6f8fa;
+  --theme-btn-light-border: #d1d9e0;
+  --theme-btn-light-text: #1f2328;
+
+  --theme-btn-dark-bg: #1f2328;
+  --theme-btn-dark-border: #30363d;
+  --theme-btn-dark-text: #f0f6fc;
+
+  --theme-btn-auto-bg: #6e7781;
+  --theme-btn-auto-border: #6e7781;
+  --theme-btn-auto-text: #ffffff;
+
+  --theme-btn-active-bg: #0969da;
+  --theme-btn-active-border: #0969da;
+  --theme-btn-active-text: #ffffff;
+
+  --theme-btn-focus-outline: #0969da;
+}
+
 .theme-selector {
   display: flex;
   gap: 8px;
@@ -9,9 +29,13 @@
     border-radius: 6px;
     color: var(--text-color);
     cursor: pointer;
-    font-size: 13px;
-    line-height: 1.5;
-    padding: 6px 12px;
+    line-height: 1;
+    padding: 8px;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition:
       background-color 0.2s ease,
       color 0.2s ease,
@@ -19,31 +43,31 @@
   }
 
   .theme-button--light {
-    background: #f6f8fa;
-    border-color: #d1d9e0;
-    color: #1f2328;
+    background: var(--theme-btn-light-bg);
+    border-color: var(--theme-btn-light-border);
+    color: var(--theme-btn-light-text);
   }
 
   .theme-button--dark {
-    background: #1f2328;
-    border-color: #30363d;
-    color: #f0f6fc;
+    background: var(--theme-btn-dark-bg);
+    border-color: var(--theme-btn-dark-border);
+    color: var(--theme-btn-dark-text);
   }
 
   .theme-button--auto {
-    background: #6e7781;
-    border-color: #6e7781;
-    color: #ffffff;
+    background: var(--theme-btn-auto-bg);
+    border-color: var(--theme-btn-auto-border);
+    color: var(--theme-btn-auto-text);
   }
 
   .theme-button--active {
-    background: #0969da;
-    border-color: #0969da;
-    color: #ffffff;
+    background: var(--theme-btn-active-bg);
+    border-color: var(--theme-btn-active-border);
+    color: var(--theme-btn-active-text);
   }
 
   .theme-button:focus-visible {
-    outline: 2px solid #0969da;
+    outline: 2px solid var(--theme-btn-focus-outline);
     outline-offset: 2px;
   }
 }

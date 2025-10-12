@@ -15,21 +15,27 @@ importers:
       '@eslint/js':
         specifier: ^9.37.0
         version: 9.37.0
+      '@tabler/icons':
+        specifier: ^3.35.0
+        version: 3.35.0
       eslint:
         specifier: ^9.37.0
         version: 9.37.0
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.6
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vite:
         specifier: ^7.1.9
-        version: 7.1.9
+        version: 7.1.9(tsx@4.20.6)
       vite-plugin-svgr:
         specifier: ^4.5.0
-        version: 4.5.0(rollup@4.52.4)(typescript@5.9.3)(vite@7.1.9)
+        version: 4.5.0(rollup@4.52.4)(typescript@5.9.3)(vite@7.1.9(tsx@4.20.6))
 
 packages:
 
@@ -513,6 +519,9 @@ packages:
     peerDependencies:
       '@svgr/core': '*'
 
+  '@tabler/icons@3.35.0':
+    resolution: {integrity: sha512-yYXe+gJ56xlZFiXwV9zVoe3FWCGuZ/D7/G4ZIlDtGxSx5CGQK110wrnT29gUj52kEZoxqF7oURTk97GQxELOFQ==}
+
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -720,6 +729,9 @@ packages:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
 
+  get-tsconfig@4.12.0:
+    resolution: {integrity: sha512-LScr2aNr2FbjAjZh2C6X6BxRx1/x+aTDExct/xyq2XKbYOiG5c0aK7pMsSuyc0brz3ibr/lbQiHD9jzt4lccJw==}
+
   github-markdown-css@5.8.1:
     resolution: {integrity: sha512-8G+PFvqigBQSWLQjyzgpa2ThD9bo7+kDsriUIidGcRhXgmcaAWUIpCZf8DavJgc+xifjbCG+GvMyWr0XMXmc7g==}
     engines: {node: '>=10'}
@@ -894,6 +906,9 @@ packages:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
     engines: {node: '>=4'}
 
+  resolve-pkg-maps@1.0.0:
+    resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
+
   rollup@4.52.4:
     resolution: {integrity: sha512-CLEVl+MnPAiKh5pl4dEWSyMTpuflgNQiLGhMv8ezD5W/qP8AKvmYpCOKRRNOh7oRKnauBZ4SyeYkMS+1VSyKwQ==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -935,6 +950,11 @@ packages:
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
+  tsx@4.20.6:
+    resolution: {integrity: sha512-ytQKuwgmrrkDTFP4LjR0ToE2nqgy886GpvRSpU0JAnrdBYppuY5rLkRUYPU1yCryb24SsKBTL/hlDQAEFVwtZg==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -1415,6 +1435,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@tabler/icons@3.35.0': {}
+
   '@types/estree@1.0.8': {}
 
   '@types/json-schema@7.0.15': {}
@@ -1643,6 +1665,10 @@ snapshots:
 
   gensync@1.0.0-beta.2: {}
 
+  get-tsconfig@4.12.0:
+    dependencies:
+      resolve-pkg-maps: 1.0.0
+
   github-markdown-css@5.8.1: {}
 
   glob-parent@6.0.2:
@@ -1784,6 +1810,8 @@ snapshots:
 
   resolve-from@4.0.0: {}
 
+  resolve-pkg-maps@1.0.0: {}
+
   rollup@4.52.4:
     dependencies:
       '@types/estree': 1.0.8
@@ -1842,6 +1870,13 @@ snapshots:
 
   tslib@2.8.1: {}
 
+  tsx@4.20.6:
+    dependencies:
+      esbuild: 0.25.10
+      get-tsconfig: 4.12.0
+    optionalDependencies:
+      fsevents: 2.3.3
+
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
@@ -1858,18 +1893,18 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  vite-plugin-svgr@4.5.0(rollup@4.52.4)(typescript@5.9.3)(vite@7.1.9):
+  vite-plugin-svgr@4.5.0(rollup@4.52.4)(typescript@5.9.3)(vite@7.1.9(tsx@4.20.6)):
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@4.52.4)
       '@svgr/core': 8.1.0(typescript@5.9.3)
       '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.9.3))
-      vite: 7.1.9
+      vite: 7.1.9(tsx@4.20.6)
     transitivePeerDependencies:
       - rollup
       - supports-color
       - typescript
 
-  vite@7.1.9:
+  vite@7.1.9(tsx@4.20.6):
     dependencies:
       esbuild: 0.25.10
       fdir: 6.5.0(picomatch@4.0.3)
@@ -1879,6 +1914,7 @@ snapshots:
       tinyglobby: 0.2.15
     optionalDependencies:
       fsevents: 2.3.3
+      tsx: 4.20.6
 
   which@2.0.2:
     dependencies:
