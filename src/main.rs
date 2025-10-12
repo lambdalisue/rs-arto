@@ -3,8 +3,9 @@ mod history;
 mod markdown;
 mod state;
 mod theme;
+mod window;
 
-use dioxus::desktop::Config;
+use dioxus::desktop::{tao::dpi::PhysicalPosition, Config, LogicalSize, WindowBuilder};
 use std::path::PathBuf;
 use tokio::sync::mpsc::channel;
 use tracing_subscriber::filter::EnvFilter;
@@ -64,6 +65,20 @@ fn create_config() -> Config {
         .lock()
         .expect("Failed to lock OPENED_FILES_RECEIVER")
         .replace(rx);
+
+    // Create a hidden background window for menu handling
+    // This window should not be visible to users
+    let window = WindowBuilder::new()
+        .with_focused(false)
+        // Must be visible at start, otherwise child windows won't be shown
+        // We will hide it immediately after creation in the component
+        .with_visible(true)
+        // Make the window as small and unobtrusive as possible
+        .with_decorations(false)
+        .with_position(PhysicalPosition::new(0, 0))
+        // Must be at least 1x1, otherwise it will panic
+        .with_inner_size(LogicalSize::new(1, 1));
+
     Config::new()
         // Listen to macOS open file events. This custom event handler must be specified before
         // the window is created. Otherwise, the Opened event will be lost for first launch.
@@ -77,25 +92,33 @@ fn create_config() -> Config {
                 }
             }
         })
-        .with_window(
-            WindowBuilder::new()
-                .with_title("Octoscope")
-                .with_focused(!cfg!(debug_assertions)), // Avoid focus stealing in debug mode
-        )
+        .with_window(window)
 }
 
 #[cfg(not(target_os = "macos"))]
 fn create_config() -> Config {
-    use dioxus::desktop::WindowBuilder;
-
     let (_tx, rx) = channel::<PathBuf>(10);
     state::OPENED_FILES_RECEIVER
         .lock()
         .expect("Failed to lock OPENED_FILES_RECEIVER")
         .replace(rx);
-    Config::new().with_window(
-        WindowBuilder::new()
-            .with_title("Octoscope")
-            .with_focused(!cfg!(debug_assertions)), // Avoid focus stealing in debug mode
-    )
+
+    // Create a hidden background window for menu handling
+    // This window should not be visible to users
+    let window = WindowBuilder::new()
+        .with_focused(false)
+        // Must be visible at start, otherwise child windows won't be shown
+        // We will hide it immediately after creation in the component
+        .with_visible(true)
+        // Make the window as small and unobtrusive as possible
+        .with_decorations(false)
+        .with_position(PhysicalPosition::new(0, 0))
+        // Must be at least 1x1, otherwise it will panic
+        .with_inner_size(LogicalSize::new(1, 1));
+
+    Config::new()
+        .with_menu(menu)
+        .with_window(window)
+        // This is important to avoid panic when closing child windows
+        .with_close_behaviour(WindowCloseBehaviour::LastWindowHides)
 }

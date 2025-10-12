@@ -21,6 +21,7 @@ pub fn App(file: Option<PathBuf>) -> Element {
     if let Some(path) = file {
         state.history.write().push(path);
     }
+
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_STYLE }
