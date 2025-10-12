@@ -1,8 +1,10 @@
 use dioxus::prelude::*;
+use dioxus_desktop::use_muda_event_handler;
 use std::path::PathBuf;
 
 use super::content::Content;
 use super::header::Header;
+use crate::menu;
 use crate::state::AppState;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -21,6 +23,12 @@ pub fn App(file: Option<PathBuf>) -> Element {
     if let Some(path) = file {
         state.history.write().push(path);
     }
+
+    // Handle menu events (only state-dependent events, not global ones)
+    use_muda_event_handler(move |event| {
+        // Only handle state-dependent events
+        menu::handle_menu_event_with_state(event, &mut state);
+    });
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }

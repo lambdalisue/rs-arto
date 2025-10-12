@@ -2,9 +2,15 @@ use crate::state::OPENED_FILES_RECEIVER;
 use crate::window as window_manager;
 use dioxus::desktop::window;
 use dioxus::prelude::*;
+use dioxus_desktop::use_muda_event_handler;
 
 #[component]
 pub fn Entrypoint() -> Element {
+    // Handle global menu events
+    use_muda_event_handler(move |event| {
+        crate::menu::handle_menu_event_global(event);
+    });
+
     let mut rx = OPENED_FILES_RECEIVER
         .lock()
         .expect("Failed to lock OPENED_FILES_RECEIVER")

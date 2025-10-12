@@ -1,6 +1,7 @@
 mod components;
 mod history;
 mod markdown;
+mod menu;
 mod state;
 mod theme;
 mod window;
@@ -58,13 +59,14 @@ fn init_tracing() {
 #[cfg(target_os = "macos")]
 fn create_config() -> Config {
     use dioxus::desktop::tao::event::Event;
-    use dioxus::desktop::WindowBuilder;
 
     let (tx, rx) = channel::<PathBuf>(10);
     state::OPENED_FILES_RECEIVER
         .lock()
         .expect("Failed to lock OPENED_FILES_RECEIVER")
         .replace(rx);
+
+    let menu = menu::build_menu();
 
     // Create a hidden background window for menu handling
     // This window should not be visible to users
@@ -92,6 +94,7 @@ fn create_config() -> Config {
                 }
             }
         })
+        .with_menu(menu)
         .with_window(window)
 }
 
@@ -102,6 +105,8 @@ fn create_config() -> Config {
         .lock()
         .expect("Failed to lock OPENED_FILES_RECEIVER")
         .replace(rx);
+
+    let menu = menu::build_menu();
 
     // Create a hidden background window for menu handling
     // This window should not be visible to users
