@@ -23,7 +23,7 @@ fn main() {
     let config = create_config();
     dioxus::LaunchBuilder::desktop()
         .with_cfg(config)
-        .launch(components::app::App);
+        .launch(components::entrypoint::Entrypoint);
 }
 
 fn init_tracing() {
