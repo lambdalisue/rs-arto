@@ -1,4 +1,3 @@
-import appStyles from "../main.css?inline";
 import githubMarkdownLightCss from "github-markdown-css/github-markdown-light.css?inline";
 import githubMarkdownDarkCss from "github-markdown-css/github-markdown-dark.css?inline";
 
@@ -39,7 +38,6 @@ function createManagedStyle(css: string, dataset: Record<string, string>): Manag
 }
 
 function applyMarkdownStyles(theme: Theme) {
-  baseStyle.mount();
   lightTheme.mount();
   darkTheme.mount();
 
@@ -130,7 +128,6 @@ function setupAutoThemeListener() {
   }
 }
 
-const baseStyle = createManagedStyle(appStyles, { appStyle: "base" });
 const lightTheme = createManagedStyle(githubMarkdownLightCss, { markdownTheme: "light" });
 const darkTheme = createManagedStyle(githubMarkdownDarkCss, { markdownTheme: "dark" });
 
