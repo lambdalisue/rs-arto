@@ -8,6 +8,8 @@ pub enum IconName {
     Sun,
     Moon,
     DeviceDesktop,
+    ChevronLeft,
+    ChevronRight,
 }
 
 impl fmt::Display for IconName {
@@ -16,6 +18,8 @@ impl fmt::Display for IconName {
             IconName::Sun => "sun",
             IconName::Moon => "moon",
             IconName::DeviceDesktop => "device-desktop",
+            IconName::ChevronLeft => "chevron-left",
+            IconName::ChevronRight => "chevron-right",
         };
         write!(f, "{}", name)
     }

@@ -15,4 +15,39 @@
   flex: 1;
   font-size: 14px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-left .nav-button {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.2s;
+  width: 28px;
+  height: 28px;
+
+  &:hover:not(:disabled) {
+    background: var(--border-color);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .icon {
+    color: var(--text-color);
+  }
+}
+
+.header-left .file-name {
+  margin-left: 4px;
 }

@@ -60,6 +60,8 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
                     match target_path.canonicalize() {
                         Ok(canonical_path) => {
                             tracing::info!("Opening file: {:?}", canonical_path);
+                            // Update history and file state
+                            state.history.write().push(canonical_path.clone());
                             state.file.set(Some(canonical_path));
                         }
                         Err(e) => {

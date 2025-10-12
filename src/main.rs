@@ -1,4 +1,5 @@
 mod components;
+mod history;
 mod markdown;
 mod state;
 mod theme;
