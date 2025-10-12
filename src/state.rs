@@ -14,6 +14,7 @@ pub struct AppState {
     pub file: Signal<Option<PathBuf>>,
     pub current_theme: Signal<ThemePreference>,
     pub history: Signal<HistoryManager>,
+    pub zoom_level: Signal<f64>,
 }
 
 impl Default for AppState {
@@ -22,6 +23,7 @@ impl Default for AppState {
             file: Signal::new(None),
             current_theme: Signal::new(ThemePreference::default()),
             history: Signal::new(HistoryManager::new()),
+            zoom_level: Signal::new(1.0),
         }
     }
 }

@@ -1,4 +1,4 @@
-use dioxus::prelude::Writable;
+use dioxus::prelude::{Readable, Writable};
 use dioxus_desktop::muda::accelerator::{Accelerator, Code, Modifiers};
 use dioxus_desktop::muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use dioxus_desktop::window;
@@ -15,6 +15,9 @@ enum MenuId {
     OpenInCurrentWindow,
     CloseWindow,
     CloseAllWindows,
+    ActualSize,
+    ZoomIn,
+    ZoomOut,
     GoBack,
     GoForward,
     GoToHomepage,
@@ -29,6 +32,9 @@ impl MenuId {
             "file.open_in_current_window" => Some(Self::OpenInCurrentWindow),
             "file.close_window" => Some(Self::CloseWindow),
             "file.close_all" => Some(Self::CloseAllWindows),
+            "view.actual_size" => Some(Self::ActualSize),
+            "view.zoom_in" => Some(Self::ZoomIn),
+            "view.zoom_out" => Some(Self::ZoomOut),
             "history.back" => Some(Self::GoBack),
             "history.forward" => Some(Self::GoForward),
             "help.homepage" => Some(Self::GoToHomepage),
@@ -44,6 +50,9 @@ impl MenuId {
             Self::OpenInCurrentWindow => "file.open_in_current_window",
             Self::CloseWindow => "file.close_window",
             Self::CloseAllWindows => "file.close_all",
+            Self::ActualSize => "view.actual_size",
+            Self::ZoomIn => "view.zoom_in",
+            Self::ZoomOut => "view.zoom_out",
             Self::GoBack => "history.back",
             Self::GoForward => "history.forward",
             Self::GoToHomepage => "help.homepage",
@@ -122,6 +131,36 @@ pub fn build_menu() -> Menu {
     }
 
     menu.append(&file_menu).unwrap();
+
+    // View menu
+    let view_menu = Submenu::new("View", true);
+
+    let actual_size = MenuItem::with_id(
+        MenuId::ActualSize.as_str(),
+        "Actual Size",
+        true,
+        Some(get_cmd_or_ctrl(Code::Digit0, None)),
+    );
+
+    let zoom_in = MenuItem::with_id(
+        MenuId::ZoomIn.as_str(),
+        "Zoom In",
+        true,
+        Some(get_cmd_or_ctrl(Code::Equal, None)),
+    );
+
+    let zoom_out = MenuItem::with_id(
+        MenuId::ZoomOut.as_str(),
+        "Zoom Out",
+        true,
+        Some(get_cmd_or_ctrl(Code::Minus, None)),
+    );
+
+    view_menu
+        .append_items(&[&actual_size, &zoom_in, &zoom_out])
+        .unwrap();
+
+    menu.append(&view_menu).unwrap();
 
     // History menu
     let history_menu = Submenu::new("History", true);
@@ -232,6 +271,19 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
                 state.history.write().push(file.clone());
                 state.file.set(Some(file));
             }
+        }
+        MenuId::ActualSize => {
+            state.zoom_level.set(1.0);
+        }
+        MenuId::ZoomIn => {
+            let current = *state.zoom_level.read();
+            // Max zoom: 10.0
+            state.zoom_level.set((current + 0.1).min(10.0));
+        }
+        MenuId::ZoomOut => {
+            let current = *state.zoom_level.read();
+            // Min zoom: 0.1
+            state.zoom_level.set((current - 0.1).max(0.1));
         }
         MenuId::GoBack => {
             if let Some(path) = state.history.write().go_back() {
