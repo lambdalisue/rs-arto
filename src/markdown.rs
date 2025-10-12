@@ -252,3 +252,494 @@ fn process_mermaid_blocks<'a>(parser: Parser<'a>) -> impl Iterator<Item = Event<
         _ => vec![event],
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use indoc::indoc;
+    use std::fs;
+    use std::io::Write;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_get_mime_type() {
+        assert_eq!(get_mime_type(Path::new("test.png")), "image/png");
+        assert_eq!(get_mime_type(Path::new("test.jpg")), "image/jpeg");
+        assert_eq!(get_mime_type(Path::new("test.jpeg")), "image/jpeg");
+        assert_eq!(get_mime_type(Path::new("test.gif")), "image/gif");
+        assert_eq!(get_mime_type(Path::new("test.svg")), "image/svg+xml");
+        assert_eq!(get_mime_type(Path::new("test.webp")), "image/webp");
+        assert_eq!(get_mime_type(Path::new("test.bmp")), "image/bmp");
+        assert_eq!(get_mime_type(Path::new("test.ico")), "image/x-icon");
+        assert_eq!(get_mime_type(Path::new("test.unknown")), "image/png");
+    }
+
+    #[test]
+    fn test_get_alert_icon_placeholder() {
+        let result = get_alert_icon_placeholder("note");
+        assert_eq!(
+            result,
+            r#"<span class="alert-icon" data-alert-type="note"></span>"#
+        );
+
+        let result = get_alert_icon_placeholder("warning");
+        assert_eq!(
+            result,
+            r#"<span class="alert-icon" data-alert-type="warning"></span>"#
+        );
+    }
+
+    #[test]
+    fn test_process_github_alerts_note() {
+        let input = indoc! {"
+            > [!NOTE]
+            > This is a note
+        "};
+        let result = process_github_alerts(input);
+
+        assert!(result.contains(r#"<div class="markdown-alert markdown-alert-note""#));
+        assert!(result.contains(r#"<p class="markdown-alert-title""#));
+        assert!(result.contains("NOTE"));
+        assert!(result.contains("This is a note"));
+        assert!(result.contains("</div>"));
+    }
+
+    #[test]
+    fn test_process_github_alerts_warning() {
+        let input = indoc! {"
+            > [!WARNING]
+            > Be careful!
+        "};
+        let result = process_github_alerts(input);
+
+        assert!(result.contains(r#"markdown-alert-warning"#));
+        assert!(result.contains("WARNING"));
+        assert!(result.contains("Be careful!"));
+    }
+
+    #[test]
+    fn test_process_github_alerts_with_multiline() {
+        let input = indoc! {"
+            > [!IMPORTANT]
+            > First line
+            > Second line
+            > Third line
+        "};
+        let result = process_github_alerts(input);
+
+        assert!(result.contains(r#"markdown-alert-important"#));
+        assert!(result.contains("First line"));
+        assert!(result.contains("Second line"));
+        assert!(result.contains("Third line"));
+    }
+
+    #[test]
+    fn test_process_github_alerts_all_types() {
+        let alert_types = vec![
+            ("NOTE", "note"),
+            ("TIP", "tip"),
+            ("IMPORTANT", "important"),
+            ("WARNING", "warning"),
+            ("CAUTION", "caution"),
+        ];
+
+        for (alert_name, alert_class) in alert_types {
+            let input = format!("> [!{}]\n> Test content", alert_name);
+            let result = process_github_alerts(&input);
+
+            assert!(
+                result.contains(&format!(r#"markdown-alert-{}"#, alert_class)),
+                "Should contain alert class for {}",
+                alert_name
+            );
+            assert!(
+                result.contains(alert_name),
+                "Should contain alert name {}",
+                alert_name
+            );
+        }
+    }
+
+    #[test]
+    fn test_process_github_alerts_no_match() {
+        let input = "Regular paragraph\n> Regular quote";
+        let result = process_github_alerts(input);
+
+        assert_eq!(result, input);
+        assert!(!result.contains("markdown-alert"));
+    }
+
+    #[test]
+    fn test_process_mermaid_blocks() {
+        let markdown = indoc! {"
+            ```mermaid
+            graph TD
+                A-->B
+            ```
+        "};
+
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+        let events: Vec<Event> = process_mermaid_blocks(parser).collect();
+
+        // Verify that Mermaid block is converted to a single HTML event
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(!html_events.is_empty(), "Should contain HTML event");
+        let html = html_events[0];
+        assert!(html.contains(r#"<pre class="mermaid""#));
+        assert!(html.contains("graph TD"));
+        assert!(html.contains("A-->B"));
+        assert!(html.contains(r#"data-mermaid-src="#));
+    }
+
+    #[test]
+    fn test_process_image_paths_http_url() {
+        let markdown = "![test](https://example.com/image.png)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_image_paths(parser, Path::new(".")).collect();
+
+        // Verify that HTTPS URLs are not modified
+        let image_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Start(Tag::Image { dest_url: url, .. }) = e {
+                    Some(url.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(image_events.len(), 1);
+        assert_eq!(image_events[0], "https://example.com/image.png");
+    }
+
+    #[test]
+    fn test_process_image_paths_data_url() {
+        let markdown = "![test](data:image/png;base64,abc123)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_image_paths(parser, Path::new(".")).collect();
+
+        // Verify that Data URLs are not modified
+        let image_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Start(Tag::Image { dest_url: url, .. }) = e {
+                    Some(url.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(image_events.len(), 1);
+        assert!(image_events[0].starts_with("data:image/png"));
+    }
+
+    #[test]
+    fn test_process_image_paths_relative_path() {
+        // Create temporary image file for testing
+        let temp_dir = TempDir::new().unwrap();
+        let image_path = temp_dir.path().join("test.png");
+
+        // Simple PNG header (valid binary)
+        let png_data = vec![
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+            0x00, 0x00, 0x00, 0x0D, // IHDR length
+        ];
+        let mut file = fs::File::create(&image_path).unwrap();
+        file.write_all(&png_data).unwrap();
+
+        let markdown = "![test](test.png)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_image_paths(parser, temp_dir.path()).collect();
+
+        // Verify that relative path is converted to data URL
+        let image_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Start(Tag::Image { dest_url: url, .. }) = e {
+                    Some(url.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(image_events.len(), 1);
+        assert!(
+            image_events[0].starts_with("data:image/png;base64,"),
+            "Should convert to data URL"
+        );
+    }
+
+    #[test]
+    fn test_process_anchor_markdown_files_md_link() {
+        let markdown = "[Link to doc](./docs/README.md)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
+
+        // Verify that MD links are converted to span elements
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains(r#"<span class="md-link""#)),
+            "Should contain md-link span"
+        );
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains("handleMarkdownLinkClick")),
+            "Should contain click handler"
+        );
+        assert!(
+            html_events.iter().any(|h| h.contains("./docs/README.md")),
+            "Should contain the link URL"
+        );
+    }
+
+    #[test]
+    fn test_process_anchor_markdown_files_markdown_extension() {
+        let markdown = "[Link](./file.markdown)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
+
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains(r#"<span class="md-link""#)),
+            "Should handle .markdown extension"
+        );
+    }
+
+    #[test]
+    fn test_process_anchor_markdown_files_http_link() {
+        let markdown = "[Link](https://example.com/page.md)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
+
+        // Verify that HTTPS links are kept as regular anchor tags
+        let link_events: Vec<_> = events
+            .iter()
+            .filter(|e| matches!(e, Event::Start(Tag::Link { .. })))
+            .collect();
+
+        assert!(!link_events.is_empty(), "Should keep regular link tag");
+
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(
+            !html_events
+                .iter()
+                .any(|h| h.contains(r#"<span class="md-link""#)),
+            "Should NOT convert HTTP links to span"
+        );
+    }
+
+    #[test]
+    fn test_process_anchor_markdown_files_non_md_link() {
+        let markdown = "[Link](./file.txt)";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
+
+        // Verify that .txt links are kept as regular anchor tags
+        let link_events: Vec<_> = events
+            .iter()
+            .filter(|e| matches!(e, Event::Start(Tag::Link { .. })))
+            .collect();
+
+        assert!(!link_events.is_empty(), "Should keep regular link tag");
+    }
+
+    #[test]
+    fn test_render_to_html_basic() {
+        let markdown = "# Hello\n\nThis is a test.";
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(result.contains("<h1>"));
+        assert!(result.contains("Hello"));
+        assert!(result.contains("<p>"));
+        assert!(result.contains("This is a test."));
+    }
+
+    #[test]
+    fn test_code_block_language_classes() {
+        let markdown = indoc! {"
+            # Code Blocks Test
+
+            ```rust
+            fn main() {
+                println!(\"Hello\");
+            }
+            ```
+
+            ```python
+            def hello():
+                print(\"world\")
+            ```
+
+            ```
+            no language specified
+            ```
+        "};
+
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        // Print the output to inspect
+        println!("\n=== HTML OUTPUT ===\n{}\n===================\n", result);
+
+        // Check if language classes are present
+        let has_rust = result.contains("language-rust") || result.contains("class=\"rust\"");
+        let has_python = result.contains("language-python") || result.contains("class=\"python\"");
+
+        println!("Has rust class: {}", has_rust);
+        println!("Has python class: {}", has_python);
+    }
+
+    #[test]
+    fn test_render_to_html_with_alert() {
+        let markdown = indoc! {"
+            # Title
+
+            > [!NOTE]
+            > This is important
+        "};
+
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(result.contains("markdown-alert-note"));
+        assert!(result.contains("This is important"));
+    }
+
+    #[test]
+    fn test_render_to_html_with_mermaid() {
+        let markdown = indoc! {"
+            ```mermaid
+            graph LR
+                A-->B
+            ```
+        "};
+
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(result.contains(r#"<pre class="mermaid""#));
+        assert!(result.contains("graph LR"));
+    }
+
+    #[test]
+    fn test_render_to_html_integrated() {
+        // Integration test: combining multiple features
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create test image
+        let image_path = temp_dir.path().join("image.png");
+        let png_data = vec![0x89, 0x50, 0x4E, 0x47];
+        fs::write(&image_path, png_data).unwrap();
+
+        let markdown = indoc! {"
+            # Test Document
+
+            > [!WARNING]
+            > Be careful
+
+            ![Test Image](image.png)
+
+            [Link to other doc](other.md)
+
+            ```mermaid
+            graph TD
+                A-->B
+            ```
+        "};
+
+        let md_path = temp_dir.path().join("test.md");
+
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        // Verify that all features are correctly integrated
+        assert!(result.contains("<h1>"), "Should render heading");
+        assert!(
+            result.contains("markdown-alert-warning"),
+            "Should render alert"
+        );
+        assert!(
+            result.contains("data:image/png"),
+            "Should convert image to data URL"
+        );
+        assert!(
+            result.contains(r#"class="md-link""#),
+            "Should convert md link"
+        );
+        assert!(
+            result.contains(r#"<pre class="mermaid""#),
+            "Should render mermaid"
+        );
+    }
+}

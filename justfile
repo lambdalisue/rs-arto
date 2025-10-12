@@ -23,6 +23,9 @@ check-check:
 check-clippy:
   @cargo clippy --all-targets --all-features -- -D warnings
 
+test:
+  @cargo test --all-features --all-targets
+
 [parallel]
 dev: web::dev dev-dx
 
