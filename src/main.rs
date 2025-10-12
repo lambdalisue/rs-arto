@@ -1,13 +1,17 @@
 mod components;
 mod state;
 
-use dioxus::prelude::*;
+use dioxus::desktop::Config;
 use std::path::PathBuf;
 use tokio::sync::mpsc::channel;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::prelude::*;
 
-const DEFAULT_LOGLEVEL: &str = "debug";
+const DEFAULT_LOGLEVEL: &str = if cfg!(debug_assertions) {
+    "debug"
+} else {
+    "info"
+};
 
 fn main() {
     // Load environment variables from .env file
@@ -15,7 +19,11 @@ fn main() {
         println!("Loaded .env file from: {}", dotenv.display());
     }
     init_tracing();
-    launch(components::app::App);
+
+    let config = create_config();
+    dioxus::LaunchBuilder::desktop()
+        .with_cfg(config)
+        .launch(components::app::App);
 }
 
 fn init_tracing() {
@@ -44,16 +52,16 @@ fn init_tracing() {
 }
 
 #[cfg(target_os = "macos")]
-fn launch(app: fn() -> Element) {
+fn create_config() -> Config {
     use dioxus::desktop::tao::event::Event;
-    use dioxus::desktop::{Config, WindowBuilder};
+    use dioxus::desktop::WindowBuilder;
 
     let (tx, rx) = channel::<PathBuf>(10);
     state::OPENED_FILES_RECEIVER
         .lock()
         .expect("Failed to lock OPENED_FILES_RECEIVER")
         .replace(rx);
-    let config = Config::new()
+    Config::new()
         // Listen to macOS open file events. This custom event handler must be specified before
         // the window is created. Otherwise, the Opened event will be lost for first launch.
         .with_custom_event_handler(move |event, _target| {
@@ -70,13 +78,21 @@ fn launch(app: fn() -> Element) {
             WindowBuilder::new()
                 .with_title("Octoscope")
                 .with_focused(!cfg!(debug_assertions)), // Avoid focus stealing in debug mode
-        );
-    dioxus::LaunchBuilder::desktop()
-        .with_cfg(config)
-        .launch(app);
+        )
 }
 
 #[cfg(not(target_os = "macos"))]
-fn launch(app: fn() -> Element) {
-    dioxus::launch(app);
+fn create_config() -> Config {
+    use dioxus::desktop::WindowBuilder;
+
+    let (_tx, rx) = channel::<PathBuf>(10);
+    state::OPENED_FILES_RECEIVER
+        .lock()
+        .expect("Failed to lock OPENED_FILES_RECEIVER")
+        .replace(rx);
+    Config::new().with_window(
+        WindowBuilder::new()
+            .with_title("Octoscope")
+            .with_focused(!cfg!(debug_assertions)), // Avoid focus stealing in debug mode
+    )
 }
