@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      github-markdown-css:
+        specifier: ^5.8.1
+        version: 5.8.1
     devDependencies:
       '@eslint/js':
         specifier: ^9.37.0
@@ -715,6 +719,10 @@ packages:
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
+
+  github-markdown-css@5.8.1:
+    resolution: {integrity: sha512-8G+PFvqigBQSWLQjyzgpa2ThD9bo7+kDsriUIidGcRhXgmcaAWUIpCZf8DavJgc+xifjbCG+GvMyWr0XMXmc7g==}
+    engines: {node: '>=10'}
 
   glob-parent@6.0.2:
     resolution: {integrity: sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A==}
@@ -1634,6 +1642,8 @@ snapshots:
     optional: true
 
   gensync@1.0.0-beta.2: {}
+
+  github-markdown-css@5.8.1: {}
 
   glob-parent@6.0.2:
     dependencies:
