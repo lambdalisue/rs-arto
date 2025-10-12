@@ -1,6 +1,7 @@
 @import url("./theme-selector.css");
 
 .header {
+  flex-shrink: 0;
   align-items: center;
   background: var(--header-bg);
   border-bottom: 1px solid var(--border-color);

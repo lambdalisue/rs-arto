@@ -12,12 +12,22 @@
   --dark-border-color: #30363d;
   --dark-header-bg: #010409;
   --dark-content-bg: #0d1117;
+  /* Scrollbar colors */
+  --scrollbar-track-light: #f6f8fa;
+  --scrollbar-thumb-light: #d1d9e0;
+  --scrollbar-thumb-hover-light: #959da5;
+  --scrollbar-track-dark: #0d1117;
+  --scrollbar-thumb-dark: #30363d;
+  --scrollbar-thumb-hover-dark: #484f58;
   /* Default theme */
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
   --border-color: var(--light-border-color);
   --header-bg: var(--light-header-bg);
   --content-bg: var(--light-content-bg);
+  --scrollbar-track: var(--scrollbar-track-light);
+  --scrollbar-thumb: var(--scrollbar-thumb-light);
+  --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
 }
 
 [data-theme="light"] {
@@ -26,6 +36,9 @@
   --border-color: var(--light-border-color);
   --header-bg: var(--light-header-bg);
   --content-bg: var(--light-content-bg);
+  --scrollbar-track: var(--scrollbar-track-light);
+  --scrollbar-thumb: var(--scrollbar-thumb-light);
+  --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
 }
 
 [data-theme="dark"] {
@@ -34,6 +47,9 @@
   --border-color: var(--dark-border-color);
   --header-bg: var(--dark-header-bg);
   --content-bg: var(--dark-content-bg);
+  --scrollbar-track: var(--scrollbar-track-dark);
+  --scrollbar-thumb: var(--scrollbar-thumb-dark);
+  --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
 }
 
 /* Auto theme (follows system settings) */
@@ -44,6 +60,9 @@
     --border-color: var(--light-border-color);
     --header-bg: var(--light-header-bg);
     --content-bg: var(--light-content-bg);
+    --scrollbar-track: var(--scrollbar-track-light);
+    --scrollbar-thumb: var(--scrollbar-thumb-light);
+    --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
   }
 }
 
@@ -54,5 +73,8 @@
     --border-color: var(--dark-border-color);
     --header-bg: var(--dark-header-bg);
     --content-bg: var(--dark-content-bg);
+    --scrollbar-track: var(--scrollbar-track-dark);
+    --scrollbar-thumb: var(--scrollbar-thumb-dark);
+    --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
   }
 }

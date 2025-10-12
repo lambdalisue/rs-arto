@@ -22,7 +22,6 @@ pub fn App(file: Option<PathBuf>) -> Element {
         document::Script { r#type: "module", src: MAIN_SCRIPT }
         div {
             class: "app-container",
-            style: "display: flex; flex-direction: column; height: 100vh;",
 
             Header {},
             Content {},

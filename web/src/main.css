@@ -1,7 +1,10 @@
 @import url("./css/variables.css");
+@import url("./css/scrollbar.css");
+@import url("./css/app.css");
 @import url("./css/icon.css");
 @import url("./css/header.css");
 @import url("./css/theme-selector.css");
+@import url("./css/content.css");
 @import url("./css/markdown-viewer.css");
 
 /* App-wide styling */
