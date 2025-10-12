@@ -13,7 +13,7 @@ pub fn Content() -> Element {
         div {
             class: "content",
 
-            if let Some(file) = file().as_ref() {
+            if let Some(file) = file().clone() {
                 MarkdownViewer { file }
             } else {
                 div {

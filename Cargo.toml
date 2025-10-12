@@ -14,6 +14,7 @@ dioxus-desktop = "0.6.3"
 dioxus-sdk = { version = "0.6.0", features = ["system_theme"] }
 dotenvy = "0.15.7"
 html-escape = "0.2.13"
+indoc = "2.0.5"
 pulldown-cmark = "0.13.0"
 tokio = "1.47.1"
 tracing = "0.1.41"
@@ -23,7 +24,6 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 tracing-oslog = "0.3.0"
 
 [dev-dependencies]
-indoc = "2.0.5"
 tempfile = "3.15.0"
 
 [features]

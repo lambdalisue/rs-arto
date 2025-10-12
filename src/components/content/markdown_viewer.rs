@@ -2,9 +2,11 @@ use dioxus::prelude::*;
 use std::path::PathBuf;
 
 use crate::markdown::render_to_html;
+use crate::state::AppState;
 
 #[component]
-pub fn MarkdownViewer(file: ReadOnlySignal<PathBuf>) -> Element {
+pub fn MarkdownViewer(file: PathBuf) -> Element {
+    let mut state = use_context::<AppState>();
     let html = use_signal(String::new);
 
     // Read the file and render markdown to HTML when the component is mounted or when the file changes
@@ -13,7 +15,6 @@ pub fn MarkdownViewer(file: ReadOnlySignal<PathBuf>) -> Element {
         spawn(async move {
             tracing::info!("Loading and rendering file: {:?}", &file);
             // Read the file content
-            let file = file();
             match tokio::fs::read_to_string(file.as_path()).await {
                 Ok(content) => {
                     html.set(render_to_html(&content, &file).unwrap_or_else(|e| {
@@ -34,6 +35,42 @@ pub fn MarkdownViewer(file: ReadOnlySignal<PathBuf>) -> Element {
             }
         });
     }));
+
+    // Listen for markdown-link-click events from JavaScript
+    use_effect(move || {
+        let mut eval_provider = document::eval(indoc::indoc! {r#"
+            window.handleMarkdownLinkClick = (path) => {
+                dioxus.send(path);
+            };
+        "#});
+        // Get the current file's directory
+        let base_dir = file
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
+        spawn(async move {
+            loop {
+                if let Ok(response) = eval_provider.recv::<String>().await {
+                    tracing::info!("Markdown link clicked: {}", response);
+
+                    // Resolve the relative path
+                    let target_path = base_dir.join(&response);
+
+                    // Normalize the path
+                    match target_path.canonicalize() {
+                        Ok(canonical_path) => {
+                            tracing::info!("Opening file: {:?}", canonical_path);
+                            state.file.set(Some(canonical_path));
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to resolve path {:?}: {}", target_path, e);
+                        }
+                    }
+                }
+            }
+        });
+    });
+
     rsx! {
         div {
             class: "markdown-viewer",

@@ -6,12 +6,14 @@
   --light-border-color: #d1d9e0;
   --light-header-bg: #f6f8fa;
   --light-content-bg: #ffffff;
+  --light-link-color: #0969da;
   /* Dark theme */
   --dark-bg-color: #0d1117;
   --dark-text-color: #e6edf3;
   --dark-border-color: #30363d;
   --dark-header-bg: #010409;
   --dark-content-bg: #0d1117;
+  --dark-link-color: #4493f8;
   /* Scrollbar colors */
   --scrollbar-track-light: #f6f8fa;
   --scrollbar-thumb-light: #d1d9e0;
@@ -25,6 +27,7 @@
   --border-color: var(--light-border-color);
   --header-bg: var(--light-header-bg);
   --content-bg: var(--light-content-bg);
+  --link-color: var(--light-link-color);
   --scrollbar-track: var(--scrollbar-track-light);
   --scrollbar-thumb: var(--scrollbar-thumb-light);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
@@ -36,6 +39,7 @@
   --border-color: var(--light-border-color);
   --header-bg: var(--light-header-bg);
   --content-bg: var(--light-content-bg);
+  --link-color: var(--light-link-color);
   --scrollbar-track: var(--scrollbar-track-light);
   --scrollbar-thumb: var(--scrollbar-thumb-light);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
@@ -47,6 +51,7 @@
   --border-color: var(--dark-border-color);
   --header-bg: var(--dark-header-bg);
   --content-bg: var(--dark-content-bg);
+  --link-color: var(--dark-link-color);
   --scrollbar-track: var(--scrollbar-track-dark);
   --scrollbar-thumb: var(--scrollbar-thumb-dark);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
@@ -60,6 +65,7 @@
     --border-color: var(--light-border-color);
     --header-bg: var(--light-header-bg);
     --content-bg: var(--light-content-bg);
+    --link-color: var(--light-link-color);
     --scrollbar-track: var(--scrollbar-track-light);
     --scrollbar-thumb: var(--scrollbar-thumb-light);
     --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
@@ -73,6 +79,7 @@
     --border-color: var(--dark-border-color);
     --header-bg: var(--dark-header-bg);
     --content-bg: var(--dark-content-bg);
+    --link-color: var(--dark-link-color);
     --scrollbar-track: var(--scrollbar-track-dark);
     --scrollbar-thumb: var(--scrollbar-thumb-dark);
     --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);

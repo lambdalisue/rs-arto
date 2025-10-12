@@ -7,5 +7,16 @@
   .markdown-body {
     margin: 0 auto;
     max-width: 960px;
+
+    /* Style markdown file links (span.md-link) to look like regular links */
+    span.md-link {
+      color: var(--link-color);
+      text-decoration: none;
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 }
