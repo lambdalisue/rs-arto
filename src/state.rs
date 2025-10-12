@@ -3,10 +3,13 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tokio::sync::mpsc::Receiver;
 
+use crate::theme::ThemePreference;
+
 /// A global receiver to receive opened files from the main thread
 pub static OPENED_FILES_RECEIVER: Mutex<Option<Receiver<PathBuf>>> = Mutex::new(None);
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct AppState {
     pub file: Signal<Option<PathBuf>>,
+    pub current_theme: Signal<ThemePreference>,
 }

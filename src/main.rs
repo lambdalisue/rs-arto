@@ -1,6 +1,7 @@
 mod components;
 mod markdown;
 mod state;
+mod theme;
 
 use dioxus::desktop::Config;
 use std::path::PathBuf;
