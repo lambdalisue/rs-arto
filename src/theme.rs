@@ -6,16 +6,6 @@ pub enum ThemePreference {
     Dark,
 }
 
-impl ThemePreference {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ThemePreference::Auto => "auto",
-            ThemePreference::Light => "light",
-            ThemePreference::Dark => "dark",
-        }
-    }
-}
-
 impl From<&str> for ThemePreference {
     fn from(s: &str) -> Self {
         match s {

@@ -1,4 +1,4 @@
-@import url("./theme-selector.css");
+@import url("./header/theme-selector.css");
 
 .header {
   flex-shrink: 0;

@@ -36,8 +36,7 @@ pub fn ThemeSelector() -> Element {
         let mut current_theme = current_theme;
         move || {
             spawn(async move {
-                let result = document::eval("window.getCurrentMarkdownTheme()").await;
-
+                let result = document::eval("window.getCurrentTheme()").await;
                 if let Ok(value) = result {
                     if let Some(theme_str) = value.as_str() {
                         let theme = match theme_str {
@@ -54,7 +53,6 @@ pub fn ThemeSelector() -> Element {
 
     use_effect(use_reactive!(|current_theme, system_theme| {
         let preference = current_theme();
-        let pref_str = preference.as_str().to_string();
         let resolved = match preference {
             ThemePreference::Light => "light".to_string(),
             ThemePreference::Dark => "dark".to_string(),
@@ -64,13 +62,8 @@ pub fn ThemeSelector() -> Element {
                 Err(_) => FALLBACK_THEME_STR.to_string(),
             },
         };
-
         spawn(async move {
-            let script = format!(
-                "window.setMarkdownTheme('{pref}'); window.applyMarkdownResolvedTheme('{resolved}');",
-                pref = pref_str,
-                resolved = resolved,
-            );
+            let script = format!("window.setCurrentTheme('{resolved}')");
             let _ = document::eval(&script).await;
         });
     }));

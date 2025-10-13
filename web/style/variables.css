@@ -1,4 +1,3 @@
-/* Define themes with CSS variables */
 :root {
   /* Light theme */
   --light-bg-color: #ffffff;
@@ -55,33 +54,4 @@
   --scrollbar-track: var(--scrollbar-track-dark);
   --scrollbar-thumb: var(--scrollbar-thumb-dark);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
-}
-
-/* Auto theme (follows system settings) */
-@media (prefers-color-scheme: light) {
-  [data-theme="auto"] {
-    --bg-color: var(--light-bg-color);
-    --text-color: var(--light-text-color);
-    --border-color: var(--light-border-color);
-    --header-bg: var(--light-header-bg);
-    --content-bg: var(--light-content-bg);
-    --link-color: var(--light-link-color);
-    --scrollbar-track: var(--scrollbar-track-light);
-    --scrollbar-thumb: var(--scrollbar-thumb-light);
-    --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  [data-theme="auto"] {
-    --bg-color: var(--dark-bg-color);
-    --text-color: var(--dark-text-color);
-    --border-color: var(--dark-border-color);
-    --header-bg: var(--dark-header-bg);
-    --content-bg: var(--dark-content-bg);
-    --link-color: var(--dark-link-color);
-    --scrollbar-track: var(--scrollbar-track-dark);
-    --scrollbar-thumb: var(--scrollbar-thumb-dark);
-    --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
-  }
 }

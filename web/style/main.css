@@ -1,0 +1,17 @@
+@import url("./variables.css");
+@import url("./scrollbar.css");
+@import url("./components/app.css");
+@import url("./components/icon.css");
+@import url("./components/header.css");
+@import url("./components/content.css");
+
+/* App-wide styling */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
