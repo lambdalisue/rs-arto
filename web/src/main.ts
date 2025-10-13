@@ -2,6 +2,7 @@ import "../style/main.css";
 
 import type { Theme } from "./theme";
 import * as markdownViewer from "./markdown-viewer";
+import * as syntaxHighlighter from "./syntax-highlighter";
 
 // Extend the Window type
 declare global {
@@ -25,14 +26,16 @@ function getCurrentTheme(): Theme {
 function setCurrentTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
   markdownViewer.setTheme(theme);
+  syntaxHighlighter.setTheme(theme);
 }
 
 function mount(): void {
   markdownViewer.mount();
+  syntaxHighlighter.mount();
 }
 
 function init(): void {
-  // Initialize other components if needed
+  syntaxHighlighter.init();
 }
 
 mount();

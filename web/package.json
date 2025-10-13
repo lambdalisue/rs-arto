@@ -10,7 +10,8 @@
     "check": "prettier --check **/*.{ts,css}"
   },
   "dependencies": {
-    "github-markdown-css": "^5.8.1"
+    "github-markdown-css": "^5.8.1",
+    "highlight.js": "^11.11.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
