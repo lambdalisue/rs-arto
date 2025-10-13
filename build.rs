@@ -9,13 +9,28 @@ fn main() {
     println!("cargo:rerun-if-changed=web/vite.config.ts");
 
     let output = Command::new("pnpm")
+        .args(["run", "build-icons"])
+        .current_dir("web")
+        .output()
+        .expect("Failed to run vite (build-icons)");
+    if !output.status.success() {
+        panic!(
+            "Vite (build-icons) failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    let output = Command::new("pnpm")
         .args(["run", "build"])
         .current_dir("web")
         .output()
-        .expect("Failed to run vite");
-
+        .expect("Failed to run vite (build)");
     if !output.status.success() {
-        panic!("Vite failed: {}", String::from_utf8_lossy(&output.stderr));
+        panic!(
+            "Vite (build) failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
+
     println!("cargo:warning=Assets bundled with Vite successfully");
 }
