@@ -20,6 +20,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy,rustfmt
+          cache-all-crates: true
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -40,6 +41,8 @@ jobs:
       - uses: chetan/git-restore-mtime-action@v2
       - uses: extractions/setup-just@v3
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-all-crates: true
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -60,6 +63,8 @@ jobs:
       - uses: chetan/git-restore-mtime-action@v2
       - uses: extractions/setup-just@v3
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-all-crates: true
       - uses: pnpm/action-setup@v4
         with:
           version: 10
