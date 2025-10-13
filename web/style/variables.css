@@ -2,16 +2,22 @@
   /* Light theme */
   --light-bg-color: #ffffff;
   --light-text-color: #1f2328;
+  --light-text-secondary: #6b7280;
   --light-border-color: #d1d9e0;
   --light-header-bg: #f6f8fa;
   --light-content-bg: #ffffff;
+  --light-bg-secondary: #f9fafb;
+  --light-bg-tertiary: #ffffff;
   --light-link-color: #0969da;
   /* Dark theme */
   --dark-bg-color: #0d1117;
   --dark-text-color: #e6edf3;
+  --dark-text-secondary: #9ca3af;
   --dark-border-color: #30363d;
   --dark-header-bg: #010409;
   --dark-content-bg: #0d1117;
+  --dark-bg-secondary: #1f2937;
+  --dark-bg-tertiary: #374151;
   --dark-link-color: #4493f8;
   /* Scrollbar colors */
   --scrollbar-track-light: #f6f8fa;
@@ -23,9 +29,12 @@
   /* Default theme */
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
+  --text-secondary: var(--light-text-secondary);
   --border-color: var(--light-border-color);
   --header-bg: var(--light-header-bg);
   --content-bg: var(--light-content-bg);
+  --bg-secondary: var(--light-bg-secondary);
+  --bg-tertiary: var(--light-bg-tertiary);
   --link-color: var(--light-link-color);
   --scrollbar-track: var(--scrollbar-track-light);
   --scrollbar-thumb: var(--scrollbar-thumb-light);
@@ -35,9 +44,12 @@
 [data-theme="light"] {
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
+  --text-secondary: var(--light-text-secondary);
   --border-color: var(--light-border-color);
   --header-bg: var(--light-header-bg);
   --content-bg: var(--light-content-bg);
+  --bg-secondary: var(--light-bg-secondary);
+  --bg-tertiary: var(--light-bg-tertiary);
   --link-color: var(--light-link-color);
   --scrollbar-track: var(--scrollbar-track-light);
   --scrollbar-thumb: var(--scrollbar-thumb-light);
@@ -47,9 +59,12 @@
 [data-theme="dark"] {
   --bg-color: var(--dark-bg-color);
   --text-color: var(--dark-text-color);
+  --text-secondary: var(--dark-text-secondary);
   --border-color: var(--dark-border-color);
   --header-bg: var(--dark-header-bg);
   --content-bg: var(--dark-content-bg);
+  --bg-secondary: var(--dark-bg-secondary);
+  --bg-tertiary: var(--dark-bg-tertiary);
   --link-color: var(--dark-link-color);
   --scrollbar-track: var(--scrollbar-track-dark);
   --scrollbar-thumb: var(--scrollbar-thumb-dark);

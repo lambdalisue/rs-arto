@@ -10,6 +10,10 @@ pub enum IconName {
     Contrast2,
     ChevronLeft,
     ChevronRight,
+    File,
+    FolderOpen,
+    Command,
+    Click,
 }
 
 impl fmt::Display for IconName {
@@ -20,6 +24,10 @@ impl fmt::Display for IconName {
             IconName::Contrast2 => "contrast-2",
             IconName::ChevronLeft => "chevron-left",
             IconName::ChevronRight => "chevron-right",
+            IconName::File => "file",
+            IconName::FolderOpen => "folder-open",
+            IconName::Command => "command",
+            IconName::Click => "click",
         };
         write!(f, "{}", name)
     }

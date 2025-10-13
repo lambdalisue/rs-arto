@@ -4,7 +4,17 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const icons = ["sun", "moon", "contrast-2", "chevron-left", "chevron-right"];
+const icons = [
+  "sun",
+  "moon",
+  "contrast-2",
+  "chevron-left",
+  "chevron-right",
+  "file",
+  "folder-open",
+  "command",
+  "click",
+];
 const iconsDir = path.join(__dirname, "../node_modules/@tabler/icons/icons/outline");
 const outputPath = path.join(__dirname, "../public/icons/tabler-sprite.svg");
 

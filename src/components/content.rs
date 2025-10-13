@@ -1,9 +1,11 @@
 mod markdown_viewer;
+mod no_file_view;
 
 use dioxus::prelude::*;
 
 use crate::state::AppState;
 use markdown_viewer::MarkdownViewer;
+use no_file_view::NoFileView;
 
 #[component]
 pub fn Content() -> Element {
@@ -23,10 +25,7 @@ pub fn Content() -> Element {
             if let Some(file) = file().clone() {
                 MarkdownViewer { file }
             } else {
-                div {
-                    class: "no-file",
-                    "No file opened. Please open a markdown file to view its content."
-                }
+                NoFileView {}
             }
         }
     }
