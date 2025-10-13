@@ -38,9 +38,9 @@ fn get_alert_icon_placeholder(alert_type: &str) -> String {
     )
 }
 
-/// Process GitHub alert format
-fn process_github_alerts(markdown: &str) -> String {
-    let alert_types = [
+/// Check if a line starts a GitHub alert and return alert info
+fn parse_alert_start(line: &str) -> Option<(&'static str, &'static str, &str)> {
+    const ALERT_TYPES: [(&str, &str); 5] = [
         ("NOTE", "note"),
         ("TIP", "tip"),
         ("IMPORTANT", "important"),
@@ -48,6 +48,61 @@ fn process_github_alerts(markdown: &str) -> String {
         ("CAUTION", "caution"),
     ];
 
+    for &(alert_name, alert_class) in &ALERT_TYPES {
+        if let Some(rest) = line.strip_prefix(&format!("> [!{}]", alert_name)) {
+            return Some((alert_name, alert_class, rest));
+        }
+    }
+    None
+}
+
+/// Process a single alert block and return HTML lines and next index
+fn process_alert_block(
+    lines: &[&str],
+    start_index: usize,
+    alert_name: &str,
+    alert_class: &str,
+    first_line_content: &str,
+) -> (Vec<String>, usize) {
+    let mut html_lines = Vec::new();
+
+    // Alert opening tag
+    html_lines.push(format!(
+        r#"<div class="markdown-alert markdown-alert-{}" dir="auto">"#,
+        alert_class
+    ));
+
+    // Alert title with icon
+    let icon_placeholder = get_alert_icon_placeholder(alert_class);
+    html_lines.push(format!(
+        r#"<p class="markdown-alert-title" dir="auto">{}{}</p>"#,
+        icon_placeholder, alert_name
+    ));
+
+    // First line content
+    if !first_line_content.trim().is_empty() {
+        html_lines.push(first_line_content.trim().to_string());
+    }
+
+    // Collect following quoted lines
+    let mut i = start_index + 1;
+    while i < lines.len() && lines[i].starts_with('>') {
+        if let Some(content) = lines[i].strip_prefix('>') {
+            let trimmed = content.trim();
+            if !trimmed.is_empty() {
+                html_lines.push(trimmed.to_string());
+            }
+        }
+        i += 1;
+    }
+
+    html_lines.push("</div>".to_string());
+
+    (html_lines, i)
+}
+
+/// Process GitHub alert format
+fn process_github_alerts(markdown: &str) -> String {
     let lines: Vec<&str> = markdown.lines().collect();
     let mut result = Vec::new();
     let mut i = 0;
@@ -55,51 +110,15 @@ fn process_github_alerts(markdown: &str) -> String {
     while i < lines.len() {
         let line = lines[i];
 
-        // Check alert pattern
-        let mut matched = false;
-        for (alert_name, alert_class) in &alert_types {
-            if let Some(rest) = line.strip_prefix(&format!("> [!{}]", alert_name)) {
-                matched = true;
-
-                // Start of alert with GitHub structure
-                result.push(format!(
-                    r#"<div class="markdown-alert markdown-alert-{}" dir="auto">"#,
-                    alert_class
-                ));
-
-                // Title with icon placeholder (SVG injected by JavaScript)
-                let icon_placeholder = get_alert_icon_placeholder(alert_class);
-                result.push(format!(
-                    r#"<p class="markdown-alert-title" dir="auto">{}{}</p>"#,
-                    icon_placeholder, alert_name
-                ));
-
-                // Content of first line
-                if !rest.trim().is_empty() {
-                    result.push(rest.trim().to_string());
-                }
-
-                // Collect following quoted lines
-                i += 1;
-                while i < lines.len() && lines[i].starts_with('>') {
-                    let content = lines[i].strip_prefix('>').unwrap_or(lines[i]).trim();
-                    if !content.is_empty() {
-                        result.push(content.to_string());
-                    }
-                    i += 1;
-                }
-
-                result.push("</div>".to_string());
-                i -= 1; // Adjust because it's incremented at the end of loop
-                break;
-            }
-        }
-
-        if !matched {
+        if let Some((alert_name, alert_class, rest)) = parse_alert_start(line) {
+            let (alert_html, next_index) =
+                process_alert_block(&lines, i, alert_name, alert_class, rest);
+            result.extend(alert_html);
+            i = next_index;
+        } else {
             result.push(line.to_string());
+            i += 1;
         }
-
-        i += 1;
     }
 
     result.join("\n")
@@ -198,7 +217,7 @@ fn process_anchor_markdown_files<'a>(
                         in_md_link = true;
                         link_url = url_str.to_string();
                         let html = format!(
-                            r#"<span class="md-link" onclick="window.handleMarkdownLinkClick('{}');">"#,
+                            r#"<span class="md-link" onmousedown="if (event.button === 0 || event.button === 1) {{ event.preventDefault(); window.handleMarkdownLinkClick('{}', event.button); }}">"#,
                             url_str.replace('\'', "\\'")
                         );
                         return vec![Event::Html(html.into())];

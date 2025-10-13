@@ -1,0 +1,120 @@
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  padding: 0 20px 8px 20px;
+  gap: 0;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  margin-top: -4px;
+}
+
+.tab-bar:hover {
+  opacity: 1;
+}
+
+/* Minimal scrollbar styling */
+.tab-bar::-webkit-scrollbar {
+  height: 2px;
+}
+
+.tab-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-bar::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  opacity: 0.3;
+  border-radius: 1px;
+}
+
+.tab-bar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color);
+  opacity: 0.5;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  padding-right: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  user-select: none;
+  opacity: 0.5;
+  position: relative;
+  border-radius: 4px;
+}
+
+.tab:hover {
+  opacity: 0.8;
+  background: var(--bg-secondary);
+}
+
+.tab.active {
+  color: var(--text-color);
+  opacity: 1;
+  font-weight: 500;
+}
+
+.tab-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0;
+  transition: all 0.15s;
+  width: 18px;
+  height: 18px;
+  position: absolute;
+  right: 4px;
+}
+
+.tab:hover .tab-close {
+  opacity: 0.7;
+}
+
+.tab-close:hover {
+  opacity: 1 !important;
+  background: var(--bg-secondary);
+}
+
+.tab-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px;
+  margin-left: 4px;
+  transition: all 0.15s;
+  opacity: 0.5;
+}
+
+.tab-new:hover {
+  opacity: 1;
+}

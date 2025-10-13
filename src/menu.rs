@@ -13,8 +13,10 @@ use crate::window;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MenuId {
     NewWindow,
+    NewTab,
     Open,
-    OpenInCurrentWindow,
+    CloseTab,
+    CloseAllTabs,
     CloseWindow,
     CloseAllWindows,
     ActualSize,
@@ -30,10 +32,12 @@ impl MenuId {
     fn from_str(s: &str) -> Option<Self> {
         match s {
             "file.new_window" => Some(Self::NewWindow),
+            "file.new_tab" => Some(Self::NewTab),
             "file.open" => Some(Self::Open),
-            "file.open_in_current_window" => Some(Self::OpenInCurrentWindow),
+            "file.close_tab" => Some(Self::CloseTab),
+            "file.close_all_tabs" => Some(Self::CloseAllTabs),
             "file.close_window" => Some(Self::CloseWindow),
-            "file.close_all" => Some(Self::CloseAllWindows),
+            "file.close_all_windows" => Some(Self::CloseAllWindows),
             "view.actual_size" => Some(Self::ActualSize),
             "view.zoom_in" => Some(Self::ZoomIn),
             "view.zoom_out" => Some(Self::ZoomOut),
@@ -48,10 +52,12 @@ impl MenuId {
     fn as_str(self) -> &'static str {
         match self {
             Self::NewWindow => "file.new_window",
+            Self::NewTab => "file.new_tab",
             Self::Open => "file.open",
-            Self::OpenInCurrentWindow => "file.open_in_current_window",
+            Self::CloseTab => "file.close_tab",
+            Self::CloseAllTabs => "file.close_all_tabs",
             Self::CloseWindow => "file.close_window",
-            Self::CloseAllWindows => "file.close_all",
+            Self::CloseAllWindows => "file.close_all_windows",
             Self::ActualSize => "view.actual_size",
             Self::ZoomIn => "view.zoom_in",
             Self::ZoomOut => "view.zoom_out",
@@ -62,6 +68,17 @@ impl MenuId {
     }
 }
 
+/// Helper to create a menu item with optional keyboard shortcut
+fn create_menu_item(
+    id: MenuId,
+    label: &str,
+    code: Option<Code>,
+    additional_modifiers: Option<Modifiers>,
+) -> MenuItem {
+    let accelerator = code.map(|c| get_cmd_or_ctrl(c, additional_modifiers));
+    MenuItem::with_id(id.as_str(), label, true, accelerator)
+}
+
 /// Build the application menu bar
 pub fn build_menu() -> Menu {
     #[cfg(target_os = "macos")]
@@ -69,146 +86,112 @@ pub fn build_menu() -> Menu {
 
     let menu = Menu::new();
 
-    // macOS: Add Arto menu (app menu)
     #[cfg(target_os = "macos")]
-    {
-        let arto_menu = Submenu::new("Arto", true);
-        let about_metadata = AboutMetadataBuilder::new()
-            .name(Some("Arto".to_string()))
-            .version(Some(env!("CARGO_PKG_VERSION")))
-            .authors(Some(
-                vec!["lambdalisue <lambdalisue@gmail.com>".to_string()],
-            ))
-            .website(Some("https://github.com/lambdalisue/rs-arto".to_string()))
-            .website_label(Some("GitHub".to_string()))
-            .copyright(Some("Copyright 2025 lambdalisue".to_string()))
-            .build();
-        arto_menu
-            .append_items(&[
-                &PredefinedMenuItem::about(Some("Arto"), Some(about_metadata)),
-                &PredefinedMenuItem::separator(),
-                &PredefinedMenuItem::quit(Some("Quit")),
-            ])
-            .unwrap();
-        menu.append(&arto_menu).unwrap();
-    }
+    add_app_menu(&menu);
 
-    // File menu
-    let file_menu = Submenu::new("File", true);
+    add_file_menu(&menu);
+    add_view_menu(&menu);
+    add_history_menu(&menu);
+    add_help_menu(&menu);
 
-    let new_window = MenuItem::with_id(
-        MenuId::NewWindow.as_str(),
-        "New Window",
-        true,
-        Some(get_cmd_or_ctrl(Code::KeyN, None)),
-    );
+    menu
+}
 
-    let open = MenuItem::with_id(
-        MenuId::Open.as_str(),
-        "Open...",
-        true,
-        Some(get_cmd_or_ctrl(Code::KeyO, None)),
-    );
+#[cfg(target_os = "macos")]
+fn add_app_menu(menu: &Menu) {
+    let arto_menu = Submenu::new("Arto", true);
+    let about_metadata = AboutMetadataBuilder::new()
+        .name(Some("Arto".to_string()))
+        .version(Some(env!("CARGO_PKG_VERSION")))
+        .authors(Some(
+            vec!["lambdalisue <lambdalisue@gmail.com>".to_string()],
+        ))
+        .website(Some("https://github.com/lambdalisue/rs-arto".to_string()))
+        .website_label(Some("GitHub".to_string()))
+        .copyright(Some("Copyright 2025 lambdalisue".to_string()))
+        .build();
 
-    let open_in_current_window = MenuItem::with_id(
-        MenuId::OpenInCurrentWindow.as_str(),
-        "Open in Current Window",
-        true,
-        Some(get_cmd_or_ctrl(Code::KeyO, Some(Modifiers::SHIFT))),
-    );
-
-    let close_window = MenuItem::with_id(
-        MenuId::CloseWindow.as_str(),
-        "Close Window",
-        true,
-        Some(get_cmd_or_ctrl(Code::KeyW, None)),
-    );
-
-    file_menu
+    arto_menu
         .append_items(&[
-            &new_window,
-            &open,
-            &open_in_current_window,
+            &PredefinedMenuItem::about(Some("Arto"), Some(about_metadata)),
             &PredefinedMenuItem::separator(),
-            &close_window,
+            &PredefinedMenuItem::quit(Some("Quit")),
         ])
         .unwrap();
 
-    #[cfg(target_os = "macos")]
-    {
-        let close_all_windows = MenuItem::with_id(
-            MenuId::CloseAllWindows.as_str(),
-            "Close All Windows",
-            true,
-            Some(get_cmd_or_ctrl(Code::KeyW, Some(Modifiers::ALT))),
-        );
-        file_menu.append(&close_all_windows).unwrap();
-    }
+    menu.append(&arto_menu).unwrap();
+}
+
+fn add_file_menu(menu: &Menu) {
+    let file_menu = Submenu::new("File", true);
+
+    file_menu
+        .append_items(&[
+            &create_menu_item(MenuId::NewWindow, "New Window", Some(Code::KeyN), None),
+            &create_menu_item(MenuId::NewTab, "New Tab", Some(Code::KeyT), None),
+            &PredefinedMenuItem::separator(),
+            &create_menu_item(MenuId::Open, "Open...", Some(Code::KeyO), None),
+            &PredefinedMenuItem::separator(),
+            &create_menu_item(MenuId::CloseTab, "Close Tab", Some(Code::KeyW), None),
+            &create_menu_item(MenuId::CloseAllTabs, "Close All Tabs", None, None),
+            &create_menu_item(
+                MenuId::CloseWindow,
+                "Close Window",
+                Some(Code::KeyW),
+                Some(Modifiers::SHIFT),
+            ),
+            &create_menu_item(MenuId::CloseAllWindows, "Close All Windows", None, None),
+        ])
+        .unwrap();
 
     menu.append(&file_menu).unwrap();
+}
 
-    // View menu
+fn add_view_menu(menu: &Menu) {
     let view_menu = Submenu::new("View", true);
 
-    let actual_size = MenuItem::with_id(
-        MenuId::ActualSize.as_str(),
-        "Actual Size",
-        true,
-        Some(get_cmd_or_ctrl(Code::Digit0, None)),
-    );
-
-    let zoom_in = MenuItem::with_id(
-        MenuId::ZoomIn.as_str(),
-        "Zoom In",
-        true,
-        Some(get_cmd_or_ctrl(Code::Equal, None)),
-    );
-
-    let zoom_out = MenuItem::with_id(
-        MenuId::ZoomOut.as_str(),
-        "Zoom Out",
-        true,
-        Some(get_cmd_or_ctrl(Code::Minus, None)),
-    );
-
     view_menu
-        .append_items(&[&actual_size, &zoom_in, &zoom_out])
+        .append_items(&[
+            &create_menu_item(MenuId::ActualSize, "Actual Size", Some(Code::Digit0), None),
+            &create_menu_item(MenuId::ZoomIn, "Zoom In", Some(Code::Equal), None),
+            &create_menu_item(MenuId::ZoomOut, "Zoom Out", Some(Code::Minus), None),
+        ])
         .unwrap();
 
     menu.append(&view_menu).unwrap();
+}
 
-    // History menu
+fn add_history_menu(menu: &Menu) {
     let history_menu = Submenu::new("History", true);
 
-    let go_back = MenuItem::with_id(
-        MenuId::GoBack.as_str(),
-        "Go Back",
-        true,
-        Some(get_cmd_or_ctrl(Code::BracketLeft, None)),
-    );
-
-    let go_forward = MenuItem::with_id(
-        MenuId::GoForward.as_str(),
-        "Go Forward",
-        true,
-        Some(get_cmd_or_ctrl(Code::BracketRight, None)),
-    );
-
-    history_menu.append_items(&[&go_back, &go_forward]).unwrap();
+    history_menu
+        .append_items(&[
+            &create_menu_item(MenuId::GoBack, "Go Back", Some(Code::BracketLeft), None),
+            &create_menu_item(
+                MenuId::GoForward,
+                "Go Forward",
+                Some(Code::BracketRight),
+                None,
+            ),
+        ])
+        .unwrap();
 
     menu.append(&history_menu).unwrap();
+}
 
-    // Help menu
+fn add_help_menu(menu: &Menu) {
     let help_menu = Submenu::new("Help", true);
 
-    let go_to_homepage =
-        MenuItem::with_id(MenuId::GoToHomepage.as_str(), "Go to Homepage", true, None);
-
-    help_menu.append(&go_to_homepage).unwrap();
+    help_menu
+        .append(&create_menu_item(
+            MenuId::GoToHomepage,
+            "Go to Homepage",
+            None,
+            None,
+        ))
+        .unwrap();
 
     menu.append(&help_menu).unwrap();
-
-    menu
 }
 
 /// Get Cmd (macOS) or Ctrl (others) modifier with optional additional modifiers
@@ -241,13 +224,6 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
         MenuId::NewWindow => {
             window::create_new_window(None);
         }
-        MenuId::Open => {
-            tracing::info!("Opening file picker for new window...");
-            if let Some(file) = pick_markdown_file() {
-                tracing::info!("File selected: {:?}", file);
-                window::create_new_window(Some(file));
-            }
-        }
         MenuId::CloseAllWindows => {
             tracing::info!("Closing all child windows");
             window::close_all_child_windows();
@@ -278,14 +254,30 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
     };
 
     match id {
+        MenuId::NewTab => {
+            state.add_tab(None, true);
+        }
+        MenuId::Open => {
+            if let Some(file) = pick_markdown_file() {
+                state.update_current_tab(|tab| {
+                    tab.history.push(file.clone());
+                    tab.file = Some(file);
+                });
+            }
+        }
+        MenuId::CloseTab => {
+            let active_tab = *state.active_tab.read();
+            state.close_tab(active_tab);
+        }
+        MenuId::CloseAllTabs => {
+            // Close all tabs except one, then clear it
+            let mut tabs = state.tabs.write();
+            tabs.clear();
+            tabs.push(crate::state::Tab::new(None));
+            state.active_tab.set(0);
+        }
         MenuId::CloseWindow => {
             window().close();
-        }
-        MenuId::OpenInCurrentWindow => {
-            if let Some(file) = pick_markdown_file() {
-                state.history.write().push(file.clone());
-                state.file.set(Some(file));
-            }
         }
         MenuId::ActualSize => {
             state.zoom_level.set(1.0);
@@ -301,14 +293,18 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
             state.zoom_level.set((current - 0.1).max(0.1));
         }
         MenuId::GoBack => {
-            if let Some(path) = state.history.write().go_back() {
-                state.file.set(Some(path));
-            }
+            state.update_current_tab(|tab| {
+                if let Some(path) = tab.history.go_back() {
+                    tab.file = Some(path);
+                }
+            });
         }
         MenuId::GoForward => {
-            if let Some(path) = state.history.write().go_forward() {
-                state.file.set(Some(path));
-            }
+            state.update_current_tab(|tab| {
+                if let Some(path) = tab.history.go_forward() {
+                    tab.file = Some(path);
+                }
+            });
         }
         _ => return false,
     }

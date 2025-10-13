@@ -15,6 +15,8 @@ pub enum IconName {
     Command,
     Click,
     FileUpload,
+    Close,
+    Add,
 }
 
 impl fmt::Display for IconName {
@@ -30,6 +32,8 @@ impl fmt::Display for IconName {
             IconName::Command => "command",
             IconName::Click => "click",
             IconName::FileUpload => "file-upload",
+            IconName::Close => "x",
+            IconName::Add => "plus",
         };
         write!(f, "{}", name)
     }

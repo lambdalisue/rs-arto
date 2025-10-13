@@ -10,8 +10,10 @@ use no_file_view::NoFileView;
 #[component]
 pub fn Content() -> Element {
     let state = use_context::<AppState>();
-    let file = state.file;
     let zoom_level = state.zoom_level;
+
+    let current_tab = state.current_tab();
+    let file = current_tab.and_then(|tab| tab.file);
 
     // Use CSS zoom property for vector-based scaling (not transform: scale)
     // This ensures fonts and images remain sharp at any zoom level
@@ -22,7 +24,7 @@ pub fn Content() -> Element {
             class: "content",
             style: "{zoom_style}",
 
-            if let Some(file) = file().clone() {
+            if let Some(file) = file {
                 MarkdownViewer { file }
             } else {
                 NoFileView {}

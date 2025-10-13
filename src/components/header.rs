@@ -8,11 +8,12 @@ use theme_selector::ThemeSelector;
 
 #[component]
 pub fn Header() -> Element {
-    let mut state = use_context::<AppState>();
-    let file = state
-        .file
-        .read()
-        .as_deref()
+    let state = use_context::<AppState>();
+
+    let current_tab = state.current_tab();
+    let file = current_tab
+        .as_ref()
+        .and_then(|tab| tab.file.as_ref())
         .map(|f| {
             f.file_name()
                 .unwrap_or(f.as_os_str())
@@ -21,19 +22,30 @@ pub fn Header() -> Element {
         })
         .unwrap_or_else(|| "No file opened".to_string());
 
-    let can_go_back = state.history.read().can_go_back();
-    let can_go_forward = state.history.read().can_go_forward();
+    let can_go_back = current_tab
+        .as_ref()
+        .is_some_and(|tab| tab.history.can_go_back());
+    let can_go_forward = current_tab
+        .as_ref()
+        .is_some_and(|tab| tab.history.can_go_forward());
+
+    let mut state_for_back = state.clone();
+    let mut state_for_forward = state.clone();
 
     let on_back = move |_| {
-        if let Some(path) = state.history.write().go_back() {
-            state.file.set(Some(path));
-        }
+        state_for_back.update_current_tab(|tab| {
+            if let Some(path) = tab.history.go_back() {
+                tab.file = Some(path);
+            }
+        });
     };
 
     let on_forward = move |_| {
-        if let Some(path) = state.history.write().go_forward() {
-            state.file.set(Some(path));
-        }
+        state_for_forward.update_current_tab(|tab| {
+            if let Some(path) = tab.history.go_forward() {
+                tab.file = Some(path);
+            }
+        });
     };
 
     rsx! {

@@ -15,6 +15,8 @@ const icons = [
   "command",
   "click",
   "file-upload",
+  "x",
+  "plus",
 ];
 const iconsDir = path.join(__dirname, "../node_modules/@tabler/icons/icons/outline");
 const outputPath = path.join(__dirname, "../public/icons/tabler-sprite.svg");

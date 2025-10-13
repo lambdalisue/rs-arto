@@ -23,16 +23,16 @@ pub fn Entrypoint() -> Element {
         Some(file)
     } else {
         tracing::info!("No initial file to open");
-        get_sampe_file_on_debug_build()
+        get_sample_file_on_debug_build()
     };
     tracing::info!("Creating first child window");
     window_manager::create_new_window(first_file.clone());
 
-    // Spawn a task to receive files forever to open new windows
+    // Broadcast received files to all windows
     spawn_forever(async move {
         while let Some(file) = rx.recv().await {
-            tracing::info!("Opening new file: {:?}", file);
-            window_manager::create_new_window(Some(file));
+            tracing::info!("Broadcasting file open request: {:?}", file);
+            let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
         }
     });
 
@@ -50,7 +50,7 @@ pub fn Entrypoint() -> Element {
 }
 
 #[cfg(debug_assertions)]
-fn get_sampe_file_on_debug_build() -> Option<std::path::PathBuf> {
+fn get_sample_file_on_debug_build() -> Option<std::path::PathBuf> {
     use std::path::Path;
     let sample_file = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("example")
@@ -64,6 +64,6 @@ fn get_sampe_file_on_debug_build() -> Option<std::path::PathBuf> {
 }
 
 #[cfg(not(debug_assertions))]
-fn get_sampe_file_on_debug_build() -> Option<std::path::PathBuf> {
+fn get_sample_file_on_debug_build() -> Option<std::path::PathBuf> {
     None
 }

@@ -1,17 +1,48 @@
 use dioxus::prelude::*;
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
 use crate::assets::MAIN_SCRIPT;
 use crate::markdown::render_to_html;
 use crate::state::AppState;
 use crate::watcher::FILE_WATCHER;
 
+/// Data structure for markdown link clicks from JavaScript
+#[derive(Serialize, Deserialize)]
+struct LinkClickData {
+    path: String,
+    button: u32,
+}
+
+/// Mouse button constants
+const LEFT_CLICK: u32 = 0;
+const MIDDLE_CLICK: u32 = 1;
+
 #[component]
 pub fn MarkdownViewer(file: PathBuf) -> Element {
-    let mut state = use_context::<AppState>();
+    let state = use_context::<AppState>();
     let html = use_signal(String::new);
+    let reload_trigger = use_signal(|| 0usize);
 
-    // Load the main script once when the component is mounted
+    // Setup component hooks
+    use_main_script_loader();
+    use_markdown_loader(file.clone(), html, reload_trigger);
+    use_file_watcher(file.clone(), reload_trigger);
+    use_link_click_handler(file.clone(), state.clone());
+
+    rsx! {
+        div {
+            class: "markdown-viewer",
+            article {
+                class: "markdown-body",
+                dangerous_inner_html: "{html}"
+            }
+        }
+    }
+}
+
+/// Hook to load the main JavaScript bundle once on mount
+fn use_main_script_loader() {
     use_effect(|| {
         spawn(async move {
             let eval = document::eval(&indoc::formatdoc! {r#"
@@ -27,25 +58,24 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
             }
         });
     });
+}
 
-    // Signal to trigger reload when file changes
-    let reload_trigger = use_signal(|| 0usize);
-
-    // Read the file and render markdown to HTML when the component is mounted or when the file changes
+/// Hook to load and render markdown file content
+fn use_markdown_loader(file: PathBuf, html: Signal<String>, reload_trigger: Signal<usize>) {
     use_effect(use_reactive!(|file, reload_trigger| {
         let mut html = html;
-        let _ = reload_trigger(); // Use the reload_trigger to make this effect reactive to it
+        let _ = reload_trigger();
+
         spawn(async move {
             tracing::info!("Loading and rendering file: {:?}", &file);
-            // Read the file content
+
             match tokio::fs::read_to_string(file.as_path()).await {
                 Ok(content) => {
-                    html.set(render_to_html(&content, &file).unwrap_or_else(|e| {
+                    let rendered = render_to_html(&content, &file).unwrap_or_else(|e| {
                         tracing::error!("Failed to render markdown: {}", e);
                         format!(r#"<p class="error">Error rendering markdown: {:?}</p>"#, e)
-                    }));
-                    // Update the state with the rendered HTML
-                    // This is a placeholder, implement state management as needed
+                    });
+                    html.set(rendered);
                     tracing::trace!("Rendered HTML: {}", html);
                 }
                 Err(e) => {
@@ -58,17 +88,17 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
             }
         });
     }));
+}
 
-    // Watch the file for changes and trigger reload
+/// Hook to watch file for changes and trigger reload
+fn use_file_watcher(file: PathBuf, reload_trigger: Signal<usize>) {
     use_effect(use_reactive!(|file| {
         let mut reload_trigger = reload_trigger;
+
         spawn(async move {
             let file_path = file.clone();
-
-            // Create a channel to receive file change events
             let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(10);
 
-            // Register with the global file watcher
             if let Err(e) = FILE_WATCHER.watch(file_path.clone(), tx).await {
                 tracing::error!(
                     "Failed to register file watcher for {:?}: {:?}",
@@ -78,13 +108,11 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
                 return;
             }
 
-            // Listen for change notifications and trigger reload
             while rx.recv().await.is_some() {
                 tracing::info!("File change detected, reloading: {:?}", file_path);
                 reload_trigger.set(reload_trigger() + 1);
             }
 
-            // Cleanup: unwatch when the effect is dropped
             if let Err(e) = FILE_WATCHER.unwatch(file_path.clone()).await {
                 tracing::error!(
                     "Failed to unregister file watcher for {:?}: {:?}",
@@ -94,51 +122,61 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
             }
         });
     }));
+}
 
-    // Listen for markdown-link-click events from JavaScript
+/// Hook to setup JavaScript handler for markdown link clicks
+fn use_link_click_handler(file: PathBuf, state: AppState) {
     use_effect(move || {
         let mut eval_provider = document::eval(indoc::indoc! {r#"
-            window.handleMarkdownLinkClick = (path) => {
-                dioxus.send(path);
+            window.handleMarkdownLinkClick = (path, button) => {
+                dioxus.send({ path, button });
             };
         "#});
-        // Get the current file's directory
+
         let base_dir = file
             .parent()
             .map(|p| p.to_path_buf())
             .unwrap_or_else(|| PathBuf::from("."));
+
+        let mut state_clone = state.clone();
+
         spawn(async move {
-            loop {
-                if let Ok(response) = eval_provider.recv::<String>().await {
-                    tracing::info!("Markdown link clicked: {}", response);
-
-                    // Resolve the relative path
-                    let target_path = base_dir.join(&response);
-
-                    // Normalize the path
-                    match target_path.canonicalize() {
-                        Ok(canonical_path) => {
-                            tracing::info!("Opening file: {:?}", canonical_path);
-                            // Update history and file state
-                            state.history.write().push(canonical_path.clone());
-                            state.file.set(Some(canonical_path));
-                        }
-                        Err(e) => {
-                            tracing::error!("Failed to resolve path {:?}: {}", target_path, e);
-                        }
-                    }
-                }
+            while let Ok(click_data) = eval_provider.recv::<LinkClickData>().await {
+                handle_link_click(click_data, &base_dir, &mut state_clone);
             }
         });
     });
+}
 
-    rsx! {
-        div {
-            class: "markdown-viewer",
-            article {
-                class: "markdown-body",
-                dangerous_inner_html: "{html}"
-            }
+/// Handle a markdown link click event
+fn handle_link_click(click_data: LinkClickData, base_dir: &Path, state: &mut AppState) {
+    let LinkClickData { path, button } = click_data;
+
+    tracing::info!("Markdown link clicked: {} (button: {})", path, button);
+
+    // Resolve and normalize the path
+    let target_path = base_dir.join(&path);
+    let Ok(canonical_path) = target_path.canonicalize() else {
+        tracing::error!("Failed to resolve path: {:?}", target_path);
+        return;
+    };
+
+    tracing::info!("Opening file: {:?}", canonical_path);
+
+    match button {
+        MIDDLE_CLICK => {
+            // Open in new tab
+            state.add_tab(Some(canonical_path), true);
+        }
+        LEFT_CLICK => {
+            // Open in current tab
+            state.update_current_tab(|tab| {
+                tab.history.push(canonical_path.clone());
+                tab.file = Some(canonical_path);
+            });
+        }
+        _ => {
+            tracing::debug!("Ignoring click with button: {}", button);
         }
     }
 }

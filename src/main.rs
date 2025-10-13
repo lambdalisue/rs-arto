@@ -5,6 +5,7 @@ mod markdown;
 mod menu;
 mod state;
 mod theme;
+mod utils;
 mod watcher;
 mod window;
 
