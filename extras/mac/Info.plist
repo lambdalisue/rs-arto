@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
-  <key>CFBundleDisplayName</key><string>Octoscope</string>
-  <key>CFBundleExecutable</key><string>octoscope</string>
-  <key>CFBundleIdentifier</key><string>com.lambdalisue.Octoscope</string>
+  <key>CFBundleDisplayName</key><string>Arto</string>
+  <key>CFBundleExecutable</key><string>arto</string>
+  <key>CFBundleIdentifier</key><string>com.lambdalisue.Arto</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-  <key>CFBundleName</key><string>Octoscope</string>
+  <key>CFBundleName</key><string>Arto</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
   <key>CFBundleVersion</key><string>1</string>

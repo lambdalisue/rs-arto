@@ -1,5 +1,5 @@
 [package]
-name = "octoscope"
+name = "arto"
 version = "0.1.0"
 authors = ["Alisue <lambdalisue@gmail.com>"]
 edition = "2021"

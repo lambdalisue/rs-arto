@@ -33,6 +33,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
+name = "arto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "dioxus",
+ "dioxus-desktop",
+ "dioxus-sdk",
+ "dotenvy",
+ "html-escape",
+ "indoc",
+ "objc2 0.6.3",
+ "objc2-app-kit 0.3.2",
+ "open",
+ "pulldown-cmark",
+ "rfd 0.15.4",
+ "serde",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-oslog",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "ashpd"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3149,31 +3174,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff76201f031d8863c38aa7f905eca4f53abbfa15f609db4277d44cd8938f33fe"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "octoscope"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64",
- "dioxus",
- "dioxus-desktop",
- "dioxus-sdk",
- "dotenvy",
- "html-escape",
- "indoc",
- "objc2 0.6.3",
- "objc2-app-kit 0.3.2",
- "open",
- "pulldown-cmark",
- "rfd 0.15.4",
- "serde",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-oslog",
- "tracing-subscriber",
 ]
 
 [[package]]

@@ -50,7 +50,7 @@ pub fn NoFileView() -> Element {
                             class: "no-file-hint-icon",
                             Icon { name: IconName::Click, size: 20 }
                         }
-                        span { class: "no-file-hint-text", "Right-click in Finder and choose \"Open with Octoscope\"" }
+                        span { class: "no-file-hint-text", "Right-click in Finder and choose \"Open with Arto\"" }
                     }
                 }
             }

@@ -69,30 +69,28 @@ pub fn build_menu() -> Menu {
 
     let menu = Menu::new();
 
-    // macOS: Add Octoscope menu (app menu)
+    // macOS: Add Arto menu (app menu)
     #[cfg(target_os = "macos")]
     {
-        let octoscope_menu = Submenu::new("Octoscope", true);
+        let arto_menu = Submenu::new("Arto", true);
         let about_metadata = AboutMetadataBuilder::new()
-            .name(Some("Octoscope".to_string()))
+            .name(Some("Arto".to_string()))
             .version(Some(env!("CARGO_PKG_VERSION")))
             .authors(Some(
                 vec!["lambdalisue <lambdalisue@gmail.com>".to_string()],
             ))
-            .website(Some(
-                "https://github.com/lambdalisue/rs-octoscope".to_string(),
-            ))
+            .website(Some("https://github.com/lambdalisue/rs-arto".to_string()))
             .website_label(Some("GitHub".to_string()))
             .copyright(Some("Copyright 2025 lambdalisue".to_string()))
             .build();
-        octoscope_menu
+        arto_menu
             .append_items(&[
-                &PredefinedMenuItem::about(Some("Octoscope"), Some(about_metadata)),
+                &PredefinedMenuItem::about(Some("Arto"), Some(about_metadata)),
                 &PredefinedMenuItem::separator(),
                 &PredefinedMenuItem::quit(Some("Quit")),
             ])
             .unwrap();
-        menu.append(&octoscope_menu).unwrap();
+        menu.append(&arto_menu).unwrap();
     }
 
     // File menu
@@ -255,7 +253,7 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
             window::close_all_child_windows();
         }
         MenuId::GoToHomepage => {
-            let _ = open::that("https://github.com/lambdalisue/rs-octoscope");
+            let _ = open::that("https://github.com/lambdalisue/rs-arto");
         }
         _ => return false,
     }

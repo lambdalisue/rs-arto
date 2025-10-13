@@ -173,7 +173,7 @@ cargo fmt --check
 
 ```toml
 [package]
-name = "octoscope"
+name = "arto"
 version = "0.1.0"
 edition = "2021"
 
@@ -186,7 +186,7 @@ serde = { version = "1.0", features = ["derive"] }
 
 ```json
 {
-  "name": "octoscope",
+  "name": "arto",
   "version": "0.1.0",
   "features": [
     "async",

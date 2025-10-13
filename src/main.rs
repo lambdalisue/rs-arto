@@ -58,7 +58,7 @@ fn init_tracing() {
     // On macOS, log to Console.app via oslog
     #[cfg(target_os = "macos")]
     let registry = registry.with(
-        tracing_oslog::OsLogger::new("com.lambdalisue.Octoscope", "defaut")
+        tracing_oslog::OsLogger::new("com.lambdalisue.Arto", "defaut")
             .with_filter(silence_filter),
     );
 

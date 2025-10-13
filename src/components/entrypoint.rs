@@ -44,7 +44,7 @@ pub fn Entrypoint() -> Element {
 
     rsx! {
         div {
-            h1 { "Octoscope Background Process" }
+            h1 { "Arto Background Process" }
         }
     }
 }

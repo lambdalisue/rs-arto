@@ -39,4 +39,4 @@ build:
     --package-types "dmg"
 
 install: build
-  @cp -af target/dx/octoscope/bundle/macos/bundle/macos/Octoscope.app /Applications/.
+  @cp -af target/dx/arto/bundle/macos/bundle/macos/Arto.app /Applications/.

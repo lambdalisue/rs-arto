@@ -53,7 +53,7 @@ pub fn create_new_window(file: Option<PathBuf>) {
     // The menu from the main window will be used instead.
     let config = Config::new()
         .with_menu(None) // To avoid child window taking over the main window's menu
-        .with_window(WindowBuilder::new().with_title("Octoscope"))
+        .with_window(WindowBuilder::new().with_title("Arto"))
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.
         .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
@@ -70,7 +70,7 @@ fn build_custom_index() -> String {
     <!DOCTYPE html>
     <html>
         <head>
-            <title>Octoscope</title>
+            <title>Arto</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <!-- CUSTOM HEAD -->
         </head>
