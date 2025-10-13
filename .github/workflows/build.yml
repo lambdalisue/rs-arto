@@ -94,7 +94,6 @@ jobs:
           name: arto-${{ runner.os }}
           path: |
             ./target/dx/arto/bundle/macos/bundle/dmg
-            ./target/dx/arto/bundle/macos/bundle/macos
           if-no-files-found: error
     timeout-minutes: 30
 
@@ -114,5 +113,5 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./artifacts/arto-*
+          artifacts: ./artifacts/arto-*/dmg/Arto_*.dmg
           removeArtifacts: true
