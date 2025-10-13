@@ -1,0 +1,98 @@
+name: "Build"
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      # https://zenn.dev/mierune/articles/2af7b9e447712a
+      - uses: chetan/git-restore-mtime-action@v2
+      - uses: extractions/setup-just@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy,rustfmt
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          cache: "pnpm"
+          cache-dependency-path: ./web/pnpm-lock.yaml
+      - run: just setup
+      - run: just check
+      - run: just fmt && git diff --exit-code
+    timeout-minutes: 15
+
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      # https://zenn.dev/mierune/articles/2af7b9e447712a
+      - uses: chetan/git-restore-mtime-action@v2
+      - uses: extractions/setup-just@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          cache: "pnpm"
+          cache-dependency-path: ./web/pnpm-lock.yaml
+      - run: just setup
+      - run: just test
+    timeout-minutes: 15
+
+  build:
+    needs: ["check", "test"]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      # https://zenn.dev/mierune/articles/2af7b9e447712a
+      - uses: chetan/git-restore-mtime-action@v2
+      - uses: extractions/setup-just@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          cache: "pnpm"
+          cache-dependency-path: ./web/pnpm-lock.yaml
+      - run: just setup
+      - run: just build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arto-${{ runner.os }}
+          path: |
+            ./target/dx/arto/bundle/macos/bundle/dmg
+            ./target/dx/arto/bundle/macos/bundle/macos
+          if-no-files-found: error
+    timeout-minutes: 30
+
+  release:
+    if: ${{ github.event_name == 'release' }}
+    needs: [build]
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+      - run: find .
+      - uses: ncipollo/release-action@v1.14.0
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: ./artifacts/arto-*
+          removeArtifacts: true
