@@ -10,6 +10,7 @@
     "check": "prettier --check **/*.{ts,css}"
   },
   "dependencies": {
+    "@types/node": "^24.7.2",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.11",
