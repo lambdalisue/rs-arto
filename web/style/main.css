@@ -12,6 +12,7 @@ body {
   color: var(--text-color);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
+  overflow: hidden;
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
