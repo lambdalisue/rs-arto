@@ -3,6 +3,7 @@ import hljs from "highlight.js";
 
 // Remove some languages that other libraries handle better
 hljs.getLanguage("mermaid") && hljs.unregisterLanguage("mermaid");
+hljs.getLanguage("math") && hljs.unregisterLanguage("math");
 
 // Import highlight.js themes
 import hljsLightTheme from "highlight.js/styles/github.css?inline";

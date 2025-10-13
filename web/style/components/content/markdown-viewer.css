@@ -18,5 +18,10 @@
         text-decoration: underline;
       }
     }
+
+    /* Do NOT style code blocks with language-math (mathjax) */
+    pre:has(.language-math) {
+      background: inherit;
+    }
   }
 }

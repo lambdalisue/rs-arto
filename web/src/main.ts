@@ -4,6 +4,7 @@ import type { Theme } from "./theme";
 import * as markdownViewer from "./markdown-viewer";
 import * as syntaxHighlighter from "./syntax-highlighter";
 import * as mermaidRenderer from "./mermaid-renderer";
+import * as mathRenderer from "./math-renderer";
 
 // Extend the Window type
 declare global {
@@ -39,6 +40,7 @@ function mount(): void {
 function init(): void {
   syntaxHighlighter.init();
   mermaidRenderer.init();
+  mathRenderer.init();
 }
 
 mount();
