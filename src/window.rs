@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
+use crate::state::LAST_SELECTED_THEME;
+use crate::theme::resolve_theme;
 
 thread_local! {
     /// Registry of all child windows (not including the background window)
@@ -54,8 +56,28 @@ pub fn create_new_window(file: Option<PathBuf>) {
         .with_window(WindowBuilder::new().with_title("Octoscope"))
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.
-        .with_custom_head(format!(r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#));
+        .with_custom_head(format!(r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#))
+        // Use a custom index to set the initial theme correctly
+        .with_custom_index(build_custom_index());
 
     let handle = window().new_window(dom, config);
     register_child_window(handle);
+}
+
+fn build_custom_index() -> String {
+    let theme = resolve_theme(&LAST_SELECTED_THEME.lock().unwrap());
+    indoc::formatdoc! {r#"
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>Octoscope</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <!-- CUSTOM HEAD -->
+        </head>
+        <body data-theme="{theme}">
+            <div id="main"></div>
+            <!-- MODULE LOADER -->
+        </body>
+    </html>
+    "#}
 }

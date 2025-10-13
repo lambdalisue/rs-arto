@@ -1,21 +1,24 @@
 import "../style/main.css";
 
-import { type ThemePreference, getSystemTheme, loadTheme, saveTheme } from "./theme";
+import { type Theme, getSystemTheme } from "./theme";
 import * as markdownViewer from "./markdown-viewer";
 import * as syntaxHighlighter from "./syntax-highlighter";
 import * as mermaidRenderer from "./mermaid-renderer";
 import { renderCoordinator } from "./render-coordinator";
 
-let currentTheme: ThemePreference = loadTheme();
-
-export function getCurrentTheme(): ThemePreference {
-  return currentTheme;
+function getCurrentTheme(): Theme {
+  const theme = document.body.getAttribute("data-theme");
+  switch (theme) {
+    case "light":
+    case "dark":
+      return theme;
+    default:
+      return getSystemTheme();
+  }
 }
 
-export function setCurrentTheme(themePreference: ThemePreference) {
-  saveTheme(themePreference);
-  const theme = themePreference === "auto" ? getSystemTheme() : themePreference;
-  document.documentElement.setAttribute("data-theme", theme);
+export function setCurrentTheme(theme: Theme) {
+  document.body.setAttribute("data-theme", theme);
   markdownViewer.setTheme(theme);
   syntaxHighlighter.setTheme(theme);
   mermaidRenderer.setTheme(theme);
@@ -32,5 +35,5 @@ export function init(): void {
   // otherwise scheduleRender() in renderCoordinator.init()
   // will be skipped due to renderCoordinator.forceRenderMermaid()
   // called in setCurrentTheme() below
-  setCurrentTheme(currentTheme);
+  setCurrentTheme(getCurrentTheme());
 }

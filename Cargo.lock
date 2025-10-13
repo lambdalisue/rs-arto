@@ -1143,6 +1143,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "dioxus-sdk"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b7b74aede7070ec1c0ef582dbec8bce93a5c40421155459fcdbcaa0e6ef0bf0"
+dependencies = [
+ "cfg-if",
+ "dioxus",
+ "dioxus-desktop",
+ "futures",
+ "js-sys",
+ "tracing",
+ "uuid",
+ "warnings",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "dioxus-signals"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3050,12 +3069,14 @@ dependencies = [
  "base64",
  "dioxus",
  "dioxus-desktop",
+ "dioxus-sdk",
  "dotenvy",
  "html-escape",
  "indoc",
  "open",
  "pulldown-cmark",
  "rfd 0.15.4",
+ "serde",
  "tempfile",
  "tokio",
  "tracing",

@@ -2,12 +2,14 @@ use dioxus::prelude::*;
 
 use crate::assets::MAIN_SCRIPT;
 use crate::components::icon::{Icon, IconName};
-use crate::state::AppState;
+use crate::state::{AppState, LAST_SELECTED_THEME};
+use crate::theme::use_resolved_theme;
 use crate::theme::ThemePreference;
 
 #[component]
 pub fn ThemeSelector() -> Element {
     let state = use_context::<AppState>();
+    let resolved_theme = use_resolved_theme();
     let current_theme = state.current_theme;
     let (light_class, dark_class, auto_class) = match current_theme() {
         ThemePreference::Light => (
@@ -28,12 +30,8 @@ pub fn ThemeSelector() -> Element {
     };
 
     // Set the current theme in JavaScript whenever it changes
-    use_effect(use_reactive!(|current_theme| {
-        let resolved = match current_theme() {
-            ThemePreference::Light => "light".to_string(),
-            ThemePreference::Dark => "dark".to_string(),
-            ThemePreference::Auto => "auto".to_string(),
-        };
+    use_effect(use_reactive!(|resolved_theme| {
+        let resolved = resolved_theme();
         spawn(async move {
             let eval = document::eval(&indoc::formatdoc! {r#"
                 const {{ setCurrentTheme }} = await import('{MAIN_SCRIPT}');
@@ -45,34 +43,14 @@ pub fn ThemeSelector() -> Element {
         });
     }));
 
-    // Get the current theme from JavaScript on initialization
-    use_effect(move || {
-        let mut current_theme = current_theme;
+    use_effect(use_reactive!(|current_theme| {
+        let theme = current_theme();
         spawn(async move {
-            let eval = document::eval(&indoc::formatdoc! {r#"
-                const {{ getCurrentTheme }} = await import('{MAIN_SCRIPT}');
-                return getCurrentTheme();
-            "#});
-            let theme = match eval.await {
-                Ok(value) => match value.as_str() {
-                    Some(theme_str) => match theme_str {
-                        "light" => ThemePreference::Light,
-                        "dark" => ThemePreference::Dark,
-                        _ => ThemePreference::Auto,
-                    },
-                    _ => {
-                        tracing::error!("Unexpected value from JS");
-                        ThemePreference::Auto
-                    }
-                },
-                Err(err) => {
-                    tracing::error!("Failed to get current theme from JS: {err}");
-                    ThemePreference::Auto
-                }
-            };
-            current_theme.set(theme);
+            // Save the last selected theme to the global state
+            let mut last_theme = LAST_SELECTED_THEME.lock().unwrap();
+            *last_theme = theme;
         });
-    });
+    }));
 
     rsx! {
         div {
