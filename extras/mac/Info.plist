@@ -5,7 +5,7 @@
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleDisplayName</key><string>Octoscope</string>
   <key>CFBundleExecutable</key><string>octoscope</string>
-  <key>CFBundleIdentifier</key><string>com.lambdalisue.Octoscope.dev</string>
+  <key>CFBundleIdentifier</key><string>com.lambdalisue.Octoscope</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>Octoscope</string>
   <key>CFBundlePackageType</key><string>APPL</string>

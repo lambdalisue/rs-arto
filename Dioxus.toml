@@ -23,10 +23,19 @@ script = []
 script = []
 
 [bundle]
-publisher = "lambdalisue"
 identifier = "com.lambdalisue.Octoscope"
+publisher = "lambdalisue"
+icon = ["extras/mac/octoscope-app.icns"]
+copyright = "Copyright 2025 lambdalisue"
+category = "Utility"
+short_description = "A GitHub Markdown viewer"
+long_description = """
+Octoscope is a GitHub Markdown viewer built with Dioxus.
+"""
 
 [bundle.macos]
-info_plist_path = "assets/mac/Info.plist"
+license = "LICENSE"
+provider_short_name = "Alisue"
+info_plist_path = "extras/mac/Info.plist"
 files = {}
 hardened_runtime = true
