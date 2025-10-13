@@ -25,7 +25,7 @@
   .theme-button {
     appearance: none;
     background: transparent;
-    border: 1px solid var(--border-color);
+    border: 1px solid transparent;
     border-radius: 6px;
     color: var(--text-color);
     cursor: pointer;
@@ -36,34 +36,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0.5;
     transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease;
+      opacity 0.2s ease,
+      border-color 0.2s ease,
+      background-color 0.2s ease;
   }
 
-  .theme-button--light {
-    background: var(--theme-btn-light-bg);
-    border-color: var(--theme-btn-light-border);
-    color: var(--theme-btn-light-text);
-  }
-
-  .theme-button--dark {
-    background: var(--theme-btn-dark-bg);
-    border-color: var(--theme-btn-dark-border);
-    color: var(--theme-btn-dark-text);
-  }
-
-  .theme-button--auto {
-    background: var(--theme-btn-auto-bg);
-    border-color: var(--theme-btn-auto-border);
-    color: var(--theme-btn-auto-text);
+  .theme-button:hover {
+    opacity: 1;
+    border-color: var(--border-color);
+    background: var(--bg-secondary);
   }
 
   .theme-button--active {
-    background: var(--theme-btn-active-bg);
-    border-color: var(--theme-btn-active-border);
-    color: var(--theme-btn-active-text);
+    opacity: 1;
   }
 
   .theme-button:focus-visible {

@@ -102,7 +102,7 @@ pub fn ThemeSelector() -> Element {
                     current_theme.set(ThemePreference::Auto);
                 },
                 title: "Auto theme (follows system)",
-                Icon { name: IconName::DeviceDesktop, size: 18 }
+                Icon { name: IconName::Contrast2, size: 18 }
             }
         }
     }

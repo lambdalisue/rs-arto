@@ -3,8 +3,8 @@
 .header {
   flex-shrink: 0;
   align-items: center;
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  border-bottom: none;
   display: flex;
   justify-content: space-between;
   padding: 10px 20px;
@@ -22,7 +22,7 @@
 
 .header-left .nav-button {
   background: transparent;
-  border: 1px solid var(--border-color);
+  border: 1px solid transparent;
   border-radius: 4px;
   color: var(--text-color);
   cursor: pointer;
@@ -35,7 +35,8 @@
   height: 28px;
 
   &:hover:not(:disabled) {
-    background: var(--border-color);
+    border-color: var(--border-color);
+    background: var(--bg-secondary);
   }
 
   &:disabled {
