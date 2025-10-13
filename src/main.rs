@@ -33,26 +33,34 @@ fn main() {
 }
 
 fn init_tracing() {
+    let silence_filter = tracing_subscriber::filter::filter_fn(|metadata| {
+        // Filter out specific error from dioxus_core::properties:136
+        // Known issue: https://github.com/DioxusLabs/dioxus/issues/3872
+        metadata.target() != "dioxus_core::properties::__component_called_as_function"
+    });
+
+    let env_filter_layer =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEFAULT_LOGLEVEL));
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .pretty()
+        .without_time()
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_file(true)
+        .with_line_number(true)
+        .with_filter(silence_filter.clone());
+
     let registry = tracing_subscriber::registry()
-        .with(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEFAULT_LOGLEVEL)),
-        )
-        .with(
-            tracing_subscriber::fmt::layer()
-                .pretty()
-                .without_time()
-                .with_target(false)
-                .with_thread_ids(false)
-                .with_file(true)
-                .with_line_number(true),
-        );
+        .with(env_filter_layer)
+        .with(fmt_layer);
 
     // On macOS, log to Console.app via oslog
     #[cfg(target_os = "macos")]
-    let registry = registry.with(tracing_oslog::OsLogger::new(
-        "com.lambdalisue.Octoscope",
-        "defaut",
-    ));
+    let registry = registry.with(
+        tracing_oslog::OsLogger::new("com.lambdalisue.Octoscope", "defaut")
+            .with_filter(silence_filter),
+    );
 
     registry.init();
 }
