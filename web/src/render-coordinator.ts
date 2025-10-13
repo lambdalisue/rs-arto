@@ -56,14 +56,18 @@ class RenderCoordinator {
       // Clear only Mermaid diagram flags
       markdownBody.querySelectorAll("pre.mermaid[data-rendered]").forEach((el) => {
         const element = el as HTMLElement;
-        // Store original source if available
-        const originalSource = element.dataset.mermaidSrc || element.textContent?.trim();
+
+        // Ensure data-mermaid-src exists, otherwise skip
+        if (!element.dataset.mermaidSrc) {
+          console.warn("Mermaid diagram missing data-mermaid-src, skipping re-render:", element);
+          return;
+        }
+
+        const originalSource = element.dataset.mermaidSrc;
 
         // Clear the rendered content
         element.innerHTML = "";
-        if (originalSource) {
-          element.textContent = originalSource;
-        }
+        element.textContent = originalSource;
         element.removeAttribute("data-rendered");
       });
 
