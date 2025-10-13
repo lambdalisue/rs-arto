@@ -3,4 +3,78 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  position: relative;
+}
+
+/* Drag and drop visual feedback */
+.drag-drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+[data-theme="dark"] .drag-drop-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.drag-drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 400px;
+  opacity: 0;
+  animation: fadeInUp 0.3s ease-out 0.1s forwards;
+}
+
+.drag-drop-icon {
+  opacity: 0.3;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.drag-drop-icon .icon {
+  width: 64px;
+  height: 64px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.drag-drop-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -56,7 +56,7 @@ pub fn create_new_window(file: Option<PathBuf>) {
         .with_window(WindowBuilder::new().with_title("Octoscope"))
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.
-        .with_custom_head(format!(r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#))
+        .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
         // Use a custom index to set the initial theme correctly
         .with_custom_index(build_custom_index());
 

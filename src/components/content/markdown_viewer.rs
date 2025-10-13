@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use std::path::PathBuf;
 
+use crate::assets::MAIN_SCRIPT;
 use crate::markdown::render_to_html;
 use crate::state::AppState;
 
@@ -8,6 +9,23 @@ use crate::state::AppState;
 pub fn MarkdownViewer(file: PathBuf) -> Element {
     let mut state = use_context::<AppState>();
     let html = use_signal(String::new);
+
+    // Load the main script once when the component is mounted
+    use_effect(|| {
+        spawn(async move {
+            let eval = document::eval(&indoc::formatdoc! {r#"
+                const {{ init }} = await import("{MAIN_SCRIPT}");
+                if (document.readyState === "loading") {{
+                    document.addEventListener("DOMContentLoaded", init);
+                }} else {{
+                    init();
+                }}
+            "#});
+            if let Err(e) = eval.await {
+                tracing::error!("Failed to load main script: {}", e);
+            }
+        });
+    });
 
     // Read the file and render markdown to HTML when the component is mounted or when the file changes
     use_effect(use_reactive!(|file| {
