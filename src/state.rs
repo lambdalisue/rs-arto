@@ -119,4 +119,36 @@ impl AppState {
             self.active_tab.set(index);
         }
     }
+
+    /// Check if the current active tab has no file (NoFile tab)
+    pub fn is_current_tab_no_file(&self) -> bool {
+        self.current_tab()
+            .map(|tab| tab.file.is_none())
+            .unwrap_or(false)
+    }
+
+    /// Find the index of a tab that has the specified file open
+    pub fn find_tab_with_file(&self, file: &PathBuf) -> Option<usize> {
+        let tabs = self.tabs.read();
+        tabs.iter()
+            .position(|tab| tab.file.as_ref().map(|f| f == file).unwrap_or(false))
+    }
+
+    /// Open a file, reusing NoFile tab or existing tab with the same file if possible
+    pub fn open_file(&mut self, file: PathBuf) {
+        // Check if the file is already open in another tab
+        if let Some(tab_index) = self.find_tab_with_file(&file) {
+            // Switch to the existing tab instead of creating a new one
+            self.switch_to_tab(tab_index);
+        } else if self.is_current_tab_no_file() {
+            // If current tab is NoFile, open the file in it
+            self.update_current_tab(|tab| {
+                tab.history.push(file.clone());
+                tab.file = Some(file);
+            });
+        } else {
+            // Otherwise, create a new tab
+            self.add_tab(Some(file), true);
+        }
+    }
 }

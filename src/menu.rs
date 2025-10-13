@@ -224,6 +224,16 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
         MenuId::NewWindow => {
             window::create_new_window(None);
         }
+        MenuId::NewTab => {
+            // If no windows are open, create a new window instead
+            if !window::has_any_child_windows() {
+                tracing::info!("No windows open, creating new window for NewTab request");
+                window::create_new_window(None);
+                return true;
+            }
+            // Otherwise, let the focused window handle it
+            return false;
+        }
         MenuId::CloseAllWindows => {
             tracing::info!("Closing all child windows");
             window::close_all_child_windows();
@@ -259,10 +269,7 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
         }
         MenuId::Open => {
             if let Some(file) = pick_markdown_file() {
-                state.update_current_tab(|tab| {
-                    tab.history.push(file.clone());
-                    tab.file = Some(file);
-                });
+                state.open_file(file);
             }
         }
         MenuId::CloseTab => {

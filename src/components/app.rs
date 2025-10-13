@@ -71,7 +71,7 @@ pub fn App(file: Option<PathBuf>) -> Element {
     }
 }
 
-/// Handle dropped markdown files - opens each in a new tab
+/// Handle dropped markdown files - opens each file appropriately
 async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
     let Some(file_engine) = evt.files() else {
         return;
@@ -81,8 +81,8 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
         let path = PathBuf::from(file_name);
 
         if is_markdown_file(&path) {
-            tracing::info!("Opening dropped file in new tab: {:?}", path);
-            state.add_tab(Some(path), true);
+            tracing::info!("Opening dropped file: {:?}", path);
+            state.open_file(path);
         } else {
             tracing::warn!("Ignored non-markdown file: {:?}", path);
         }
@@ -99,8 +99,8 @@ fn setup_file_open_listener(state: AppState) {
             while let Ok(file) = rx.recv().await {
                 // Only handle in the focused window
                 if window().is_focused() {
-                    tracing::info!("Opening file from broadcast in new tab: {:?}", file);
-                    state_clone.add_tab(Some(file), true);
+                    tracing::info!("Opening file from broadcast: {:?}", file);
+                    state_clone.open_file(file);
                 }
             }
         });

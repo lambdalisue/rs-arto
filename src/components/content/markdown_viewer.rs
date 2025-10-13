@@ -165,15 +165,12 @@ fn handle_link_click(click_data: LinkClickData, base_dir: &Path, state: &mut App
 
     match button {
         MIDDLE_CLICK => {
-            // Open in new tab
+            // Open in new tab (always create a new tab for middle-click)
             state.add_tab(Some(canonical_path), true);
         }
         LEFT_CLICK => {
-            // Open in current tab
-            state.update_current_tab(|tab| {
-                tab.history.push(canonical_path.clone());
-                tab.file = Some(canonical_path);
-            });
+            // Open in current tab (respecting NoFile and existing tabs logic)
+            state.open_file(canonical_path);
         }
         _ => {
             tracing::debug!("Ignoring click with button: {}", button);

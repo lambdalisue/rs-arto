@@ -27,6 +27,16 @@ fn register_child_window(handle: WeakDesktopContext) {
     });
 }
 
+/// Check if any child windows are open
+pub fn has_any_child_windows() -> bool {
+    CHILD_WINDOWS.with(|windows| {
+        let mut windows = windows.borrow_mut();
+        // Clean up dead references
+        windows.retain(|w| w.upgrade().is_some());
+        !windows.is_empty()
+    })
+}
+
 /// Close all child windows
 pub fn close_all_child_windows() {
     CHILD_WINDOWS.with(|windows| {

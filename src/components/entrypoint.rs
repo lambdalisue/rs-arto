@@ -32,7 +32,15 @@ pub fn Entrypoint() -> Element {
     spawn_forever(async move {
         while let Some(file) = rx.recv().await {
             tracing::info!("Broadcasting file open request: {:?}", file);
-            let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
+
+            // If no windows exist, create a new window with the file
+            if !window_manager::has_any_child_windows() {
+                tracing::info!("No windows open, creating new window with file: {:?}", file);
+                window_manager::create_new_window(Some(file));
+            } else {
+                // Otherwise broadcast to existing windows
+                let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
+            }
         }
     });
 
