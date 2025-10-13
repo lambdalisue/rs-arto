@@ -64,6 +64,9 @@ impl MenuId {
 
 /// Build the application menu bar
 pub fn build_menu() -> Menu {
+    #[cfg(target_os = "macos")]
+    disable_automatic_window_tabbing();
+
     let menu = Menu::new();
 
     // macOS: Add Octoscope menu (app menu)
@@ -330,4 +333,12 @@ fn pick_markdown_file() -> Option<PathBuf> {
     tracing::debug!("File picker completed in {:?}", start.elapsed());
 
     file
+}
+
+#[cfg(target_os = "macos")]
+fn disable_automatic_window_tabbing() {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::NSWindow;
+    let marker = MainThreadMarker::new().expect("Failed to get main thread marker");
+    NSWindow::setAllowsAutomaticWindowTabbing(false, marker);
 }
