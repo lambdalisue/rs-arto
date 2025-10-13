@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::assets::MAIN_SCRIPT;
 use crate::markdown::render_to_html;
 use crate::state::AppState;
+use crate::watcher::FILE_WATCHER;
 
 #[component]
 pub fn MarkdownViewer(file: PathBuf) -> Element {
@@ -27,9 +28,13 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
         });
     });
 
+    // Signal to trigger reload when file changes
+    let reload_trigger = use_signal(|| 0usize);
+
     // Read the file and render markdown to HTML when the component is mounted or when the file changes
-    use_effect(use_reactive!(|file| {
+    use_effect(use_reactive!(|file, reload_trigger| {
         let mut html = html;
+        let _ = reload_trigger(); // Use the reload_trigger to make this effect reactive to it
         spawn(async move {
             tracing::info!("Loading and rendering file: {:?}", &file);
             // Read the file content
@@ -50,6 +55,42 @@ pub fn MarkdownViewer(file: PathBuf) -> Element {
                         e
                     ));
                 }
+            }
+        });
+    }));
+
+    // Watch the file for changes and trigger reload
+    use_effect(use_reactive!(|file| {
+        let mut reload_trigger = reload_trigger;
+        spawn(async move {
+            let file_path = file.clone();
+
+            // Create a channel to receive file change events
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(10);
+
+            // Register with the global file watcher
+            if let Err(e) = FILE_WATCHER.watch(file_path.clone(), tx).await {
+                tracing::error!(
+                    "Failed to register file watcher for {:?}: {:?}",
+                    file_path,
+                    e
+                );
+                return;
+            }
+
+            // Listen for change notifications and trigger reload
+            while rx.recv().await.is_some() {
+                tracing::info!("File change detected, reloading: {:?}", file_path);
+                reload_trigger.set(reload_trigger() + 1);
+            }
+
+            // Cleanup: unwatch when the effect is dropped
+            if let Err(e) = FILE_WATCHER.unwatch(file_path.clone()).await {
+                tracing::error!(
+                    "Failed to unregister file watcher for {:?}: {:?}",
+                    file_path,
+                    e
+                );
             }
         });
     }));

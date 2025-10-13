@@ -5,6 +5,7 @@ mod markdown;
 mod menu;
 mod state;
 mod theme;
+mod watcher;
 mod window;
 
 use dioxus::desktop::{tao::dpi::PhysicalPosition, Config, LogicalSize, WindowBuilder};
@@ -58,8 +59,7 @@ fn init_tracing() {
     // On macOS, log to Console.app via oslog
     #[cfg(target_os = "macos")]
     let registry = registry.with(
-        tracing_oslog::OsLogger::new("com.lambdalisue.Arto", "defaut")
-            .with_filter(silence_filter),
+        tracing_oslog::OsLogger::new("com.lambdalisue.Arto", "defaut").with_filter(silence_filter),
     );
 
     registry.init();
