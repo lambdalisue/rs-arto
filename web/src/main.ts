@@ -3,6 +3,7 @@ import "../style/main.css";
 import type { Theme } from "./theme";
 import * as markdownViewer from "./markdown-viewer";
 import * as syntaxHighlighter from "./syntax-highlighter";
+import * as mermaidRenderer from "./mermaid-renderer";
 
 // Extend the Window type
 declare global {
@@ -27,6 +28,7 @@ function setCurrentTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
   markdownViewer.setTheme(theme);
   syntaxHighlighter.setTheme(theme);
+  mermaidRenderer.setTheme(theme);
 }
 
 function mount(): void {
@@ -36,6 +38,7 @@ function mount(): void {
 
 function init(): void {
   syntaxHighlighter.init();
+  mermaidRenderer.init();
 }
 
 mount();

@@ -1,6 +1,9 @@
 // Import highlight.js with all languages (desktop app)
 import hljs from "highlight.js";
 
+// Remove some languages that other libraries handle better
+hljs.getLanguage("mermaid") && hljs.unregisterLanguage("mermaid");
+
 // Import highlight.js themes
 import hljsLightTheme from "highlight.js/styles/github.css?inline";
 import hljsDarkTheme from "highlight.js/styles/github-dark.css?inline";
