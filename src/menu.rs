@@ -1,6 +1,8 @@
 use dioxus::prelude::{Readable, Writable};
 use dioxus_desktop::muda::accelerator::{Accelerator, Code, Modifiers};
-use dioxus_desktop::muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
+use dioxus_desktop::muda::{
+    AboutMetadataBuilder, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu,
+};
 use dioxus_desktop::window;
 use std::path::PathBuf;
 
@@ -68,9 +70,21 @@ pub fn build_menu() -> Menu {
     #[cfg(target_os = "macos")]
     {
         let octoscope_menu = Submenu::new("Octoscope", true);
+        let about_metadata = AboutMetadataBuilder::new()
+            .name(Some("Octoscope".to_string()))
+            .version(Some(env!("CARGO_PKG_VERSION")))
+            .authors(Some(
+                vec!["lambdalisue <lambdalisue@gmail.com>".to_string()],
+            ))
+            .website(Some(
+                "https://github.com/lambdalisue/rs-octoscope".to_string(),
+            ))
+            .website_label(Some("GitHub".to_string()))
+            .copyright(Some("Copyright 2025 lambdalisue".to_string()))
+            .build();
         octoscope_menu
             .append_items(&[
-                &PredefinedMenuItem::about(Some("Octoscope"), None),
+                &PredefinedMenuItem::about(Some("Octoscope"), Some(about_metadata)),
                 &PredefinedMenuItem::separator(),
                 &PredefinedMenuItem::quit(Some("Quit")),
             ])
