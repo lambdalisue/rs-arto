@@ -8,9 +8,6 @@ export function init(): void {
     securityLevel: "loose", // Allow more flexibility in diagrams
     fontFamily: "inherit",
   });
-
-  console.debug("Mermaid initialized");
-  setupAutoRendering();
 }
 
 export function setTheme(theme: Theme): void {
@@ -22,27 +19,48 @@ export function setTheme(theme: Theme): void {
     securityLevel: "loose",
     fontFamily: "inherit",
   });
+}
 
-  console.debug(`Mermaid theme set to: ${mermaidTheme}`);
+export async function renderDiagrams(container: Element): Promise<void> {
+  const mermaidBlocks = container.querySelectorAll("pre.mermaid:not([data-rendered])");
 
-  // Re-render all existing diagrams with the new theme
-  rerenderAllDiagrams();
+  if (mermaidBlocks.length === 0) {
+    return;
+  }
+
+  console.debug(`Rendering ${mermaidBlocks.length} mermaid diagrams in parallel`);
+
+  // Render all diagrams in parallel for better performance
+  const renderPromises = Array.from(mermaidBlocks).map((block) =>
+    renderDiagram(block as HTMLElement).catch((error) => {
+      console.error("Failed to render mermaid diagram:", error);
+      // Don't let one failure stop others
+    })
+  );
+
+  await Promise.all(renderPromises);
+  console.debug("All mermaid diagrams rendered");
 }
 
 async function renderDiagram(element: HTMLElement): Promise<void> {
-  // Skip if already rendered (has SVG child)
-  if (element.querySelector("svg")) {
+  // Skip if already rendered (has SVG child or marked as rendered)
+  if (element.dataset.rendered === "true" || element.querySelector("svg")) {
     return;
   }
 
   // Get the mermaid source code from the element
   const mermaidSource = element.textContent?.trim();
   if (!mermaidSource) {
-    console.warn("Empty mermaid block found");
+    element.dataset.rendered = "true"; // Mark as processed to skip in future
     return;
   }
 
   try {
+    // Store original source for theme switching
+    if (!element.dataset.mermaidSrc) {
+      element.dataset.mermaidSrc = mermaidSource;
+    }
+
     // Generate a unique ID for this diagram
     const id = `mermaid-${crypto.randomUUID()}`;
 
@@ -61,72 +79,6 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
       <strong>Mermaid Error:</strong><br/>
       <pre style="margin-top: 0.5rem; white-space: pre-wrap;">${error}</pre>
     </div>`;
-  }
-}
-
-async function renderDiagrams(container: Element): Promise<void> {
-  const mermaidBlocks = container.querySelectorAll("pre.mermaid");
-
-  for (const block of Array.from(mermaidBlocks)) {
-    await renderDiagram(block as HTMLElement);
-  }
-}
-
-async function rerenderAllDiagrams(): Promise<void> {
-  const markdownBody = document.querySelector(".markdown-body");
-  if (!markdownBody) {
-    return;
-  }
-
-  // Find all rendered diagrams and clear them
-  const mermaidBlocks = markdownBody.querySelectorAll("pre.mermaid[data-rendered='true']");
-
-  for (const block of Array.from(mermaidBlocks)) {
-    const element = block as HTMLElement;
-
-    // Get original source from data attribute
-    const originalSource = element.dataset.mermaidSrc;
-    if (originalSource) {
-      // Restore original text content
-      element.textContent = originalSource;
-      element.removeAttribute("data-rendered");
-    }
-  }
-
-  // Re-render all diagrams
-  await renderDiagrams(markdownBody);
-}
-
-function setupAutoRendering(): void {
-  // Create a MutationObserver to watch for changes in markdown-viewer
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === "childList") {
-        // Find the markdown-body element and render diagrams within it
-        const markdownBody = document.querySelector(".markdown-body");
-        if (markdownBody) {
-          renderDiagrams(markdownBody);
-        }
-      }
-    }
-  });
-
-  // Start observing the markdown-viewer area
-  const markdownViewer = document.querySelector(".markdown-viewer");
-  if (markdownViewer) {
-    observer.observe(markdownViewer, {
-      childList: true,
-      subtree: true,
-      attributes: false,
-    });
-    console.debug("MutationObserver set up for automatic mermaid rendering");
-  } else {
-    console.warn("Could not find .markdown-viewer element");
-  }
-
-  // Also render any existing diagrams on initial load
-  const markdownBody = document.querySelector(".markdown-body");
-  if (markdownBody) {
-    renderDiagrams(markdownBody);
+    element.dataset.rendered = "true"; // Mark as processed even on error
   }
 }

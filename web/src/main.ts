@@ -4,7 +4,7 @@ import type { Theme } from "./theme";
 import * as markdownViewer from "./markdown-viewer";
 import * as syntaxHighlighter from "./syntax-highlighter";
 import * as mermaidRenderer from "./mermaid-renderer";
-import * as mathRenderer from "./math-renderer";
+import { renderCoordinator } from "./render-coordinator";
 
 // Extend the Window type
 declare global {
@@ -30,6 +30,7 @@ function setCurrentTheme(theme: Theme) {
   markdownViewer.setTheme(theme);
   syntaxHighlighter.setTheme(theme);
   mermaidRenderer.setTheme(theme);
+  renderCoordinator.forceRenderMermaid();
 }
 
 function mount(): void {
@@ -38,13 +39,17 @@ function mount(): void {
 }
 
 function init(): void {
-  syntaxHighlighter.init();
   mermaidRenderer.init();
-  mathRenderer.init();
+  renderCoordinator.init();
+  // Set current theme to initialize all components
+  // This must be called AFTER renderCoordinator.init()
+  // otherwise scheduleRender() in renderCoordinator.init()
+  // will be skipped due to renderCoordinator.forceRenderMermaid()
+  // called in setCurrentTheme() below
+  setCurrentTheme(getCurrentTheme());
 }
 
 mount();
-setCurrentTheme(getCurrentTheme());
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", init);

@@ -1,122 +1,127 @@
 import katex from "katex";
 
-/**
- * Initialize math rendering
- */
-export function init(): void {
-  console.debug("KaTeX initialized");
-  setupAutoRendering();
+export function renderMath(container: Element): void {
+  renderInlineMath(container);
+  renderDisplayMath(container);
+  renderBlockMath(container);
 }
 
 function renderInlineMath(container: Element): void {
   // Process inline math: <span class="math math-inline">...</span>
-  const inlineMathElements = container.querySelectorAll("span.math.math-inline");
+  const inlineMathElements = container.querySelectorAll(
+    "span.math.math-inline:not([data-katex-rendered])"
+  );
+
+  // Batch: Collect all elements to render (read phase)
+  const renderQueue: Array<{ element: HTMLElement; content: string }> = [];
+
   for (const element of Array.from(inlineMathElements)) {
     const mathContent = element.textContent?.trim() || "";
-    if (mathContent && element.getAttribute("data-katex-rendered") !== "true") {
-      try {
-        katex.render(mathContent, element as HTMLElement, {
-          throwOnError: false,
-          displayMode: false,
-        });
-        element.setAttribute("data-katex-rendered", "true");
-        console.debug("Rendered inline math (pulldown-cmark)");
-      } catch (error) {
-        console.error("Failed to render inline math:", error);
-        (element as HTMLElement).style.color = "red";
-      }
+    if (mathContent) {
+      renderQueue.push({
+        element: element as HTMLElement,
+        content: mathContent,
+      });
     }
   }
 
+  // Batch: Render all at once (write phase)
+  for (const { element, content } of renderQueue) {
+    try {
+      // Use renderToString to avoid intermediate DOM access
+      const html = katex.renderToString(content, {
+        throwOnError: false,
+        displayMode: false,
+      });
+      element.innerHTML = html;
+      element.setAttribute("data-katex-rendered", "true");
+    } catch (error) {
+      console.error("Failed to render inline math:", error);
+      element.style.color = "red";
+    }
+  }
+
+  if (renderQueue.length > 0) {
+    console.debug(`Rendered ${renderQueue.length} inline math expressions`);
+  }
+}
+
+function renderDisplayMath(container: Element): void {
   // Process display math: <span class="math math-display">...</span>
-  const displayMathElements = container.querySelectorAll("span.math.math-display");
+  const displayMathElements = container.querySelectorAll(
+    "span.math.math-display:not([data-katex-rendered])"
+  );
+
+  // Batch: Collect all elements to render (read phase)
+  const renderQueue: Array<{ element: HTMLElement; content: string }> = [];
+
   for (const element of Array.from(displayMathElements)) {
     const mathContent = element.textContent?.trim() || "";
-    if (mathContent && element.getAttribute("data-katex-rendered") !== "true") {
-      try {
-        katex.render(mathContent, element as HTMLElement, {
-          throwOnError: false,
-          displayMode: true,
-        });
-        element.setAttribute("data-katex-rendered", "true");
-        console.debug("Rendered display math (pulldown-cmark)");
-      } catch (error) {
-        console.error("Failed to render display math:", error);
-        (element as HTMLElement).style.color = "red";
-      }
+    if (mathContent) {
+      renderQueue.push({
+        element: element as HTMLElement,
+        content: mathContent,
+      });
     }
+  }
+
+  // Batch: Render all at once (write phase)
+  for (const { element, content } of renderQueue) {
+    try {
+      // Use renderToString to avoid intermediate DOM access
+      const html = katex.renderToString(content, {
+        throwOnError: false,
+        displayMode: true,
+      });
+      element.innerHTML = html;
+      element.setAttribute("data-katex-rendered", "true");
+    } catch (error) {
+      console.error("Failed to render display math:", error);
+      element.style.color = "red";
+    }
+  }
+
+  if (renderQueue.length > 0) {
+    console.debug(`Rendered ${renderQueue.length} display math expressions`);
   }
 }
 
 function renderBlockMath(container: Element): void {
-  const mathBlocks = container.querySelectorAll(".language-math");
+  const mathBlocks = container.querySelectorAll(".language-math:not([data-rendered])");
+
+  // Batch: Collect all elements to render (read phase)
+  const renderQueue: Array<{ element: HTMLElement; content: string }> = [];
 
   for (const block of Array.from(mathBlocks)) {
     const element = block as HTMLElement;
-
-    // Skip if already rendered
-    if (element.dataset.rendered === "true") {
-      continue;
-    }
-
     const mathContent = element.textContent?.trim() || "";
 
+    if (mathContent) {
+      renderQueue.push({ element, content: mathContent });
+    } else {
+      // Mark empty blocks as rendered to skip in future
+      element.dataset.rendered = "true";
+    }
+  }
+
+  // Batch: Render all at once (write phase)
+  for (const { element, content } of renderQueue) {
     try {
-      katex.render(mathContent, element, {
+      // Use renderToString to avoid intermediate DOM access
+      const html = katex.renderToString(content, {
         throwOnError: false,
         displayMode: true,
       });
+      element.innerHTML = html;
       element.dataset.rendered = "true";
-      console.debug("Rendered math block");
     } catch (error) {
       console.error("Failed to render math block:", error);
       element.style.color = "red";
+      element.dataset.rendered = "true";
     }
   }
-}
 
-/**
- * Render all math expressions in a container
- */
-function renderMath(container: Element): void {
-  renderInlineMath(container);
-  renderBlockMath(container);
-}
-
-/**
- * Sets up MutationObserver to automatically render math expressions
- * when markdown content changes
- */
-function setupAutoRendering(): void {
-  // Create a MutationObserver to watch for changes in markdown-viewer
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === "childList") {
-        // Find the markdown-body element and render math within it
-        const markdownBody = document.querySelector(".markdown-body");
-        if (markdownBody) {
-          renderMath(markdownBody);
-        }
-      }
-    }
-  });
-
-  // Start observing the markdown-viewer area
-  const markdownViewer = document.querySelector(".markdown-viewer");
-  if (markdownViewer) {
-    observer.observe(markdownViewer, {
-      childList: true,
-      subtree: true,
-      attributes: false,
-    });
-    console.debug("MutationObserver set up for automatic math rendering");
-  } else {
-    console.warn("Could not find .markdown-viewer element");
-  }
-
-  // Also render any existing math on initial load
-  const markdownBody = document.querySelector(".markdown-body");
-  if (markdownBody) {
-    renderMath(markdownBody);
+  if (renderQueue.length > 0) {
+    console.debug(`Rendered ${renderQueue.length} math blocks`);
   }
 }
