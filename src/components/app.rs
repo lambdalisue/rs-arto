@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use super::content::Content;
 use super::header::Header;
-use crate::assets::{MAIN_SCRIPT, MAIN_STYLE};
+use crate::assets::MAIN_SCRIPT;
 use crate::menu;
 use crate::state::AppState;
 
@@ -28,7 +28,6 @@ pub fn App(file: Option<PathBuf>) -> Element {
     });
 
     rsx! {
-        document::Link { rel: "stylesheet", href: MAIN_STYLE }
         document::Script { r#type: "module", r#"
             import {{init}} from '{MAIN_SCRIPT}';
             if (document.readyState === "loading") {{

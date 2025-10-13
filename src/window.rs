@@ -1,8 +1,10 @@
 use dioxus::prelude::*;
 use dioxus_desktop::{window, Config, WeakDesktopContext, WindowBuilder};
+
 use std::cell::RefCell;
 use std::path::PathBuf;
 
+use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
 
 thread_local! {
@@ -49,7 +51,10 @@ pub fn create_new_window(file: Option<PathBuf>) {
     // The menu from the main window will be used instead.
     let config = Config::new()
         .with_menu(None) // To avoid child window taking over the main window's menu
-        .with_window(WindowBuilder::new().with_title("Octoscope"));
+        .with_window(WindowBuilder::new().with_title("Octoscope"))
+        // Add main style in config. Otherwise the style takes time to load and
+        // the window appears unstyled for a brief moment.
+        .with_custom_head(format!(r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#));
 
     let handle = window().new_window(dom, config);
     register_child_window(handle);

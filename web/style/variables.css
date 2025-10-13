@@ -70,3 +70,20 @@
   --scrollbar-thumb: var(--scrollbar-thumb-dark);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: var(--dark-bg-color);
+    --text-color: var(--dark-text-color);
+    --text-secondary: var(--dark-text-secondary);
+    --border-color: var(--dark-border-color);
+    --header-bg: var(--dark-header-bg);
+    --content-bg: var(--dark-content-bg);
+    --bg-secondary: var(--dark-bg-secondary);
+    --bg-tertiary: var(--dark-bg-tertiary);
+    --link-color: var(--dark-link-color);
+    --scrollbar-track: var(--scrollbar-track-dark);
+    --scrollbar-thumb: var(--scrollbar-thumb-dark);
+    --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
+  }
+}
