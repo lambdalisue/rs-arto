@@ -7,7 +7,6 @@ default:
 setup: web::setup
   @rustup toolchain install stable
   @rustup target add wasm32-unknown-unknown
-  @cargo install cargo-binstall
   @cargo binstall --no-confirm dioxus-cli
 
 fmt: web::fmt
