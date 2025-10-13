@@ -11,7 +11,6 @@ anyhow = "1.0.100"
 base64 = "0.22.1"
 dioxus = { version = "0.6.0", features = [] }
 dioxus-desktop = "0.6.3"
-dioxus-sdk = { version = "0.6.0", features = ["system_theme"] }
 dotenvy = "0.15.7"
 html-escape = "0.2.13"
 indoc = "2.0.5"

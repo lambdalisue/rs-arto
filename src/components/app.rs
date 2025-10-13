@@ -4,12 +4,9 @@ use std::path::PathBuf;
 
 use super::content::Content;
 use super::header::Header;
+use crate::assets::{FAVICON, MAIN_SCRIPT, MAIN_STYLE};
 use crate::menu;
 use crate::state::AppState;
-
-const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_SCRIPT: Asset = asset!("/assets/dist/main.js");
-const MAIN_STYLE: Asset = asset!("/assets/dist/main.css");
 
 #[component]
 pub fn App(file: Option<PathBuf>) -> Element {
@@ -33,7 +30,14 @@ pub fn App(file: Option<PathBuf>) -> Element {
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_STYLE }
-        document::Script { r#type: "module", src: MAIN_SCRIPT }
+        document::Script { r#type: "module", r#"
+            import {{init}} from '{MAIN_SCRIPT}';
+            if (document.readyState === "loading") {{
+                document.addEventListener("DOMContentLoaded", init);
+            }} else {{
+                init();
+            }}
+        "#}
         div {
             class: "app-container",
 

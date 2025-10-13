@@ -1,18 +1,14 @@
 use dioxus::prelude::*;
-use dioxus_sdk::theme::{use_system_theme, SystemTheme};
 
+use crate::assets::MAIN_SCRIPT;
 use crate::components::icon::{Icon, IconName};
 use crate::state::AppState;
 use crate::theme::ThemePreference;
-
-const FALLBACK_THEME_STR: &str = "light";
 
 #[component]
 pub fn ThemeSelector() -> Element {
     let state = use_context::<AppState>();
     let current_theme = state.current_theme;
-    let system_theme = use_system_theme();
-
     let (light_class, dark_class, auto_class) = match current_theme() {
         ThemePreference::Light => (
             "theme-button theme-button--light theme-button--active",
@@ -31,42 +27,52 @@ pub fn ThemeSelector() -> Element {
         ),
     };
 
-    // Get the current theme from JavaScript on initialization
-    use_effect({
-        let mut current_theme = current_theme;
-        move || {
-            spawn(async move {
-                let result = document::eval("window.getCurrentTheme()").await;
-                if let Ok(value) = result {
-                    if let Some(theme_str) = value.as_str() {
-                        let theme = match theme_str {
-                            "light" => ThemePreference::Light,
-                            "dark" => ThemePreference::Dark,
-                            _ => ThemePreference::Auto,
-                        };
-                        current_theme.set(theme);
-                    }
-                }
-            });
-        }
-    });
-
-    use_effect(use_reactive!(|current_theme, system_theme| {
-        let preference = current_theme();
-        let resolved = match preference {
+    // Set the current theme in JavaScript whenever it changes
+    use_effect(use_reactive!(|current_theme| {
+        let resolved = match current_theme() {
             ThemePreference::Light => "light".to_string(),
             ThemePreference::Dark => "dark".to_string(),
-            ThemePreference::Auto => match system_theme() {
-                Ok(SystemTheme::Dark) => "dark".to_string(),
-                Ok(SystemTheme::Light) => "light".to_string(),
-                Err(_) => FALLBACK_THEME_STR.to_string(),
-            },
+            ThemePreference::Auto => "auto".to_string(),
         };
         spawn(async move {
-            let script = format!("window.setCurrentTheme('{resolved}')");
-            let _ = document::eval(&script).await;
+            let eval = document::eval(&indoc::formatdoc! {r#"
+                const {{ setCurrentTheme }} = await import('{MAIN_SCRIPT}');
+                setCurrentTheme('{resolved}');
+            "#});
+            if let Err(err) = eval.await {
+                tracing::error!("Failed to set theme in JS: {err}");
+            }
         });
     }));
+
+    // Get the current theme from JavaScript on initialization
+    use_effect(move || {
+        let mut current_theme = current_theme;
+        spawn(async move {
+            let eval = document::eval(&indoc::formatdoc! {r#"
+                const {{ getCurrentTheme }} = await import('{MAIN_SCRIPT}');
+                return getCurrentTheme();
+            "#});
+            let theme = match eval.await {
+                Ok(value) => match value.as_str() {
+                    Some(theme_str) => match theme_str {
+                        "light" => ThemePreference::Light,
+                        "dark" => ThemePreference::Dark,
+                        _ => ThemePreference::Auto,
+                    },
+                    _ => {
+                        tracing::error!("Unexpected value from JS");
+                        ThemePreference::Auto
+                    }
+                },
+                Err(err) => {
+                    tracing::error!("Failed to get current theme from JS: {err}");
+                    ThemePreference::Auto
+                }
+            };
+            current_theme.set(theme);
+        });
+    });
 
     rsx! {
         div {
