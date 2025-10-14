@@ -69,6 +69,28 @@ pub fn has_any_main_windows() -> bool {
     })
 }
 
+pub fn focus_last_focused_main_window() -> bool {
+    if let Some(window_id) = get_last_focused_window() {
+        // Resolve to parent window if the last focused was a child window
+        let main_window_id = resolve_to_parent_window(window_id);
+
+        MAIN_WINDOWS.with(|windows| {
+            windows
+                .borrow()
+                .iter()
+                .filter_map(|w| w.upgrade())
+                .find(|ctx| ctx.window.id() == main_window_id)
+                .map(|ctx| {
+                    ctx.window.set_focus();
+                    true
+                })
+                .unwrap_or(false)
+        })
+    } else {
+        false
+    }
+}
+
 pub fn close_all_main_windows() {
     let windows = MAIN_WINDOWS.with(|w| {
         w.borrow()

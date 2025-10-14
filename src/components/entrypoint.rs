@@ -1,4 +1,4 @@
-use crate::state::OPENED_FILES_RECEIVER;
+use crate::state::OPEN_EVENT_RECEIVER;
 use crate::window as window_manager;
 use dioxus::desktop::window;
 use dioxus::prelude::*;
@@ -11,14 +11,14 @@ pub fn Entrypoint() -> Element {
         crate::menu::handle_menu_event_global(event);
     });
 
-    let mut rx = OPENED_FILES_RECEIVER
+    let mut rx = OPEN_EVENT_RECEIVER
         .lock()
-        .expect("Failed to lock OPENED_FILES_RECEIVER")
+        .expect("Failed to lock OPEN_EVENT_RECEIVER")
         .take()
-        .expect("OPENED_FILES_RECEIVER is not set");
+        .expect("OPEN_EVENT_RECEIVER is not set");
 
     // Open the first file or show welcome screen
-    let first_file = if let Ok(file) = rx.try_recv() {
+    let first_file = if let Ok(Some(file)) = rx.try_recv() {
         tracing::info!("Opening first file: {:?}", &file);
         Some(file)
     } else {
@@ -28,18 +28,24 @@ pub fn Entrypoint() -> Element {
     tracing::info!("Creating first child window");
     window_manager::create_new_main_window(first_file.clone(), true);
 
-    // Broadcast received files to all windows
+    // Handle open events (file opened or app icon clicked)
     spawn_forever(async move {
-        while let Some(file) = rx.recv().await {
-            tracing::info!("Broadcasting file open request: {:?}", file);
-
-            // If no windows exist, create a new window with the file
-            if !window_manager::has_any_main_windows() {
-                tracing::info!("No windows open, creating new window with file: {:?}", file);
-                window_manager::create_new_main_window(Some(file), false);
-            } else {
-                // Otherwise broadcast to existing windows
-                let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
+        while let Some(event) = rx.recv().await {
+            match event {
+                Some(file) => {
+                    // Event::Opened
+                    if !window_manager::has_any_main_windows() {
+                        window_manager::create_new_main_window(Some(file), false);
+                    } else {
+                        let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
+                    }
+                }
+                None => {
+                    // Event::Reopen
+                    if !window_manager::focus_last_focused_main_window() {
+                        window_manager::create_new_main_window(None, false);
+                    }
+                }
             }
         }
     });

@@ -8,8 +8,10 @@ use tokio::sync::mpsc::Receiver;
 use crate::history::HistoryManager;
 use crate::theme::ThemePreference;
 
-/// A global receiver to receive opened files from the main thread
-pub static OPENED_FILES_RECEIVER: Mutex<Option<Receiver<PathBuf>>> = Mutex::new(None);
+/// A global receiver to receive open events from the main thread
+/// - `Some(PathBuf)`: File opened from Finder/CLI
+/// - `None`: App icon clicked (reopen event)
+pub static OPEN_EVENT_RECEIVER: Mutex<Option<Receiver<Option<PathBuf>>>> = Mutex::new(None);
 
 /// Global broadcast sender for opening files in tabs
 pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> =

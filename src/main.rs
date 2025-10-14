@@ -69,10 +69,10 @@ fn init_tracing() {
 
 #[cfg(target_os = "macos")]
 fn create_config() -> Config {
-    let (tx, rx) = channel::<PathBuf>(10);
-    state::OPENED_FILES_RECEIVER
+    let (tx, rx) = channel::<Option<PathBuf>>(10);
+    state::OPEN_EVENT_RECEIVER
         .lock()
-        .expect("Failed to lock OPENED_FILES_RECEIVER")
+        .expect("Failed to lock OPEN_EVENT_RECEIVER")
         .replace(rx);
 
     let menu = menu::build_menu();
@@ -95,9 +95,13 @@ fn create_config() -> Config {
             Event::Opened { urls, .. } => {
                 for url in urls {
                     if let Ok(path) = url.to_file_path() {
-                        tx.try_send(path).expect("Failed to send opened file");
+                        tx.try_send(Some(path)).expect("Failed to send opened file");
                     }
                 }
+            }
+            Event::Reopen { .. } => {
+                // Send reopen event (None) through channel to handle it safely in component context
+                tx.try_send(None).ok();
             }
             Event::WindowEvent {
                 event: WindowEvent::Focused(true),
@@ -114,10 +118,10 @@ fn create_config() -> Config {
 
 #[cfg(not(target_os = "macos"))]
 fn create_config() -> Config {
-    let (_tx, rx) = channel::<PathBuf>(10);
-    state::OPENED_FILES_RECEIVER
+    let (_tx, rx) = channel::<Option<PathBuf>>(10);
+    state::OPEN_EVENT_RECEIVER
         .lock()
-        .expect("Failed to lock OPENED_FILES_RECEIVER")
+        .expect("Failed to lock OPEN_EVENT_RECEIVER")
         .replace(rx);
 
     let menu = menu::build_menu();
