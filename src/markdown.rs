@@ -20,6 +20,8 @@ pub fn render_to_html(markdown: &str, base_path: &Path) -> Result<String> {
     // Parse Markdown and process blocks
     let parser = Parser::new_ext(&processed_markdown, options);
     let parser = process_code_blocks(parser, "mermaid");
+    let parser = process_code_blocks(parser, "math");
+    let parser = process_math_expressions(parser);
     let parser = process_image_paths(parser, base_dir.as_path());
     let parser = process_anchor_markdown_files(parser);
 
@@ -165,6 +167,33 @@ fn process_code_blocks<'a>(
             vec![]
         }
         _ => vec![event],
+    })
+}
+
+/// Process math expressions (inline and display)
+fn process_math_expressions<'a>(
+    parser: impl Iterator<Item = Event<'a>>,
+) -> impl Iterator<Item = Event<'a>> {
+    parser.map(|event| match event {
+        Event::InlineMath(content) => {
+            // Convert inline math to custom HTML structure
+            let html = format!(
+                r#"<span class="preprocessed-math-inline" data-original-content="{}">{}</span>"#,
+                html_escape::encode_text(&content),
+                &content,
+            );
+            Event::Html(html.into())
+        }
+        Event::DisplayMath(content) => {
+            // Convert display math to custom HTML structure
+            let html = format!(
+                r#"<div class="preprocessed-math-display" data-original-content="{}">{}</div>"#,
+                html_escape::encode_text(&content),
+                &content,
+            );
+            Event::Html(html.into())
+        }
+        other => other,
     })
 }
 
@@ -724,6 +753,154 @@ mod tests {
 
         assert!(result.contains(r#"<pre class="preprocessed-mermaid""#));
         assert!(result.contains("graph LR"));
+    }
+
+    #[test]
+    fn test_process_math_expressions_inline() {
+        let markdown = "This is inline math: $x = y + z$";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_math_expressions(parser).collect();
+
+        // Verify that inline math is converted to custom HTML
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains(r#"<span class="preprocessed-math-inline""#)),
+            "Should contain inline-math span"
+        );
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains("data-original-content")),
+            "Should contain data attribute"
+        );
+        assert!(
+            html_events.iter().any(|h| h.contains("x = y + z")),
+            "Should contain the math content"
+        );
+    }
+
+    #[test]
+    fn test_process_math_expressions_display() {
+        let markdown = indoc! {"
+            Display math:
+
+            $$
+            x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}
+            $$
+        "};
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_math_expressions(parser).collect();
+
+        // Verify that display math is converted to custom HTML
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains(r#"<div class="preprocessed-math-display""#)),
+            "Should contain display-math div"
+        );
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains("data-original-content")),
+            "Should contain data attribute"
+        );
+        assert!(
+            html_events.iter().any(|h| h.contains("frac")),
+            "Should contain the math content"
+        );
+    }
+
+    #[test]
+    fn test_process_math_expressions_mixed() {
+        let markdown = "Inline $a + b$ and display $$c = d$$";
+        let options = Options::all();
+        let parser = Parser::new_ext(markdown, options);
+
+        let events: Vec<Event> = process_math_expressions(parser).collect();
+
+        let html_events: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                if let Event::Html(html) = e {
+                    Some(html.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Should have both inline and display math
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains(r#"class="preprocessed-math-inline""#)),
+            "Should contain inline math"
+        );
+        assert!(
+            html_events
+                .iter()
+                .any(|h| h.contains(r#"class="preprocessed-math-display""#)),
+            "Should contain display math"
+        );
+    }
+
+    #[test]
+    fn test_render_to_html_with_math() {
+        let markdown = indoc! {"
+            # Math Test
+
+            Inline math: $E = mc^2$
+
+            Display math:
+            $$
+            \\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}
+            $$
+        "};
+
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(
+            result.contains(r#"class="preprocessed-math-inline""#),
+            "Should render inline math"
+        );
+        assert!(
+            result.contains(r#"class="preprocessed-math-display""#),
+            "Should render display math"
+        );
+        assert!(
+            result.contains("data-original-content"),
+            "Should include data attributes"
+        );
     }
 
     #[test]

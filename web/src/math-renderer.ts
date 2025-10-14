@@ -8,15 +8,15 @@ export function renderMath(container: Element): void {
 
 function renderInlineMath(container: Element): void {
   // Process inline math: <span class="math math-inline">...</span>
-  const inlineMathElements = container.querySelectorAll(
-    "span.math.math-inline:not([data-katex-rendered])"
+  const inlineMathElements: NodeListOf<HTMLElement> = container.querySelectorAll(
+    "span.preprocessed-math-inline:not([data-katex-rendered])"
   );
 
   // Batch: Collect all elements to render (read phase)
   const renderQueue: Array<{ element: HTMLElement; content: string }> = [];
 
   for (const element of Array.from(inlineMathElements)) {
-    const mathContent = element.textContent?.trim() || "";
+    const mathContent = element.dataset.originalContent || "";
     if (mathContent) {
       renderQueue.push({
         element: element as HTMLElement,
@@ -48,15 +48,15 @@ function renderInlineMath(container: Element): void {
 
 function renderDisplayMath(container: Element): void {
   // Process display math: <span class="math math-display">...</span>
-  const displayMathElements = container.querySelectorAll(
-    "span.math.math-display:not([data-katex-rendered])"
+  const displayMathElements: NodeListOf<HTMLElement> = container.querySelectorAll(
+    "div.preprocessed-math-display:not([data-katex-rendered])"
   );
 
   // Batch: Collect all elements to render (read phase)
   const renderQueue: Array<{ element: HTMLElement; content: string }> = [];
 
   for (const element of Array.from(displayMathElements)) {
-    const mathContent = element.textContent?.trim() || "";
+    const mathContent = element.dataset.originalContent || "";
     if (mathContent) {
       renderQueue.push({
         element: element as HTMLElement,
@@ -87,14 +87,16 @@ function renderDisplayMath(container: Element): void {
 }
 
 function renderBlockMath(container: Element): void {
-  const mathBlocks = container.querySelectorAll(".language-math:not([data-rendered])");
+  const mathBlocks: NodeListOf<HTMLElement> = container.querySelectorAll(
+    "pre.preprocessed-math:not([data-rendered])"
+  );
 
   // Batch: Collect all elements to render (read phase)
   const renderQueue: Array<{ element: HTMLElement; content: string }> = [];
 
   for (const block of Array.from(mathBlocks)) {
     const element = block as HTMLElement;
-    const mathContent = element.textContent?.trim() || "";
+    const mathContent = element.dataset.originalContent || "";
 
     if (mathContent) {
       renderQueue.push({ element, content: mathContent });
