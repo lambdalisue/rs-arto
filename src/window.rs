@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
+use dioxus_desktop::tao::window::WindowId;
 use dioxus_desktop::{window, Config, WeakDesktopContext, WindowBuilder};
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::assets::MAIN_STYLE;
@@ -10,52 +12,41 @@ use crate::state::LAST_SELECTED_THEME;
 use crate::theme::resolve_theme;
 
 thread_local! {
-    /// Registry of all child windows (not including the background window)
-    static CHILD_WINDOWS: RefCell<Vec<WeakDesktopContext>> = const { RefCell::new(Vec::new()) };
+    static MAIN_WINDOWS: RefCell<Vec<WeakDesktopContext>> = const { RefCell::new(Vec::new()) };
+    static LAST_FOCUSED_WINDOW: RefCell<Option<WindowId>> = const { RefCell::new(None) };
 }
 
-/// Register a child window
-fn register_child_window(handle: WeakDesktopContext) {
-    CHILD_WINDOWS.with(|windows| {
+fn register_main_window(handle: WeakDesktopContext) {
+    MAIN_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
-        // Clean up dead references
         windows.retain(|w| w.upgrade().is_some());
-        // Add new window if not already present
         if !windows.iter().any(|w| w.ptr_eq(&handle)) {
             windows.push(handle);
         }
     });
 }
 
-/// Check if any child windows are open
-pub fn has_any_child_windows() -> bool {
-    CHILD_WINDOWS.with(|windows| {
+pub fn has_any_main_windows() -> bool {
+    MAIN_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
-        // Clean up dead references
         windows.retain(|w| w.upgrade().is_some());
         !windows.is_empty()
     })
 }
 
-/// Close all child windows
-pub fn close_all_child_windows() {
-    CHILD_WINDOWS.with(|windows| {
-        let mut windows = windows.borrow_mut();
-        // Collect all live windows
-        let live_windows: Vec<_> = windows.iter().filter_map(|w| w.upgrade()).collect();
-
-        // Close all windows
-        for win in live_windows {
-            win.close();
-        }
-
-        // Clear the registry
-        windows.clear();
+pub fn close_all_main_windows() {
+    let windows = MAIN_WINDOWS.with(|w| {
+        w.borrow()
+            .iter()
+            .filter_map(|w| w.upgrade())
+            .collect::<Vec<_>>()
     });
+
+    windows.iter().for_each(|w| w.close());
+    MAIN_WINDOWS.with(|w| w.borrow_mut().clear());
 }
 
-/// Create a new window
-pub fn create_new_window(file: Option<PathBuf>, show_welcome: bool) {
+pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
     // This cause ERROR but it seems we can ignore it safely
     // https://github.com/DioxusLabs/dioxus/issues/3872
     let dom = VirtualDom::new_with_props(App, AppProps { file, show_welcome });
@@ -71,7 +62,7 @@ pub fn create_new_window(file: Option<PathBuf>, show_welcome: bool) {
         .with_custom_index(build_custom_index());
 
     let handle = window().new_window(dom, config);
-    register_child_window(handle);
+    register_main_window(handle);
 }
 
 fn build_custom_index() -> String {
@@ -90,4 +81,12 @@ fn build_custom_index() -> String {
         </body>
     </html>
     "#}
+}
+
+pub fn update_last_focused_window(window_id: WindowId) {
+    LAST_FOCUSED_WINDOW.with(|last| *last.borrow_mut() = Some(window_id));
+}
+
+fn get_last_focused_window() -> Option<WindowId> {
+    LAST_FOCUSED_WINDOW.with(|last| *last.borrow())
 }

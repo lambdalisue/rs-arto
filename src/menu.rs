@@ -241,21 +241,18 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
 
     match id {
         MenuId::NewWindow => {
-            window::create_new_window(None, false);
+            window::create_new_main_window(None, false);
         }
         MenuId::NewTab => {
             // If no windows are open, create a new window instead
-            if !window::has_any_child_windows() {
-                tracing::info!("No windows open, creating new window for NewTab request");
-                window::create_new_window(None, false);
+            if !window::has_any_main_windows() {
+                window::create_new_main_window(None, false);
                 return true;
             }
-            // Otherwise, let the focused window handle it
             return false;
         }
         MenuId::CloseAllWindows => {
-            tracing::info!("Closing all child windows");
-            window::close_all_child_windows();
+            window::close_all_main_windows();
         }
         MenuId::GoToHomepage => {
             let _ = open::that("https://github.com/lambdalisue/rs-arto");

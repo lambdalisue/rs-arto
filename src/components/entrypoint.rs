@@ -26,7 +26,7 @@ pub fn Entrypoint() -> Element {
         None
     };
     tracing::info!("Creating first child window");
-    window_manager::create_new_window(first_file.clone(), true);
+    window_manager::create_new_main_window(first_file.clone(), true);
 
     // Broadcast received files to all windows
     spawn_forever(async move {
@@ -34,9 +34,9 @@ pub fn Entrypoint() -> Element {
             tracing::info!("Broadcasting file open request: {:?}", file);
 
             // If no windows exist, create a new window with the file
-            if !window_manager::has_any_child_windows() {
+            if !window_manager::has_any_main_windows() {
                 tracing::info!("No windows open, creating new window with file: {:?}", file);
-                window_manager::create_new_window(Some(file), false);
+                window_manager::create_new_main_window(Some(file), false);
             } else {
                 // Otherwise broadcast to existing windows
                 let _ = crate::state::FILE_OPEN_BROADCAST.send(file);

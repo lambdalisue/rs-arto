@@ -9,6 +9,7 @@ mod utils;
 mod watcher;
 mod window;
 
+use dioxus::desktop::tao::event::{Event, WindowEvent};
 use dioxus::desktop::{tao::dpi::PhysicalPosition, Config, LogicalSize, WindowBuilder};
 use std::path::PathBuf;
 use tokio::sync::mpsc::channel;
@@ -68,8 +69,6 @@ fn init_tracing() {
 
 #[cfg(target_os = "macos")]
 fn create_config() -> Config {
-    use dioxus::desktop::tao::event::Event;
-
     let (tx, rx) = channel::<PathBuf>(10);
     state::OPENED_FILES_RECEIVER
         .lock()
@@ -92,17 +91,22 @@ fn create_config() -> Config {
         .with_inner_size(LogicalSize::new(1, 1));
 
     Config::new()
-        // Listen to macOS open file events. This custom event handler must be specified before
-        // the window is created. Otherwise, the Opened event will be lost for first launch.
-        .with_custom_event_handler(move |event, _target| {
-            if let Event::Opened { urls, .. } = event {
-                tracing::debug!(target: "open", "Opened {:?}", urls);
+        .with_custom_event_handler(move |event, _target| match event {
+            Event::Opened { urls, .. } => {
                 for url in urls {
                     if let Ok(path) = url.to_file_path() {
                         tx.try_send(path).expect("Failed to send opened file");
                     }
                 }
             }
+            Event::WindowEvent {
+                event: WindowEvent::Focused(true),
+                window_id,
+                ..
+            } => {
+                window::update_last_focused_window(*window_id);
+            }
+            _ => {}
         })
         .with_menu(menu)
         .with_window(window)
@@ -132,6 +136,17 @@ fn create_config() -> Config {
         .with_inner_size(LogicalSize::new(1, 1));
 
     Config::new()
+        // Listen to window focus events
+        .with_custom_event_handler(move |event, _target| {
+            if let Event::WindowEvent {
+                event: WindowEvent::Focused(true),
+                window_id,
+                ..
+            } = event
+            {
+                window::update_last_focused_window(*window_id);
+            }
+        })
         .with_menu(menu)
         .with_window(window)
         // This is important to avoid panic when closing child windows
