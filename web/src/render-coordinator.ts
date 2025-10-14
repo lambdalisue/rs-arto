@@ -63,7 +63,7 @@ class RenderCoordinator {
           return;
         }
 
-        const originalSource = element.dataset.mermaidSrc;
+        const originalSource = JSON.parse(element.dataset.mermaidSrc);
 
         // Clear the rendered content
         element.innerHTML = "";

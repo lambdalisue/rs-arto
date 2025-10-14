@@ -57,9 +57,7 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
 
   try {
     // Store original source for theme switching
-    if (!element.dataset.mermaidSrc) {
-      element.dataset.mermaidSrc = mermaidSource;
-    }
+    element.dataset.mermaidSrc = JSON.stringify(mermaidSource);
 
     // Generate a unique ID for this diagram
     const id = `mermaid-${crypto.randomUUID()}`;
