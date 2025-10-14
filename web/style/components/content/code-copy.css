@@ -52,3 +52,12 @@
   width: 16px;
   height: 16px;
 }
+
+/* Multiple buttons layout for Mermaid */
+.markdown-body .copy-button-text {
+  right: 48px; /* Make room for image button */
+}
+
+.markdown-body .copy-button-image {
+  right: 8px; /* Rightmost position */
+}
