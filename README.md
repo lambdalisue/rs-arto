@@ -45,17 +45,17 @@ Launch the application and drag and drop a markdown file onto the window, or use
 
 **File**
 - `Cmd+N`: New window
-- `Cmd+O`: Open file (in new window)
-- `Cmd+Shift+O`: Open file in current window
-- `Cmd+W`: Close window
-- `Cmd+Option+W`: Close all windows (macOS only)
+- `Cmd+T`: New tab
+- `Cmd+O`: Open file
+- `Cmd+W`: Close tab
+- `Cmd+Shift+W`: Close window
 
 **View**
 - `Cmd+0`: Actual size (reset zoom)
 - `Cmd+=`: Zoom in
 - `Cmd+-`: Zoom out
 
-**Navigation**
+**History**
 - `Cmd+[`: Go back
 - `Cmd+]`: Go forward
 
