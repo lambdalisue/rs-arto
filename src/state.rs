@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use tokio::sync::broadcast;
@@ -64,21 +65,42 @@ impl Tab {
     }
 }
 
+/// Represents the state of the sidebar file explorer
+#[derive(Debug, Clone, PartialEq)]
+pub struct SidebarState {
+    pub is_visible: bool,
+    pub root_directory: Option<PathBuf>,
+    pub expanded_dirs: HashSet<PathBuf>,
+    pub width: f64, // Width in pixels
+    pub hide_non_markdown: bool, // Hide non-markdown files
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct AppState {
     pub tabs: Signal<Vec<Tab>>,
     pub active_tab: Signal<usize>,
     pub current_theme: Signal<ThemePreference>,
     pub zoom_level: Signal<f64>,
+    pub sidebar: Signal<SidebarState>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
+        // Set current working directory as default root
+        let current_dir = std::env::current_dir().ok();
+
         Self {
             tabs: Signal::new(vec![Tab::new(None)]),
             active_tab: Signal::new(0),
             current_theme: Signal::new(*LAST_SELECTED_THEME.lock().unwrap()),
             zoom_level: Signal::new(1.0),
+            sidebar: Signal::new(SidebarState {
+                is_visible: false,
+                root_directory: current_dir,
+                expanded_dirs: HashSet::new(),
+                width: 280.0, // Default width
+                hide_non_markdown: true, // Hide non-markdown files by default
+            }),
         }
     }
 }
@@ -166,6 +188,7 @@ impl AppState {
     }
 
     /// Open a file, reusing NoFile tab or existing tab with the same file if possible
+    /// Used when opening from sidebar or external sources
     pub fn open_file(&mut self, file: PathBuf) {
         // Check if the file is already open in another tab
         if let Some(tab_index) = self.find_tab_with_file(&file) {
@@ -180,6 +203,37 @@ impl AppState {
         } else {
             // Otherwise, create a new tab
             self.add_tab(Some(file), true);
+        }
+    }
+
+    /// Navigate to a file in the current tab (for in-tab navigation like markdown links)
+    /// Always opens in current tab regardless of whether file is open elsewhere
+    pub fn navigate_to_file(&mut self, file: PathBuf) {
+        self.update_current_tab(|tab| {
+            tab.history.push(file.clone());
+            tab.content = TabContent::File(file);
+        });
+    }
+
+    /// Toggle sidebar visibility
+    pub fn toggle_sidebar(&mut self) {
+        let mut sidebar = self.sidebar.write();
+        sidebar.is_visible = !sidebar.is_visible;
+    }
+
+    /// Set the root directory for the sidebar file explorer
+    pub fn set_root_directory(&mut self, path: PathBuf) {
+        let mut sidebar = self.sidebar.write();
+        sidebar.root_directory = Some(path);
+    }
+
+    /// Toggle directory expansion state
+    pub fn toggle_directory_expansion(&mut self, path: PathBuf) {
+        let mut sidebar = self.sidebar.write();
+        if sidebar.expanded_dirs.contains(&path) {
+            sidebar.expanded_dirs.remove(&path);
+        } else {
+            sidebar.expanded_dirs.insert(path);
         }
     }
 }

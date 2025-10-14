@@ -10,13 +10,18 @@ pub enum IconName {
     Contrast2,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
     File,
+    Folder,
     FolderOpen,
     Command,
     Click,
     FileUpload,
     Close,
     Add,
+    Sidebar,
+    Eye,
+    EyeOff,
 }
 
 impl fmt::Display for IconName {
@@ -27,13 +32,18 @@ impl fmt::Display for IconName {
             IconName::Contrast2 => "contrast-2",
             IconName::ChevronLeft => "chevron-left",
             IconName::ChevronRight => "chevron-right",
+            IconName::ChevronDown => "chevron-down",
             IconName::File => "file",
+            IconName::Folder => "folder",
             IconName::FolderOpen => "folder-open",
             IconName::Command => "command",
             IconName::Click => "click",
             IconName::FileUpload => "file-upload",
             IconName::Close => "x",
             IconName::Add => "plus",
+            IconName::Sidebar => "layout-sidebar",
+            IconName::Eye => "eye",
+            IconName::EyeOff => "eye-off",
         };
         write!(f, "{}", name)
     }

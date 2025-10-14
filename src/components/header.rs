@@ -29,8 +29,11 @@ pub fn Header() -> Element {
         .as_ref()
         .is_some_and(|tab| tab.history.can_go_forward());
 
+    let is_sidebar_visible = state.sidebar.read().is_visible;
+
     let mut state_for_back = state.clone();
     let mut state_for_forward = state.clone();
+    let mut state_for_sidebar = state.clone();
 
     let on_back = move |_| {
         state_for_back.update_current_tab(|tab| {
@@ -55,6 +58,19 @@ pub fn Header() -> Element {
             // File name display (left side) with navigation buttons
             div {
                 class: "header-left",
+
+                // Sidebar toggle button
+                button {
+                    class: "sidebar-toggle-button",
+                    class: if is_sidebar_visible { "active" },
+                    onclick: move |_| {
+                        state_for_sidebar.toggle_sidebar();
+                    },
+                    Icon {
+                        name: IconName::Sidebar,
+                        size: 20,
+                    }
+                }
 
                 // Back button
                 button {

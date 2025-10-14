@@ -10,13 +10,18 @@ const icons = [
   "contrast-2",
   "chevron-left",
   "chevron-right",
+  "chevron-down",
   "file",
+  "folder",
   "folder-open",
   "command",
   "click",
   "file-upload",
   "x",
   "plus",
+  "layout-sidebar",
+  "eye",
+  "eye-off",
 ];
 const iconsDir = path.join(__dirname, "../node_modules/@tabler/icons/icons/outline");
 const outputPath = path.join(__dirname, "../public/icons/tabler-sprite.svg");
