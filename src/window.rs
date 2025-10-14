@@ -8,8 +8,9 @@ use std::path::PathBuf;
 
 use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
+use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
 use crate::state::LAST_SELECTED_THEME;
-use crate::theme::resolve_theme;
+use crate::theme::{resolve_theme, ThemePreference};
 
 struct ChildWindowEntry {
     handle: WeakDesktopContext,
@@ -153,4 +154,74 @@ pub fn close_child_windows_for_last_focused() {
     if let Some(a) = get_last_focused_window().map(resolve_to_parent_window) {
         close_child_windows_for_parent(a)
     }
+}
+
+pub fn open_or_focus_mermaid_window(source: String, theme: ThemePreference) {
+    let diagram_id = generate_diagram_id(&source);
+    let parent_id = window().id();
+
+    CHILD_WINDOWS.with(|windows| {
+        let mut windows = windows.borrow_mut();
+        windows.retain(|_, e| e.is_alive());
+
+        if windows.get(&diagram_id).is_some_and(|e| e.focus()) {
+            return;
+        }
+
+        create_mermaid_window(source, diagram_id, theme, parent_id, &mut windows);
+    });
+}
+
+fn create_mermaid_window(
+    source: String,
+    diagram_id: String,
+    theme: ThemePreference,
+    parent_id: WindowId,
+    windows: &mut HashMap<String, ChildWindowEntry>,
+) {
+    let dom = VirtualDom::new_with_props(
+        MermaidWindow,
+        MermaidWindowProps {
+            source,
+            diagram_id: diagram_id.clone(),
+            theme,
+        },
+    );
+
+    let config = Config::new()
+        .with_menu(None)
+        .with_window(WindowBuilder::new().with_title("Mermaid Viewer"))
+        .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
+        .with_custom_index(build_mermaid_window_index(theme));
+
+    let handle = window().new_window(dom, config);
+
+    if let Some(ctx) = handle.upgrade() {
+        windows.insert(
+            diagram_id,
+            ChildWindowEntry {
+                handle,
+                window_id: ctx.window.id(),
+                parent_id,
+            },
+        );
+    }
+}
+
+fn build_mermaid_window_index(theme: ThemePreference) -> String {
+    let resolved_theme = resolve_theme(&theme);
+    indoc::formatdoc! {r#"
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>Mermaid Viewer - Arto</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <!-- CUSTOM HEAD -->
+        </head>
+        <body data-theme="{resolved_theme}" class="mermaid-window-body">
+            <div id="main"></div>
+            <!-- MODULE LOADER -->
+        </body>
+    </html>
+    "#}
 }

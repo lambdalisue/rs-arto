@@ -51,6 +51,8 @@ dependencies = [
  "pulldown-cmark",
  "rfd 0.15.4",
  "serde",
+ "serde_json",
+ "sha2",
  "tempfile",
  "thiserror 2.0.17",
  "tokio",

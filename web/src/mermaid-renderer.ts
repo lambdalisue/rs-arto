@@ -1,5 +1,6 @@
 import mermaid from "mermaid";
 import type { Theme } from "./theme";
+import { openMermaidWindow } from "./mermaid-window-controller";
 
 export function init(): void {
   mermaid.initialize({
@@ -67,6 +68,25 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
     // Replace the text content with the rendered SVG
     element.innerHTML = svg;
     element.dataset.rendered = "true";
+
+    // Make diagram clickable to open viewer
+    const svgElement = element.querySelector("svg");
+    if (svgElement) {
+      svgElement.style.cursor = "pointer";
+      svgElement.style.transition = "opacity 0.2s ease";
+
+      svgElement.addEventListener("click", () => {
+        openMermaidWindow(mermaidSource);
+      });
+
+      // Add hover effect
+      svgElement.addEventListener("mouseenter", () => {
+        svgElement.style.opacity = "0.7";
+      });
+      svgElement.addEventListener("mouseleave", () => {
+        svgElement.style.opacity = "1.0";
+      });
+    }
 
     console.debug(`Rendered mermaid diagram: ${id}`);
   } catch (error) {

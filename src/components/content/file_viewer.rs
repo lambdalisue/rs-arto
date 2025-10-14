@@ -30,6 +30,7 @@ pub fn FileViewer(file: PathBuf) -> Element {
     use_file_loader(file.clone(), html, reload_trigger, state.clone());
     use_file_watcher(file.clone(), reload_trigger);
     use_link_click_handler(file, state.clone());
+    use_mermaid_window_handler();
 
     rsx! {
         div {
@@ -219,4 +220,30 @@ fn handle_link_click(click_data: LinkClickData, base_dir: &Path, state: &mut App
             tracing::debug!("Ignoring click with button: {}", button);
         }
     }
+}
+
+/// Hook to setup Mermaid window open handler
+fn use_mermaid_window_handler() {
+    use_effect(|| {
+        let mut eval_provider = document::eval(indoc::indoc! {r#"
+            window.handleMermaidWindowOpen = (source) => {
+                dioxus.send({ type: "open_mermaid_window", source: source });
+            };
+        "#});
+
+        spawn(async move {
+            while let Ok(data) = eval_provider.recv::<serde_json::Value>().await {
+                if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()) {
+                    if msg_type == "open_mermaid_window" {
+                        if let Some(source) = data.get("source").and_then(|v| v.as_str()) {
+                            let state = use_context::<AppState>();
+                            let theme = *state.current_theme.read();
+                            tracing::info!("Opening mermaid window for diagram");
+                            crate::window::open_or_focus_mermaid_window(source.to_string(), theme);
+                        }
+                    }
+                }
+            }
+        });
+    });
 }

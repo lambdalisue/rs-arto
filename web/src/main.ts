@@ -39,3 +39,6 @@ export function init(): void {
   // Set initial theme
   setCurrentTheme(getCurrentTheme());
 }
+
+// Re-export mermaid window functions
+export { initMermaidWindow } from "./mermaid-window-controller";
