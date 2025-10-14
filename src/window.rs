@@ -111,7 +111,11 @@ pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
     // The menu from the main window will be used instead.
     let config = Config::new()
         .with_menu(None) // To avoid child window taking over the main window's menu
-        .with_window(WindowBuilder::new().with_title("Arto"))
+        .with_window(
+            WindowBuilder::new()
+                .with_title("Arto")
+                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+        )
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.
         .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
