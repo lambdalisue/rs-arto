@@ -27,6 +27,8 @@ pub enum TabContent {
     File(PathBuf),
     /// Inline markdown content (for welcome screen)
     Inline(String),
+    /// File that cannot be opened (binary or error)
+    FileError(PathBuf, String),
 }
 
 /// Represents a single tab with its content and navigation history
@@ -59,7 +61,7 @@ impl Tab {
     /// Get the file path if this tab has a file
     pub fn file(&self) -> Option<&PathBuf> {
         match &self.content {
-            TabContent::File(path) => Some(path),
+            TabContent::File(path) | TabContent::FileError(path, _) => Some(path),
             _ => None,
         }
     }
@@ -172,11 +174,16 @@ impl AppState {
         }
     }
 
-    /// Check if the current active tab has no file (NoFile tab or Inline content)
-    /// Both None and Inline content can be replaced when opening a file
+    /// Check if the current active tab has no file (NoFile tab, Inline content, or FileError)
+    /// None, Inline content, and FileError can be replaced when opening a file
     pub fn is_current_tab_no_file(&self) -> bool {
         self.current_tab()
-            .map(|tab| matches!(tab.content, TabContent::None | TabContent::Inline(_)))
+            .map(|tab| {
+                matches!(
+                    tab.content,
+                    TabContent::None | TabContent::Inline(_) | TabContent::FileError(_, _)
+                )
+            })
             .unwrap_or(false)
     }
 

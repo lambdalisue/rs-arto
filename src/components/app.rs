@@ -10,7 +10,6 @@ use super::sidebar::Sidebar;
 use super::tab_bar::TabBar;
 use crate::menu;
 use crate::state::{AppState, Tab, FILE_OPEN_BROADCAST};
-use crate::utils::file::is_markdown_file;
 
 #[component]
 pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
@@ -98,11 +97,10 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
             // If it's a directory, set it as root
             tracing::info!("Setting dropped directory as root: {:?}", path);
             state.set_root_directory(path);
-        } else if is_markdown_file(&path) {
+        } else {
+            // Open any file (not just markdown)
             tracing::info!("Opening dropped file: {:?}", path);
             state.open_file(path);
-        } else {
-            tracing::warn!("Ignored non-markdown file: {:?}", path);
         }
     }
 }

@@ -179,7 +179,8 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                     let path_clone = path_for_click.clone();
                     if is_dir {
                         state_for_click.toggle_directory_expansion(path_clone);
-                    } else if is_markdown {
+                    } else {
+                        // Open any file (not just markdown)
                         state_for_click.open_file(path_clone);
                     }
                 },

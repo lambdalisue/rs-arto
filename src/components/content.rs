@@ -1,10 +1,14 @@
-mod markdown_viewer;
+mod file_error_view;
+mod file_viewer;
+mod inline_viewer;
 mod no_file_view;
 
 use dioxus::prelude::*;
 
 use crate::state::{AppState, TabContent};
-use markdown_viewer::MarkdownViewer;
+use file_error_view::FileErrorView;
+use file_viewer::FileViewer;
+use inline_viewer::InlineViewer;
 use no_file_view::NoFileView;
 
 #[component]
@@ -25,8 +29,19 @@ pub fn Content() -> Element {
             style: "{zoom_style}",
 
             match content {
-                Some(TabContent::File(_)) | Some(TabContent::Inline(_)) => {
-                    rsx! { MarkdownViewer { content: content.unwrap() } }
+                Some(TabContent::File(file)) => {
+                    rsx! { FileViewer { file } }
+                },
+                Some(TabContent::Inline(markdown)) => {
+                    rsx! { InlineViewer { markdown } }
+                },
+                Some(TabContent::FileError(file, error)) => {
+                    let filename = file
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Unknown file")
+                        .to_string();
+                    rsx! { FileErrorView { filename, error_message: error } }
                 },
                 _ => rsx! { NoFileView {} },
             }

@@ -7,7 +7,7 @@ use crate::state::AppState;
 fn get_tab_display_name(tab: &crate::state::Tab) -> String {
     use crate::state::TabContent;
     match &tab.content {
-        TabContent::File(path) => path
+        TabContent::File(path) | TabContent::FileError(path, _) => path
             .file_name()
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or_else(|| "Unnamed file".to_string()),
