@@ -17,6 +17,10 @@
       &:hover {
         text-decoration: underline;
       }
+
+      &.md-link-invalid {
+        opacity: 0.8;
+      }
     }
 
     pre.preprocessed-mermaid {

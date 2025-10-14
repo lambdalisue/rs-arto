@@ -1,6 +1,7 @@
 use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
-use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Options, Parser, Tag, TagEnd};
+use lol_html::{element, HtmlRewriter, Settings};
+use pulldown_cmark::{html, CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
 use std::path::{Path, PathBuf};
 
 /// Render Markdown to HTML
@@ -22,12 +23,13 @@ pub fn render_to_html(markdown: &str, base_path: &Path) -> Result<String> {
     let parser = process_code_blocks(parser, "mermaid");
     let parser = process_code_blocks(parser, "math");
     let parser = process_math_expressions(parser);
-    let parser = process_image_paths(parser, base_dir.as_path());
-    let parser = process_anchor_markdown_files(parser);
 
     // Convert to HTML
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
+
+    // Post-process HTML to handle all img and anchor tags (both from Markdown syntax and HTML tags)
+    let html_output = post_process_html_tags(&html_output, base_dir.as_path());
 
     Ok(html_output)
 }
@@ -197,57 +199,6 @@ fn process_math_expressions<'a>(
     })
 }
 
-/// Convert image paths from relative paths to Data URLs
-fn process_image_paths<'a>(
-    parser: impl Iterator<Item = Event<'a>>,
-    base_dir: &'a Path,
-) -> impl Iterator<Item = Event<'a>> {
-    parser.map(move |event| {
-        match event {
-            Event::Start(Tag::Image {
-                link_type,
-                dest_url,
-                title,
-                id,
-            }) => {
-                // Check if URL is a relative path (doesn't start with http:// or https://)
-                let url_str = dest_url.as_ref();
-
-                if !url_str.starts_with("http://")
-                    && !url_str.starts_with("https://")
-                    && !url_str.starts_with("data:")
-                {
-                    // Convert relative path to absolute path
-                    let absolute_path = base_dir.join(url_str);
-
-                    if let Ok(canonical_path) = absolute_path.canonicalize() {
-                        // Read file and encode to Base64
-                        if let Ok(image_data) = std::fs::read(&canonical_path) {
-                            let mime_type = get_mime_type(&canonical_path);
-                            let base64_data = general_purpose::STANDARD.encode(&image_data);
-                            let data_url = format!("data:{};base64,{}", mime_type, base64_data);
-                            return Event::Start(Tag::Image {
-                                link_type,
-                                dest_url: CowStr::from(data_url),
-                                title,
-                                id,
-                            });
-                        }
-                    }
-                }
-                // Return original event if conversion is not needed
-                Event::Start(Tag::Image {
-                    link_type,
-                    dest_url,
-                    title,
-                    id,
-                })
-            }
-            other => other,
-        }
-    })
-}
-
 /// Infer MIME type from file extension
 fn get_mime_type(path: &Path) -> &'static str {
     match path.extension().and_then(|e| e.to_str()) {
@@ -262,57 +213,75 @@ fn get_mime_type(path: &Path) -> &'static str {
     }
 }
 
-/// Process anchor tags pointing to Markdown files
-/// Convert <a href="*.md"> to <span class="md-link"> with onclick handler
-fn process_anchor_markdown_files<'a>(
-    parser: impl Iterator<Item = Event<'a>>,
-) -> impl Iterator<Item = Event<'a>> {
-    let mut in_md_link = false;
-    let mut link_url = String::new();
+/// Post-process HTML to handle img and anchor tags using lol_html
+fn post_process_html_tags(html_str: &str, base_dir: &Path) -> String {
+    let base_dir = base_dir.to_path_buf();
+    let mut output = Vec::new();
 
-    parser.flat_map(move |event| match event {
-        Event::Start(Tag::Link {
-            link_type,
-            dest_url,
-            title,
-            id,
-        }) => {
-            let url_str = dest_url.as_ref();
-
-            // Check if this is a Markdown file link (not http/https)
-            if !url_str.starts_with("http://") && !url_str.starts_with("https://") {
-                if let Some(ext) = std::path::Path::new(url_str)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                {
-                    if ext == "md" || ext == "markdown" {
-                        // This is a Markdown file link, convert to span
-                        in_md_link = true;
-                        link_url = url_str.to_string();
-                        let html = format!(
-                            r#"<span class="md-link" onmousedown="if (event.button === 0 || event.button === 1) {{ event.preventDefault(); window.handleMarkdownLinkClick('{}', event.button); }}">"#,
-                            url_str.replace('\'', "\\'")
-                        );
-                        return vec![Event::Html(html.into())];
+    let mut rewriter = HtmlRewriter::new(
+        Settings {
+            element_content_handlers: vec![
+                // Process img tags: convert relative paths to data URLs
+                element!("img[src]", move |el| {
+                    if let Some(src) = el.get_attribute("src") {
+                        if !src.starts_with("http://")
+                            && !src.starts_with("https://")
+                            && !src.starts_with("data:")
+                        {
+                            let absolute_path = base_dir.join(&src);
+                            if let Ok(canonical_path) = absolute_path.canonicalize() {
+                                if let Ok(image_data) = std::fs::read(&canonical_path) {
+                                    let mime_type = get_mime_type(&canonical_path);
+                                    let base64_data = general_purpose::STANDARD.encode(&image_data);
+                                    let data_url =
+                                        format!("data:{};base64,{}", mime_type, base64_data);
+                                    el.set_attribute("src", &data_url)?;
+                                }
+                            }
+                        }
                     }
-                }
-            }
+                    Ok(())
+                }),
+                // Process anchor tags: convert markdown links to spans
+                element!("a[href]", |el| {
+                    if let Some(href) = el.get_attribute("href") {
+                        if !href.starts_with("http://") && !href.starts_with("https://") {
+                            if let Some(ext) = std::path::Path::new(&href)
+                                .extension()
+                                .and_then(|e| e.to_str())
+                            {
+                                // Replace with span element
+                                let escaped_href = href.replace('\'', "\\'");
+                                let onclick = indoc::formatdoc! {r#"
+                                        if (event.button === 0 || event.button === 1) {{
+                                            event.preventDefault();
+                                            window.handleMarkdownLinkClick('{escaped_href}', event.button); 
+                                        }}"#
+                                };
+                                el.set_tag_name("span")?;
+                                el.remove_attribute("href");
+                                if ext != "md" && ext != "markdown" {
+                                    el.set_attribute("class", "md-link md-link-invalid")?;
+                                } else {
+                                    el.set_attribute("class", "md-link")?;
+                                }
+                                el.set_attribute("onmousedown", &onclick)?;
+                            }
+                        }
+                    }
+                    Ok(())
+                }),
+            ],
+            ..Settings::default()
+        },
+        |chunk: &[u8]| {
+            output.extend_from_slice(chunk);
+        },
+    );
 
-            // Keep original link for non-Markdown files
-            vec![Event::Start(Tag::Link {
-                link_type,
-                dest_url,
-                title,
-                id,
-            })]
-        }
-        Event::End(TagEnd::Link) if in_md_link => {
-            in_md_link = false;
-            link_url.clear();
-            vec![Event::Html("</span>".into())]
-        }
-        _ => vec![event],
-    })
+    let _ = rewriter.write(html_str.as_bytes());
+    let _ = rewriter.end();
+    String::from_utf8(output).unwrap_or_else(|_| html_str.to_string())
 }
 
 #[cfg(test)]
@@ -320,7 +289,6 @@ mod tests {
     use super::*;
     use indoc::indoc;
     use std::fs;
-    use std::io::Write;
     use tempfile::TempDir;
 
     #[test]
@@ -465,207 +433,96 @@ mod tests {
     }
 
     #[test]
-    fn test_process_image_paths_http_url() {
-        let markdown = "![test](https://example.com/image.png)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
-
-        let events: Vec<Event> = process_image_paths(parser, Path::new(".")).collect();
-
-        // Verify that HTTPS URLs are not modified
-        let image_events: Vec<_> = events
-            .iter()
-            .filter_map(|e| {
-                if let Event::Start(Tag::Image { dest_url: url, .. }) = e {
-                    Some(url.as_ref())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        assert_eq!(image_events.len(), 1);
-        assert_eq!(image_events[0], "https://example.com/image.png");
-    }
-
-    #[test]
-    fn test_process_image_paths_data_url() {
-        let markdown = "![test](data:image/png;base64,abc123)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
-
-        let events: Vec<Event> = process_image_paths(parser, Path::new(".")).collect();
-
-        // Verify that Data URLs are not modified
-        let image_events: Vec<_> = events
-            .iter()
-            .filter_map(|e| {
-                if let Event::Start(Tag::Image { dest_url: url, .. }) = e {
-                    Some(url.as_ref())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        assert_eq!(image_events.len(), 1);
-        assert!(image_events[0].starts_with("data:image/png"));
-    }
-
-    #[test]
-    fn test_process_image_paths_relative_path() {
-        // Create temporary image file for testing
+    fn test_post_process_html_tags_img() {
         let temp_dir = TempDir::new().unwrap();
         let image_path = temp_dir.path().join("test.png");
+        let png_data = vec![0x89, 0x50, 0x4E, 0x47];
+        fs::write(&image_path, png_data).unwrap();
 
-        // Simple PNG header (valid binary)
-        let png_data = vec![
-            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-            0x00, 0x00, 0x00, 0x0D, // IHDR length
-        ];
-        let mut file = fs::File::create(&image_path).unwrap();
-        file.write_all(&png_data).unwrap();
+        let html = r#"<p><img src="test.png" alt="test" /></p>"#;
+        let result = post_process_html_tags(html, temp_dir.path());
 
-        let markdown = "![test](test.png)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
-
-        let events: Vec<Event> = process_image_paths(parser, temp_dir.path()).collect();
-
-        // Verify that relative path is converted to data URL
-        let image_events: Vec<_> = events
-            .iter()
-            .filter_map(|e| {
-                if let Event::Start(Tag::Image { dest_url: url, .. }) = e {
-                    Some(url.as_ref())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        assert_eq!(image_events.len(), 1);
         assert!(
-            image_events[0].starts_with("data:image/png;base64,"),
-            "Should convert to data URL"
+            result.contains("data:image/png;base64,"),
+            "Should convert img src to data URL"
+        );
+        assert!(
+            !result.contains(r#"src="test.png""#),
+            "Should not contain original path"
         );
     }
 
     #[test]
-    fn test_process_anchor_markdown_files_md_link() {
-        let markdown = "[Link to doc](./docs/README.md)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
-
-        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
-
-        // Verify that MD links are converted to span elements
-        let html_events: Vec<_> = events
-            .iter()
-            .filter_map(|e| {
-                if let Event::Html(html) = e {
-                    Some(html.as_ref())
-                } else {
-                    None
-                }
-            })
-            .collect();
+    fn test_post_process_html_tags_anchor() {
+        let html = r#"<a href="doc.md">Link</a>"#;
+        let result = post_process_html_tags(html, Path::new("."));
 
         assert!(
-            html_events
-                .iter()
-                .any(|h| h.contains(r#"<span class="md-link""#)),
-            "Should contain md-link span"
+            result.contains(r#"<span class="md-link""#),
+            "Should convert to span"
         );
         assert!(
-            html_events
-                .iter()
-                .any(|h| h.contains("handleMarkdownLinkClick")),
-            "Should contain click handler"
+            result.contains("handleMarkdownLinkClick"),
+            "Should add click handler"
+        );
+        assert!(!result.contains("<a "), "Should not contain anchor tag");
+    }
+
+    #[test]
+    fn test_post_process_html_tags_http_urls() {
+        let html =
+            r#"<img src="https://example.com/image.png" /><a href="https://example.com">Link</a>"#;
+        let result = post_process_html_tags(html, Path::new("."));
+
+        assert!(
+            result.contains(r#"src="https://example.com/image.png""#),
+            "Should keep HTTP img"
         );
         assert!(
-            html_events.iter().any(|h| h.contains("./docs/README.md")),
-            "Should contain the link URL"
+            result.contains(r#"<a href="https://example.com""#),
+            "Should keep HTTP link"
         );
     }
 
     #[test]
-    fn test_process_anchor_markdown_files_markdown_extension() {
-        let markdown = "[Link](./file.markdown)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
-
-        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
-
-        let html_events: Vec<_> = events
-            .iter()
-            .filter_map(|e| {
-                if let Event::Html(html) = e {
-                    Some(html.as_ref())
-                } else {
-                    None
-                }
-            })
-            .collect();
+    fn test_post_process_html_tags_non_md_local_file() {
+        let html = r#"<a href="file.txt">Text File</a>"#;
+        let result = post_process_html_tags(html, Path::new("."));
 
         assert!(
-            html_events
-                .iter()
-                .any(|h| h.contains(r#"<span class="md-link""#)),
-            "Should handle .markdown extension"
+            result.contains(r#"<span class="md-link md-link-invalid""#),
+            "Should convert to span with md-link and md-link-invalid class"
         );
+        assert!(
+            result.contains("handleMarkdownLinkClick"),
+            "Should add click handler for local files"
+        );
+        assert!(!result.contains("<a "), "Should not contain anchor tag");
     }
 
     #[test]
-    fn test_process_anchor_markdown_files_http_link() {
-        let markdown = "[Link](https://example.com/page.md)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
+    fn test_post_process_html_tags_md_vs_other_files() {
+        let html = r#"<a href="doc.md">MD</a><a href="file.txt">TXT</a>"#;
+        let result = post_process_html_tags(html, Path::new("."));
 
-        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
-
-        // Verify that HTTPS links are kept as regular anchor tags
-        let link_events: Vec<_> = events
-            .iter()
-            .filter(|e| matches!(e, Event::Start(Tag::Link { .. })))
-            .collect();
-
-        assert!(!link_events.is_empty(), "Should keep regular link tag");
-
-        let html_events: Vec<_> = events
-            .iter()
-            .filter_map(|e| {
-                if let Event::Html(html) = e {
-                    Some(html.as_ref())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
+        // MD file should have only md-link class
         assert!(
-            !html_events
-                .iter()
-                .any(|h| h.contains(r#"<span class="md-link""#)),
-            "Should NOT convert HTTP links to span"
+            result.contains(r#"class="md-link""#),
+            "Should have md-link for .md file"
         );
-    }
 
-    #[test]
-    fn test_process_anchor_markdown_files_non_md_link() {
-        let markdown = "[Link](./file.txt)";
-        let options = Options::all();
-        let parser = Parser::new_ext(markdown, options);
+        // TXT file should have both md-link and md-link-invalid classes
+        assert!(
+            result.contains(r#"class="md-link md-link-invalid""#),
+            "Should have md-link and md-link-invalid for .txt file"
+        );
 
-        let events: Vec<Event> = process_anchor_markdown_files(parser).collect();
-
-        // Verify that .txt links are kept as regular anchor tags
-        let link_events: Vec<_> = events
-            .iter()
-            .filter(|e| matches!(e, Event::Start(Tag::Link { .. })))
-            .collect();
-
-        assert!(!link_events.is_empty(), "Should keep regular link tag");
+        // Both should have click handlers
+        let click_handler_count = result.matches("handleMarkdownLinkClick").count();
+        assert_eq!(
+            click_handler_count, 2,
+            "Should have click handlers for both links"
+        );
     }
 
     #[test]
