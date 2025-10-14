@@ -11,8 +11,42 @@ use crate::components::app::{App, AppProps};
 use crate::state::LAST_SELECTED_THEME;
 use crate::theme::resolve_theme;
 
+struct ChildWindowEntry {
+    handle: WeakDesktopContext,
+    window_id: WindowId,
+    parent_id: WindowId,
+}
+
+impl ChildWindowEntry {
+    fn is_alive(&self) -> bool {
+        self.handle.upgrade().is_some()
+    }
+
+    fn focus(&self) -> bool {
+        self.handle.upgrade().is_some_and(|ctx| {
+            ctx.window.set_focus();
+            true
+        })
+    }
+
+    fn close(&self) {
+        if let Some(ctx) = self.handle.upgrade() {
+            ctx.close();
+        }
+    }
+
+    fn is_window(&self, window_id: WindowId) -> bool {
+        self.window_id == window_id
+    }
+
+    fn is_child_of(&self, parent_id: WindowId) -> bool {
+        self.parent_id == parent_id
+    }
+}
+
 thread_local! {
     static MAIN_WINDOWS: RefCell<Vec<WeakDesktopContext>> = const { RefCell::new(Vec::new()) };
+    static CHILD_WINDOWS: RefCell<HashMap<String, ChildWindowEntry>> = RefCell::new(HashMap::new());
     static LAST_FOCUSED_WINDOW: RefCell<Option<WindowId>> = const { RefCell::new(None) };
 }
 
@@ -89,4 +123,34 @@ pub fn update_last_focused_window(window_id: WindowId) {
 
 fn get_last_focused_window() -> Option<WindowId> {
     LAST_FOCUSED_WINDOW.with(|last| *last.borrow())
+}
+
+fn resolve_to_parent_window(window_id: WindowId) -> WindowId {
+    CHILD_WINDOWS.with(|windows| {
+        windows
+            .borrow()
+            .values()
+            .find(|e| e.is_window(window_id))
+            .map(|e| e.parent_id)
+            .unwrap_or(window_id)
+    })
+}
+
+pub fn close_child_windows_for_parent(parent_id: WindowId) {
+    CHILD_WINDOWS.with(|windows| {
+        windows.borrow_mut().retain(|_, e| {
+            if e.is_child_of(parent_id) {
+                e.close();
+                false
+            } else {
+                e.is_alive()
+            }
+        });
+    });
+}
+
+pub fn close_child_windows_for_last_focused() {
+    if let Some(a) = get_last_focused_window().map(resolve_to_parent_window) {
+        close_child_windows_for_parent(a)
+    }
 }

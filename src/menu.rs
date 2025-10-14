@@ -19,6 +19,7 @@ enum MenuId {
     CloseTab,
     CloseAllTabs,
     CloseWindow,
+    CloseAllChildWindows,
     CloseAllWindows,
     ToggleSidebar,
     ActualSize,
@@ -40,7 +41,8 @@ impl MenuId {
             "file.close_tab" => Some(Self::CloseTab),
             "file.close_all_tabs" => Some(Self::CloseAllTabs),
             "file.close_window" => Some(Self::CloseWindow),
-            "file.close_all_windows" => Some(Self::CloseAllWindows),
+            "window.close_all_child_windows" => Some(Self::CloseAllChildWindows),
+            "window.close_all_windows" => Some(Self::CloseAllWindows),
             "view.toggle_sidebar" => Some(Self::ToggleSidebar),
             "view.actual_size" => Some(Self::ActualSize),
             "view.zoom_in" => Some(Self::ZoomIn),
@@ -62,7 +64,8 @@ impl MenuId {
             Self::CloseTab => "file.close_tab",
             Self::CloseAllTabs => "file.close_all_tabs",
             Self::CloseWindow => "file.close_window",
-            Self::CloseAllWindows => "file.close_all_windows",
+            Self::CloseAllChildWindows => "window.close_all_child_windows",
+            Self::CloseAllWindows => "window.close_all_windows",
             Self::ToggleSidebar => "view.toggle_sidebar",
             Self::ActualSize => "view.actual_size",
             Self::ZoomIn => "view.zoom_in",
@@ -98,6 +101,7 @@ pub fn build_menu() -> Menu {
     add_file_menu(&menu);
     add_view_menu(&menu);
     add_history_menu(&menu);
+    add_window_menu(&menu);
     add_help_menu(&menu);
 
     menu
@@ -152,7 +156,6 @@ fn add_file_menu(menu: &Menu) {
                 Some(Code::KeyW),
                 Some(Modifiers::SHIFT),
             ),
-            &create_menu_item(MenuId::CloseAllWindows, "Close All Windows", None, None),
         ])
         .unwrap();
 
@@ -196,6 +199,24 @@ fn add_history_menu(menu: &Menu) {
         .unwrap();
 
     menu.append(&history_menu).unwrap();
+}
+
+fn add_window_menu(menu: &Menu) {
+    let window_menu = Submenu::new("Window", true);
+
+    window_menu
+        .append_items(&[
+            &create_menu_item(
+                MenuId::CloseAllChildWindows,
+                "Close All Child Windows",
+                None,
+                None,
+            ),
+            &create_menu_item(MenuId::CloseAllWindows, "Close All Windows", None, None),
+        ])
+        .unwrap();
+
+    menu.append(&window_menu).unwrap();
 }
 
 fn add_help_menu(menu: &Menu) {
@@ -244,12 +265,14 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
             window::create_new_main_window(None, false);
         }
         MenuId::NewTab => {
-            // If no windows are open, create a new window instead
             if !window::has_any_main_windows() {
                 window::create_new_main_window(None, false);
                 return true;
             }
             return false;
+        }
+        MenuId::CloseAllChildWindows => {
+            window::close_child_windows_for_last_focused();
         }
         MenuId::CloseAllWindows => {
             window::close_all_main_windows();

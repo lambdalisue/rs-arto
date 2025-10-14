@@ -46,6 +46,11 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
     // Listen for file open broadcasts from background process
     setup_file_open_listener(state.clone());
 
+    // Close child windows when this window closes
+    use_drop(move || {
+        crate::window::close_child_windows_for_parent(window().id());
+    });
+
     rsx! {
         div {
             class: "app-container",
