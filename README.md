@@ -37,38 +37,30 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 
 ## Installation
 
+- [pnpm](https://pnpm.io/)
+- [Rust](https://rust-lang.org/)
+- [just](https://github.com/casey/just)
+- [dioxus-cli](https://crates.io/crates/dioxus-cli)
+
 ### From Source
 
 ```bash
 git clone https://github.com/lambdalisue/rs-arto.git
 cd rs-arto
-cargo build --release
+just setup
+
+# For development
+cargo run --release
+
+# For production build
+just build
 ```
 
-The binary will be available at `target/release/arto`.
+The binary will be available at `target/release/arto` or `target/dx/arto/bundle/macos/bundle/`.
 
 ## Usage
 
 Launch the application to see the welcome screen with keyboard shortcuts and usage instructions.
-
-## Development
-
-### Prerequisites
-
-- Rust 1.70 or higher
-- Cargo
-
-### Running in Development
-
-```bash
-cargo run
-```
-
-### Building for Production
-
-```bash
-cargo build --release
-```
 
 ## License
 
