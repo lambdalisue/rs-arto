@@ -24,22 +24,30 @@ pub fn MarkdownViewer(content: TabContent) -> Element {
     let html = use_signal(String::new);
     let reload_trigger = use_signal(|| 0usize);
 
-    // Setup component hooks
+    // Setup component hooks - always call in the same order
     use_main_script_loader();
 
-    match &content {
-        TabContent::File(file) => {
-            use_markdown_file_loader(file.clone(), html, reload_trigger);
-            use_file_watcher(file.clone(), reload_trigger);
-            use_link_click_handler(file.clone(), state.clone());
-        }
-        TabContent::Inline(markdown) => {
-            use_inline_markdown_loader(markdown.clone(), html);
-        }
-        TabContent::None => {
-            // Should not happen, but handle gracefully
-            tracing::warn!("MarkdownViewer called with TabContent::None");
-        }
+    // Extract file path if available
+    let file_opt = match &content {
+        TabContent::File(file) => Some(file.clone()),
+        _ => None,
+    };
+
+    // Extract inline content if available
+    let inline_opt = match &content {
+        TabContent::Inline(markdown) => Some(markdown.clone()),
+        _ => None,
+    };
+
+    // Always call hooks, but conditionally execute based on Option
+    use_markdown_file_loader_conditional(file_opt.clone(), html, reload_trigger);
+    use_file_watcher_conditional(file_opt.clone(), reload_trigger);
+    use_link_click_handler_conditional(file_opt, state.clone());
+    use_inline_markdown_loader_conditional(inline_opt, html);
+
+    // Warn if None content
+    if matches!(content, TabContent::None) {
+        tracing::warn!("MarkdownViewer called with TabContent::None");
     }
 
     rsx! {
@@ -72,106 +80,119 @@ fn use_main_script_loader() {
     });
 }
 
-/// Hook to load and render markdown file content
-fn use_markdown_file_loader(file: PathBuf, html: Signal<String>, reload_trigger: Signal<usize>) {
-    use_effect(use_reactive!(|file, reload_trigger| {
+/// Hook to load and render markdown file content (conditional version)
+fn use_markdown_file_loader_conditional(
+    file_opt: Option<PathBuf>,
+    html: Signal<String>,
+    reload_trigger: Signal<usize>,
+) {
+    use_effect(use_reactive!(|file_opt, reload_trigger| {
         let mut html = html;
         let _ = reload_trigger();
 
-        spawn(async move {
-            tracing::info!("Loading and rendering file: {:?}", &file);
+        if let Some(file) = file_opt {
+            spawn(async move {
+                tracing::info!("Loading and rendering file: {:?}", &file);
 
-            match tokio::fs::read_to_string(file.as_path()).await {
-                Ok(content) => {
-                    let rendered = render_to_html(&content, &file).unwrap_or_else(|e| {
-                        tracing::error!("Failed to render markdown: {}", e);
-                        format!(r#"<p class="error">Error rendering markdown: {:?}</p>"#, e)
-                    });
-                    html.set(rendered);
-                    tracing::trace!("Rendered HTML: {}", html);
+                match tokio::fs::read_to_string(file.as_path()).await {
+                    Ok(content) => {
+                        let rendered = render_to_html(&content, &file).unwrap_or_else(|e| {
+                            tracing::error!("Failed to render markdown: {}", e);
+                            format!(r#"<p class="error">Error rendering markdown: {:?}</p>"#, e)
+                        });
+                        html.set(rendered);
+                        tracing::trace!("Rendered HTML: {}", html);
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to read file {:?}: {}", file, e);
+                        html.set(format!(
+                            r#"<p class="error">Error reading file: {:?}</p>"#,
+                            e
+                        ));
+                    }
                 }
-                Err(e) => {
-                    tracing::error!("Failed to read file {:?}: {}", file, e);
-                    html.set(format!(
-                        r#"<p class="error">Error reading file: {:?}</p>"#,
-                        e
-                    ));
-                }
-            }
-        });
-    }));
-}
-
-/// Hook to render inline markdown content
-fn use_inline_markdown_loader(markdown: String, html: Signal<String>) {
-    use_effect(use_reactive!(|markdown| {
-        let mut html = html;
-        spawn(async move {
-            // Render inline markdown (use a dummy path since images are already embedded)
-            let rendered = render_to_html(&markdown, Path::new(".")).unwrap_or_else(|e| {
-                tracing::error!("Failed to render inline markdown: {}", e);
-                format!(r#"<p class="error">Error rendering markdown: {}</p>"#, e)
             });
-            html.set(rendered);
-        });
+        }
     }));
 }
 
-/// Hook to watch file for changes and trigger reload
-fn use_file_watcher(file: PathBuf, reload_trigger: Signal<usize>) {
-    use_effect(use_reactive!(|file| {
+/// Hook to render inline markdown content (conditional version)
+fn use_inline_markdown_loader_conditional(markdown_opt: Option<String>, html: Signal<String>) {
+    use_effect(use_reactive!(|markdown_opt| {
+        let mut html = html;
+        if let Some(markdown) = markdown_opt {
+            spawn(async move {
+                // Render inline markdown (use a dummy path since images are already embedded)
+                let rendered = render_to_html(&markdown, Path::new(".")).unwrap_or_else(|e| {
+                    tracing::error!("Failed to render inline markdown: {}", e);
+                    format!(r#"<p class="error">Error rendering markdown: {}</p>"#, e)
+                });
+                html.set(rendered);
+            });
+        }
+    }));
+}
+
+/// Hook to watch file for changes and trigger reload (conditional version)
+fn use_file_watcher_conditional(file_opt: Option<PathBuf>, reload_trigger: Signal<usize>) {
+    use_effect(use_reactive!(|file_opt| {
         let mut reload_trigger = reload_trigger;
 
-        spawn(async move {
-            let file_path = file.clone();
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(10);
+        if let Some(file) = file_opt {
+            spawn(async move {
+                let file_path = file.clone();
+                let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(10);
 
-            if let Err(e) = FILE_WATCHER.watch(file_path.clone(), tx).await {
-                tracing::error!(
-                    "Failed to register file watcher for {:?}: {:?}",
-                    file_path,
-                    e
-                );
-                return;
-            }
+                if let Err(e) = FILE_WATCHER.watch(file_path.clone(), tx).await {
+                    tracing::error!(
+                        "Failed to register file watcher for {:?}: {:?}",
+                        file_path,
+                        e
+                    );
+                    return;
+                }
 
-            while rx.recv().await.is_some() {
-                tracing::info!("File change detected, reloading: {:?}", file_path);
-                reload_trigger.set(reload_trigger() + 1);
-            }
+                while rx.recv().await.is_some() {
+                    tracing::info!("File change detected, reloading: {:?}", file_path);
+                    reload_trigger.set(reload_trigger() + 1);
+                }
 
-            if let Err(e) = FILE_WATCHER.unwatch(file_path.clone()).await {
-                tracing::error!(
-                    "Failed to unregister file watcher for {:?}: {:?}",
-                    file_path,
-                    e
-                );
-            }
-        });
+                if let Err(e) = FILE_WATCHER.unwatch(file_path.clone()).await {
+                    tracing::error!(
+                        "Failed to unregister file watcher for {:?}: {:?}",
+                        file_path,
+                        e
+                    );
+                }
+            });
+        }
     }));
 }
 
-/// Hook to setup JavaScript handler for markdown link clicks
-fn use_link_click_handler(file: PathBuf, state: AppState) {
+/// Hook to setup JavaScript handler for markdown link clicks (conditional version)
+fn use_link_click_handler_conditional(file_opt: Option<PathBuf>, state: AppState) {
     use_effect(move || {
-        let mut eval_provider = document::eval(indoc::indoc! {r#"
-            window.handleMarkdownLinkClick = (path, button) => {
-                dioxus.send({ path, button });
-            };
-        "#});
+        let file_opt = file_opt.clone();
+        if let Some(file) = file_opt {
+            let mut eval_provider = document::eval(indoc::indoc! {r#"
+                window.handleMarkdownLinkClick = (path, button) => {
+                    dioxus.send({ path, button });
+                };
+            "#});
 
-        let base_dir = file
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| PathBuf::from("."));
+            let base_dir = file
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| PathBuf::from("."));
 
-        let mut state_clone = state.clone();
+            let mut state_clone = state.clone();
 
-        spawn(async move {
-            while let Ok(click_data) = eval_provider.recv::<LinkClickData>().await {
-                handle_link_click(click_data, &base_dir, &mut state_clone);
-            }
-        });
+            spawn(async move {
+                while let Ok(click_data) = eval_provider.recv::<LinkClickData>().await {
+                    handle_link_click(click_data, &base_dir, &mut state_clone);
+                }
+            });
+        }
     });
 }
 
@@ -196,8 +217,8 @@ fn handle_link_click(click_data: LinkClickData, base_dir: &Path, state: &mut App
             state.add_tab(Some(canonical_path), true);
         }
         LEFT_CLICK => {
-            // Open in current tab (respecting NoFile and existing tabs logic)
-            state.open_file(canonical_path);
+            // Navigate in current tab (in-tab navigation, no existing tab check)
+            state.navigate_to_file(canonical_path);
         }
         _ => {
             tracing::debug!("Ignoring click with button: {}", button);

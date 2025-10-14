@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use super::content::Content;
 use super::header::Header;
 use super::icon::{Icon, IconName};
+use super::sidebar::Sidebar;
 use super::tab_bar::TabBar;
 use crate::menu;
 use crate::state::{AppState, Tab, FILE_OPEN_BROADCAST};
@@ -17,6 +18,10 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
     let state = use_context_provider(|| {
         let mut app_state = AppState::default();
         if let Some(path) = file {
+            // Set sidebar root directory to file's parent directory on window initialization
+            if let Some(parent) = path.parent() {
+                app_state.sidebar.write().root_directory = Some(parent.to_path_buf());
+            }
             app_state.tabs.write()[0] = Tab::new(Some(path));
         } else if show_welcome {
             // Show welcome screen with embedded markdown content
@@ -63,9 +68,14 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
                 }
             },
 
-            Header {},
-            TabBar {},
-            Content {},
+            Sidebar {},
+
+            div {
+                class: "main-area",
+                Header {},
+                TabBar {},
+                Content {},
+            }
 
             // Drag and drop overlay
             if is_dragging() {
@@ -75,7 +85,7 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
     }
 }
 
-/// Handle dropped markdown files - opens each file appropriately
+/// Handle dropped files/directories - opens markdown files or sets directory as root
 async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
     let Some(file_engine) = evt.files() else {
         return;
@@ -84,7 +94,11 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
     for file_name in &file_engine.files() {
         let path = PathBuf::from(file_name);
 
-        if is_markdown_file(&path) {
+        if path.is_dir() {
+            // If it's a directory, set it as root
+            tracing::info!("Setting dropped directory as root: {:?}", path);
+            state.set_root_directory(path);
+        } else if is_markdown_file(&path) {
             tracing::info!("Opening dropped file: {:?}", path);
             state.open_file(path);
         } else {

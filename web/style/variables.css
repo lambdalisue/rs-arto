@@ -9,6 +9,10 @@
   --light-bg-secondary: #f9fafb;
   --light-bg-tertiary: #ffffff;
   --light-link-color: #0969da;
+  --light-hover-bg: #f3f4f6;
+  --light-hover-border: #b4bcc4;
+  --light-accent-bg: #0969da;
+  --light-accent-fg: #ffffff;
   /* Dark theme */
   --dark-bg-color: #0d1117;
   --dark-text-color: #e6edf3;
@@ -19,6 +23,10 @@
   --dark-bg-secondary: #1f2937;
   --dark-bg-tertiary: #374151;
   --dark-link-color: #4493f8;
+  --dark-hover-bg: #1f2937;
+  --dark-hover-border: #484f58;
+  --dark-accent-bg: #1f6feb;
+  --dark-accent-fg: #ffffff;
   /* Scrollbar colors */
   --scrollbar-track-light: #f6f8fa;
   --scrollbar-thumb-light: #d1d9e0;
@@ -36,6 +44,10 @@
   --bg-secondary: var(--light-bg-secondary);
   --bg-tertiary: var(--light-bg-tertiary);
   --link-color: var(--light-link-color);
+  --hover-bg: var(--light-hover-bg);
+  --hover-border: var(--light-hover-border);
+  --accent-bg: var(--light-accent-bg);
+  --accent-fg: var(--light-accent-fg);
   --scrollbar-track: var(--scrollbar-track-light);
   --scrollbar-thumb: var(--scrollbar-thumb-light);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
@@ -51,6 +63,10 @@
   --bg-secondary: var(--light-bg-secondary);
   --bg-tertiary: var(--light-bg-tertiary);
   --link-color: var(--light-link-color);
+  --hover-bg: var(--light-hover-bg);
+  --hover-border: var(--light-hover-border);
+  --accent-bg: var(--light-accent-bg);
+  --accent-fg: var(--light-accent-fg);
   --scrollbar-track: var(--scrollbar-track-light);
   --scrollbar-thumb: var(--scrollbar-thumb-light);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-light);
@@ -66,6 +82,10 @@
   --bg-secondary: var(--dark-bg-secondary);
   --bg-tertiary: var(--dark-bg-tertiary);
   --link-color: var(--dark-link-color);
+  --hover-bg: var(--dark-hover-bg);
+  --hover-border: var(--dark-hover-border);
+  --accent-bg: var(--dark-accent-bg);
+  --accent-fg: var(--dark-accent-fg);
   --scrollbar-track: var(--scrollbar-track-dark);
   --scrollbar-thumb: var(--scrollbar-thumb-dark);
   --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);
@@ -82,6 +102,10 @@
     --bg-secondary: var(--dark-bg-secondary);
     --bg-tertiary: var(--dark-bg-tertiary);
     --link-color: var(--dark-link-color);
+    --hover-bg: var(--dark-hover-bg);
+    --hover-border: var(--dark-hover-border);
+    --accent-bg: var(--dark-accent-bg);
+    --accent-fg: var(--dark-accent-fg);
     --scrollbar-track: var(--scrollbar-track-dark);
     --scrollbar-thumb: var(--scrollbar-thumb-dark);
     --scrollbar-thumb-hover: var(--scrollbar-thumb-hover-dark);

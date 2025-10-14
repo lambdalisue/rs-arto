@@ -15,10 +15,12 @@ enum MenuId {
     NewWindow,
     NewTab,
     Open,
+    OpenDirectory,
     CloseTab,
     CloseAllTabs,
     CloseWindow,
     CloseAllWindows,
+    ToggleSidebar,
     ActualSize,
     ZoomIn,
     ZoomOut,
@@ -34,10 +36,12 @@ impl MenuId {
             "file.new_window" => Some(Self::NewWindow),
             "file.new_tab" => Some(Self::NewTab),
             "file.open" => Some(Self::Open),
+            "file.open_directory" => Some(Self::OpenDirectory),
             "file.close_tab" => Some(Self::CloseTab),
             "file.close_all_tabs" => Some(Self::CloseAllTabs),
             "file.close_window" => Some(Self::CloseWindow),
             "file.close_all_windows" => Some(Self::CloseAllWindows),
+            "view.toggle_sidebar" => Some(Self::ToggleSidebar),
             "view.actual_size" => Some(Self::ActualSize),
             "view.zoom_in" => Some(Self::ZoomIn),
             "view.zoom_out" => Some(Self::ZoomOut),
@@ -54,10 +58,12 @@ impl MenuId {
             Self::NewWindow => "file.new_window",
             Self::NewTab => "file.new_tab",
             Self::Open => "file.open",
+            Self::OpenDirectory => "file.open_directory",
             Self::CloseTab => "file.close_tab",
             Self::CloseAllTabs => "file.close_all_tabs",
             Self::CloseWindow => "file.close_window",
             Self::CloseAllWindows => "file.close_all_windows",
+            Self::ToggleSidebar => "view.toggle_sidebar",
             Self::ActualSize => "view.actual_size",
             Self::ZoomIn => "view.zoom_in",
             Self::ZoomOut => "view.zoom_out",
@@ -130,7 +136,13 @@ fn add_file_menu(menu: &Menu) {
             &create_menu_item(MenuId::NewWindow, "New Window", Some(Code::KeyN), None),
             &create_menu_item(MenuId::NewTab, "New Tab", Some(Code::KeyT), None),
             &PredefinedMenuItem::separator(),
-            &create_menu_item(MenuId::Open, "Open...", Some(Code::KeyO), None),
+            &create_menu_item(MenuId::Open, "Open File...", Some(Code::KeyO), None),
+            &create_menu_item(
+                MenuId::OpenDirectory,
+                "Open Directory...",
+                Some(Code::KeyO),
+                Some(Modifiers::SHIFT),
+            ),
             &PredefinedMenuItem::separator(),
             &create_menu_item(MenuId::CloseTab, "Close Tab", Some(Code::KeyW), None),
             &create_menu_item(MenuId::CloseAllTabs, "Close All Tabs", None, None),
@@ -152,6 +164,13 @@ fn add_view_menu(menu: &Menu) {
 
     view_menu
         .append_items(&[
+            &create_menu_item(
+                MenuId::ToggleSidebar,
+                "Toggle Sidebar",
+                Some(Code::KeyB),
+                None,
+            ),
+            &PredefinedMenuItem::separator(),
             &create_menu_item(MenuId::ActualSize, "Actual Size", Some(Code::Digit0), None),
             &create_menu_item(MenuId::ZoomIn, "Zoom In", Some(Code::Equal), None),
             &create_menu_item(MenuId::ZoomOut, "Zoom Out", Some(Code::Minus), None),
@@ -272,6 +291,11 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
                 state.open_file(file);
             }
         }
+        MenuId::OpenDirectory => {
+            if let Some(dir) = pick_directory() {
+                state.set_root_directory(dir);
+            }
+        }
         MenuId::CloseTab => {
             let active_tab = *state.active_tab.read();
             state.close_tab(active_tab);
@@ -285,6 +309,9 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
         }
         MenuId::CloseWindow => {
             window().close();
+        }
+        MenuId::ToggleSidebar => {
+            state.toggle_sidebar();
         }
         MenuId::ActualSize => {
             state.zoom_level.set(1.0);
@@ -334,6 +361,22 @@ fn pick_markdown_file() -> Option<PathBuf> {
     tracing::debug!("File picker completed in {:?}", start.elapsed());
 
     file
+}
+
+/// Show directory picker dialog and return selected directory
+fn pick_directory() -> Option<PathBuf> {
+    use rfd::FileDialog;
+
+    tracing::debug!("Opening directory picker dialog...");
+    let start = std::time::Instant::now();
+
+    let dir = FileDialog::new()
+        .set_directory(std::env::current_dir().unwrap_or_else(|_| PathBuf::from("/")))
+        .pick_folder();
+
+    tracing::debug!("Directory picker completed in {:?}", start.elapsed());
+
+    dir
 }
 
 #[cfg(target_os = "macos")]
