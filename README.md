@@ -52,8 +52,11 @@ just setup
 # For development
 cargo run --release
 
-# For production build
+# For production build (macOS)
 just build
+
+# To install in /Applications (macOS)
+just install
 ```
 
 The binary will be available at `target/release/arto` or `target/dx/arto/bundle/macos/bundle/`.
