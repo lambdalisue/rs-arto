@@ -1,6 +1,7 @@
 import * as mathRenderer from "./math-renderer";
 import * as mermaidRenderer from "./mermaid-renderer";
 import * as syntaxHighlighter from "./syntax-highlighter";
+import * as codeCopy from "./code-copy";
 
 class RenderCoordinator {
   #rafId: number | null = null;
@@ -57,9 +58,10 @@ class RenderCoordinator {
       markdownBody.querySelectorAll("pre.preprocessed-mermaid[data-rendered]").forEach((el) => {
         const element = el as HTMLElement;
 
-        // Clear the rendered content
+        // Clear the rendered content and copy button flag
         element.innerHTML = "";
         element.removeAttribute("data-rendered");
+        element.removeAttribute("data-copy-button-added");
       });
 
       // Schedule only Mermaid rendering
@@ -80,6 +82,8 @@ class RenderCoordinator {
         this.#isRendering = true;
         try {
           await mermaidRenderer.renderDiagrams(markdownBody);
+          // Re-add copy buttons after Mermaid re-render
+          codeCopy.addCopyButtons(markdownBody);
           console.debug("RenderCoordinator: Mermaid re-render completed");
         } catch (error) {
           console.error("RenderCoordinator: Error during Mermaid re-render:", error);
@@ -103,6 +107,7 @@ class RenderCoordinator {
       mathRenderer.renderMath(markdownBody);
       syntaxHighlighter.highlightCodeBlocks(markdownBody);
       await mermaidRenderer.renderDiagrams(markdownBody);
+      codeCopy.addCopyButtons(markdownBody);
       console.debug("RenderCoordinator: Batch render completed");
     } catch (error) {
       console.error("RenderCoordinator: Error during batch render:", error);
