@@ -9,7 +9,7 @@ fn main() {
     println!("cargo:rerun-if-changed=web/vite.config.ts");
 
     let output = Command::new("pnpm")
-        .args(["run", "build-icons"])
+        .args(["run", "build:icons"])
         .current_dir("web")
         .output()
         .expect("Failed to run vite (build-icons)");
