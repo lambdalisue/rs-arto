@@ -17,20 +17,50 @@ pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> =
 pub static LAST_SELECTED_THEME: LazyLock<Mutex<ThemePreference>> =
     LazyLock::new(|| Mutex::new(ThemePreference::default()));
 
-/// Represents a single tab with its file and navigation history
+/// Content source for a tab
+#[derive(Debug, Clone, PartialEq)]
+pub enum TabContent {
+    /// No content (shows NoFile component)
+    None,
+    /// File from filesystem
+    File(PathBuf),
+    /// Inline markdown content (for welcome screen)
+    Inline(String),
+}
+
+/// Represents a single tab with its content and navigation history
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tab {
-    pub file: Option<PathBuf>,
+    pub content: TabContent,
     pub history: HistoryManager,
 }
 
 impl Tab {
     pub fn new(file: Option<PathBuf>) -> Self {
         let mut history = HistoryManager::new();
-        if let Some(ref path) = file {
-            history.push(path.clone());
+        let content = match file {
+            Some(path) => {
+                history.push(path.clone());
+                TabContent::File(path)
+            }
+            None => TabContent::None,
+        };
+        Self { content, history }
+    }
+
+    pub fn with_inline_content(content: String) -> Self {
+        Self {
+            content: TabContent::Inline(content),
+            history: HistoryManager::new(),
         }
-        Self { file, history }
+    }
+
+    /// Get the file path if this tab has a file
+    pub fn file(&self) -> Option<&PathBuf> {
+        match &self.content {
+            TabContent::File(path) => Some(path),
+            _ => None,
+        }
     }
 }
 
@@ -120,10 +150,11 @@ impl AppState {
         }
     }
 
-    /// Check if the current active tab has no file (NoFile tab)
+    /// Check if the current active tab has no file (NoFile tab or Inline content)
+    /// Both None and Inline content can be replaced when opening a file
     pub fn is_current_tab_no_file(&self) -> bool {
         self.current_tab()
-            .map(|tab| tab.file.is_none())
+            .map(|tab| matches!(tab.content, TabContent::None | TabContent::Inline(_)))
             .unwrap_or(false)
     }
 
@@ -131,7 +162,7 @@ impl AppState {
     pub fn find_tab_with_file(&self, file: &PathBuf) -> Option<usize> {
         let tabs = self.tabs.read();
         tabs.iter()
-            .position(|tab| tab.file.as_ref().map(|f| f == file).unwrap_or(false))
+            .position(|tab| tab.file().map(|f| f == file).unwrap_or(false))
     }
 
     /// Open a file, reusing NoFile tab or existing tab with the same file if possible
@@ -144,7 +175,7 @@ impl AppState {
             // If current tab is NoFile, open the file in it
             self.update_current_tab(|tab| {
                 tab.history.push(file.clone());
-                tab.file = Some(file);
+                tab.content = TabContent::File(file);
             });
         } else {
             // Otherwise, create a new tab

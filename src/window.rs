@@ -55,10 +55,10 @@ pub fn close_all_child_windows() {
 }
 
 /// Create a new window
-pub fn create_new_window(file: Option<PathBuf>) {
+pub fn create_new_window(file: Option<PathBuf>, show_welcome: bool) {
     // This cause ERROR but it seems we can ignore it safely
     // https://github.com/DioxusLabs/dioxus/issues/3872
-    let dom = VirtualDom::new_with_props(App, AppProps { file });
+    let dom = VirtualDom::new_with_props(App, AppProps { file, show_welcome });
     // Set None for child window menu to avoid panic when closing windows.
     // The menu from the main window will be used instead.
     let config = Config::new()

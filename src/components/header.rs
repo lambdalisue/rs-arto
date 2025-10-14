@@ -13,7 +13,7 @@ pub fn Header() -> Element {
     let current_tab = state.current_tab();
     let file = current_tab
         .as_ref()
-        .and_then(|tab| tab.file.as_ref())
+        .and_then(|tab| tab.file())
         .map(|f| {
             f.file_name()
                 .unwrap_or(f.as_os_str())
@@ -35,7 +35,7 @@ pub fn Header() -> Element {
     let on_back = move |_| {
         state_for_back.update_current_tab(|tab| {
             if let Some(path) = tab.history.go_back() {
-                tab.file = Some(path);
+                tab.content = crate::state::TabContent::File(path);
             }
         });
     };
@@ -43,7 +43,7 @@ pub fn Header() -> Element {
     let on_forward = move |_| {
         state_for_forward.update_current_tab(|tab| {
             if let Some(path) = tab.history.go_forward() {
-                tab.file = Some(path);
+                tab.content = crate::state::TabContent::File(path);
             }
         });
     };

@@ -12,12 +12,16 @@ use crate::state::{AppState, Tab, FILE_OPEN_BROADCAST};
 use crate::utils::file::is_markdown_file;
 
 #[component]
-pub fn App(file: Option<PathBuf>) -> Element {
-    // Initialize application state with optional initial file
+pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
+    // Initialize application state with optional initial file or welcome screen
     let state = use_context_provider(|| {
         let mut app_state = AppState::default();
         if let Some(path) = file {
             app_state.tabs.write()[0] = Tab::new(Some(path));
+        } else if show_welcome {
+            // Show welcome screen with embedded markdown content
+            let welcome_content = crate::assets::get_default_markdown_content();
+            app_state.tabs.write()[0] = Tab::with_inline_content(welcome_content);
         }
         app_state
     });

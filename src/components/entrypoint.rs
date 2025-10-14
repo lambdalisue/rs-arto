@@ -17,16 +17,16 @@ pub fn Entrypoint() -> Element {
         .take()
         .expect("OPENED_FILES_RECEIVER is not set");
 
-    // Open the first file or empty window
+    // Open the first file or show welcome screen
     let first_file = if let Ok(file) = rx.try_recv() {
         tracing::info!("Opening first file: {:?}", &file);
         Some(file)
     } else {
-        tracing::info!("No initial file to open");
-        get_sample_file_on_debug_build()
+        tracing::info!("No initial file to open, showing welcome screen");
+        None
     };
     tracing::info!("Creating first child window");
-    window_manager::create_new_window(first_file.clone());
+    window_manager::create_new_window(first_file.clone(), true);
 
     // Broadcast received files to all windows
     spawn_forever(async move {
@@ -36,7 +36,7 @@ pub fn Entrypoint() -> Element {
             // If no windows exist, create a new window with the file
             if !window_manager::has_any_child_windows() {
                 tracing::info!("No windows open, creating new window with file: {:?}", file);
-                window_manager::create_new_window(Some(file));
+                window_manager::create_new_window(Some(file), false);
             } else {
                 // Otherwise broadcast to existing windows
                 let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
@@ -55,23 +55,4 @@ pub fn Entrypoint() -> Element {
             h1 { "Arto Background Process" }
         }
     }
-}
-
-#[cfg(debug_assertions)]
-fn get_sample_file_on_debug_build() -> Option<std::path::PathBuf> {
-    use std::path::Path;
-    let sample_file = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("example")
-        .join("sample1.md");
-    if sample_file.exists() {
-        Some(sample_file)
-    } else {
-        tracing::warn!("Sample file does not exist at {:?}", &sample_file);
-        None
-    }
-}
-
-#[cfg(not(debug_assertions))]
-fn get_sample_file_on_debug_build() -> Option<std::path::PathBuf> {
-    None
 }

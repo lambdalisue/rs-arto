@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::assets::MAIN_SCRIPT;
 use crate::markdown::render_to_html;
-use crate::state::AppState;
+use crate::state::{AppState, TabContent};
 use crate::watcher::FILE_WATCHER;
 
 /// Data structure for markdown link clicks from JavaScript
@@ -19,16 +19,28 @@ const LEFT_CLICK: u32 = 0;
 const MIDDLE_CLICK: u32 = 1;
 
 #[component]
-pub fn MarkdownViewer(file: PathBuf) -> Element {
+pub fn MarkdownViewer(content: TabContent) -> Element {
     let state = use_context::<AppState>();
     let html = use_signal(String::new);
     let reload_trigger = use_signal(|| 0usize);
 
     // Setup component hooks
     use_main_script_loader();
-    use_markdown_loader(file.clone(), html, reload_trigger);
-    use_file_watcher(file.clone(), reload_trigger);
-    use_link_click_handler(file.clone(), state.clone());
+
+    match &content {
+        TabContent::File(file) => {
+            use_markdown_file_loader(file.clone(), html, reload_trigger);
+            use_file_watcher(file.clone(), reload_trigger);
+            use_link_click_handler(file.clone(), state.clone());
+        }
+        TabContent::Inline(markdown) => {
+            use_inline_markdown_loader(markdown.clone(), html);
+        }
+        TabContent::None => {
+            // Should not happen, but handle gracefully
+            tracing::warn!("MarkdownViewer called with TabContent::None");
+        }
+    }
 
     rsx! {
         div {
@@ -61,7 +73,7 @@ fn use_main_script_loader() {
 }
 
 /// Hook to load and render markdown file content
-fn use_markdown_loader(file: PathBuf, html: Signal<String>, reload_trigger: Signal<usize>) {
+fn use_markdown_file_loader(file: PathBuf, html: Signal<String>, reload_trigger: Signal<usize>) {
     use_effect(use_reactive!(|file, reload_trigger| {
         let mut html = html;
         let _ = reload_trigger();
@@ -86,6 +98,21 @@ fn use_markdown_loader(file: PathBuf, html: Signal<String>, reload_trigger: Sign
                     ));
                 }
             }
+        });
+    }));
+}
+
+/// Hook to render inline markdown content
+fn use_inline_markdown_loader(markdown: String, html: Signal<String>) {
+    use_effect(use_reactive!(|markdown| {
+        let mut html = html;
+        spawn(async move {
+            // Render inline markdown (use a dummy path since images are already embedded)
+            let rendered = render_to_html(&markdown, Path::new(".")).unwrap_or_else(|e| {
+                tracing::error!("Failed to render inline markdown: {}", e);
+                format!(r#"<p class="error">Error rendering markdown: {}</p>"#, e)
+            });
+            html.set(rendered);
         });
     }));
 }

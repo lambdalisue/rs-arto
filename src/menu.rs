@@ -222,13 +222,13 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
 
     match id {
         MenuId::NewWindow => {
-            window::create_new_window(None);
+            window::create_new_window(None, false);
         }
         MenuId::NewTab => {
             // If no windows are open, create a new window instead
             if !window::has_any_child_windows() {
                 tracing::info!("No windows open, creating new window for NewTab request");
-                window::create_new_window(None);
+                window::create_new_window(None, false);
                 return true;
             }
             // Otherwise, let the focused window handle it
@@ -302,14 +302,14 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
         MenuId::GoBack => {
             state.update_current_tab(|tab| {
                 if let Some(path) = tab.history.go_back() {
-                    tab.file = Some(path);
+                    tab.content = crate::state::TabContent::File(path);
                 }
             });
         }
         MenuId::GoForward => {
             state.update_current_tab(|tab| {
                 if let Some(path) = tab.history.go_forward() {
-                    tab.file = Some(path);
+                    tab.content = crate::state::TabContent::File(path);
                 }
             });
         }

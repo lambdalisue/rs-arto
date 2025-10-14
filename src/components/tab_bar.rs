@@ -3,13 +3,17 @@ use dioxus::prelude::*;
 use crate::components::icon::{Icon, IconName};
 use crate::state::AppState;
 
-/// Extract display name from a tab's file path
+/// Extract display name from a tab's content
 fn get_tab_display_name(tab: &crate::state::Tab) -> String {
-    tab.file
-        .as_ref()
-        .and_then(|path| path.file_name())
-        .map(|name| name.to_string_lossy().to_string())
-        .unwrap_or_else(|| "No file".to_string())
+    use crate::state::TabContent;
+    match &tab.content {
+        TabContent::File(path) => path
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string())
+            .unwrap_or_else(|| "Unnamed file".to_string()),
+        TabContent::Inline(_) => "Welcome".to_string(),
+        TabContent::None => "No file".to_string(),
+    }
 }
 
 #[component]
