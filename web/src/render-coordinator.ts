@@ -54,20 +54,11 @@ class RenderCoordinator {
     const markdownBody = document.querySelector(".markdown-body");
     if (markdownBody) {
       // Clear only Mermaid diagram flags
-      markdownBody.querySelectorAll("pre.mermaid[data-rendered]").forEach((el) => {
+      markdownBody.querySelectorAll("pre.preprocessed-mermaid[data-rendered]").forEach((el) => {
         const element = el as HTMLElement;
-
-        // Ensure data-mermaid-src exists, otherwise skip
-        if (!element.dataset.mermaidSrc) {
-          console.warn("Mermaid diagram missing data-mermaid-src, skipping re-render:", element);
-          return;
-        }
-
-        const originalSource = JSON.parse(element.dataset.mermaidSrc);
 
         // Clear the rendered content
         element.innerHTML = "";
-        element.textContent = originalSource;
         element.removeAttribute("data-rendered");
       });
 

@@ -22,7 +22,7 @@ export function setTheme(theme: Theme): void {
 }
 
 export async function renderDiagrams(container: Element): Promise<void> {
-  const mermaidBlocks = container.querySelectorAll("pre.mermaid:not([data-rendered])");
+  const mermaidBlocks = container.querySelectorAll("pre.preprocessed-mermaid:not([data-rendered])");
 
   if (mermaidBlocks.length === 0) {
     return;
@@ -48,17 +48,16 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
     return;
   }
 
-  // Get the mermaid source code from the element
-  const mermaidSource = element.textContent?.trim();
+  // Get the mermaid source code from the element data attribute
+  // This data attribute is embedded during markdown parsing phase
+  // in Rust code.
+  const mermaidSource = element.dataset.originalContent || "";
   if (!mermaidSource) {
     element.dataset.rendered = "true"; // Mark as processed to skip in future
     return;
   }
 
   try {
-    // Store original source for theme switching
-    element.dataset.mermaidSrc = JSON.stringify(mermaidSource);
-
     // Generate a unique ID for this diagram
     const id = `mermaid-${crypto.randomUUID()}`;
 
