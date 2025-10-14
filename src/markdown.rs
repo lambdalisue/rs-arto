@@ -79,21 +79,30 @@ fn process_alert_block(
         icon_placeholder, alert_name
     ));
 
-    // First line content
+    // Collect alert content as markdown
+    let mut content_lines = Vec::new();
     if !first_line_content.trim().is_empty() {
-        html_lines.push(first_line_content.trim().to_string());
+        content_lines.push(first_line_content.trim().to_string());
     }
 
     // Collect following quoted lines
     let mut i = start_index + 1;
     while i < lines.len() && lines[i].starts_with('>') {
         if let Some(content) = lines[i].strip_prefix('>') {
-            let trimmed = content.trim();
-            if !trimmed.is_empty() {
-                html_lines.push(trimmed.to_string());
-            }
+            // Preserve the structure by keeping leading space after '>'
+            content_lines.push(content.trim_start().to_string());
         }
         i += 1;
+    }
+
+    // Render the collected content as markdown
+    if !content_lines.is_empty() {
+        let content_markdown = content_lines.join("\n");
+        let options = Options::all();
+        let parser = Parser::new_ext(&content_markdown, options);
+        let mut content_html = String::new();
+        html::push_html(&mut content_html, parser);
+        html_lines.push(content_html);
     }
 
     html_lines.push("</div>".to_string());
