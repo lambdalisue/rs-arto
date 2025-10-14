@@ -113,5 +113,5 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ./artifacts/arto-*/dmg/Arto_*.dmg
+          artifacts: ./artifacts/arto-*/Arto_*.dmg
           removeArtifacts: true
