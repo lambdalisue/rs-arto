@@ -1,5 +1,3 @@
-# Arto
-
 ![Arto](extras/arto-header.png)
 
 **Arto — the Art of Reading Markdown.**
@@ -8,7 +6,7 @@ A local app that faithfully recreates GitHub-style Markdown rendering for a beau
 
 ## Philosophy
 
-Markdown has become more than a lightweight markup language — it's the medium for documentation, communication, and thinking in the developer's world. While most tools focus on *writing* Markdown, **Arto is designed for *reading* it beautifully**.
+Markdown has become more than a lightweight markup language — it's the medium for documentation, communication, and thinking in the developer's world. While most tools focus on _writing_ Markdown, **Arto is designed for _reading_ it beautifully**.
 
 The name "Arto" comes from "Art of Reading" — reflecting the philosophy that reading Markdown is not just a utility task, but a quiet, deliberate act of understanding and appreciation.
 
@@ -39,25 +37,7 @@ The binary will be available at `target/release/arto`.
 
 ## Usage
 
-Launch the application and drag and drop a markdown file onto the window, or use `Cmd+O` to open a file dialog.
-
-### Keyboard Shortcuts
-
-**File**
-- `Cmd+N`: New window
-- `Cmd+T`: New tab
-- `Cmd+O`: Open file
-- `Cmd+W`: Close tab
-- `Cmd+Shift+W`: Close window
-
-**View**
-- `Cmd+0`: Actual size (reset zoom)
-- `Cmd+=`: Zoom in
-- `Cmd+-`: Zoom out
-
-**History**
-- `Cmd+[`: Go back
-- `Cmd+]`: Go forward
+Launch the application to see the welcome screen with keyboard shortcuts and usage instructions.
 
 ## Development
 
