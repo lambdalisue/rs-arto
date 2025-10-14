@@ -1,0 +1,202 @@
+/* Sidebar container */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 0;
+  min-width: 0;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.sidebar.visible {
+  /* Width is set via inline style */
+}
+
+.sidebar.resizing {
+  transition: none; /* Disable transition during resize */
+}
+
+/* Resize handle */
+.sidebar-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle.resizing {
+  background-color: var(--primary-color);
+  opacity: 0.3;
+}
+
+.sidebar-resize-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 60px;
+  background-color: var(--text-secondary);
+  opacity: 0.4;
+  border-radius: 1px;
+}
+
+/* File explorer container */
+.file-explorer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar:not(.visible) .file-explorer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Parent navigation container with toggle */
+.parent-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0px;
+  margin: 0 0 8px -8px;
+}
+
+.file-visibility-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.2s;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.file-visibility-toggle:hover {
+  border-color: var(--border-color);
+  background: var(--bg-primary);
+}
+
+.file-visibility-toggle .icon {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.file-visibility-toggle:hover .icon {
+  opacity: 1;
+}
+
+.file-explorer-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Directory tree */
+.directory-tree {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden auto;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+.directory-tree::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+
+/* File tree node */
+.file-tree-node {
+  position: relative;
+}
+
+.file-tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0.5;
+}
+
+.file-tree-node-content:hover {
+  background-color: var(--hover-bg);
+  opacity: 1;
+}
+
+.file-tree-node.active > .file-tree-node-content {
+  opacity: 0.8;
+}
+
+/* Parent navigation */
+.file-tree-node.parent-nav {
+  flex: 1;
+  min-width: 0;
+}
+
+/* File tree icons */
+.file-tree-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.file-tree-chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+/* Spacer for alignment */
+.file-tree-spacer {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+/* File tree label */
+.file-tree-label {
+  flex: 1;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-color);
+}
+
+.file-tree-label.disabled {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Main area adjustment */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
