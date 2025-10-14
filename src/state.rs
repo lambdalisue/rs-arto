@@ -71,7 +71,7 @@ pub struct SidebarState {
     pub is_visible: bool,
     pub root_directory: Option<PathBuf>,
     pub expanded_dirs: HashSet<PathBuf>,
-    pub width: f64, // Width in pixels
+    pub width: f64,              // Width in pixels
     pub hide_non_markdown: bool, // Hide non-markdown files
 }
 
@@ -98,7 +98,7 @@ impl Default for AppState {
                 is_visible: false,
                 root_directory: current_dir,
                 expanded_dirs: HashSet::new(),
-                width: 280.0, // Default width
+                width: 280.0,            // Default width
                 hide_non_markdown: true, // Hide non-markdown files by default
             }),
         }
