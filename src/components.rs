@@ -5,3 +5,4 @@ pub mod header;
 pub mod icon;
 pub mod sidebar;
 pub mod tab_bar;
+pub mod theme_selector;

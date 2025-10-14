@@ -1,16 +1,43 @@
 use dioxus::prelude::*;
+use dioxus_sdk::theme::use_system_theme;
 
-use crate::assets::MAIN_SCRIPT;
 use crate::components::icon::{Icon, IconName};
-use crate::state::{AppState, LAST_SELECTED_THEME};
-use crate::theme::use_resolved_theme;
-use crate::theme::ThemePreference;
+use crate::state::LAST_SELECTED_THEME;
+use crate::theme::{Theme, ThemePreference};
 
 #[component]
-pub fn ThemeSelector() -> Element {
-    let state = use_context::<AppState>();
-    let resolved_theme = use_resolved_theme();
-    let current_theme = state.current_theme;
+pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
+    let system_theme = use_system_theme();
+    let resolved_theme = use_memo(move || match current_theme() {
+        ThemePreference::Auto => system_theme().unwrap_or(Theme::Light),
+        ThemePreference::Light => Theme::Light,
+        ThemePreference::Dark => Theme::Dark,
+    });
+
+    // Dispatch custom event when resolved theme changes
+    use_effect(use_reactive!(|resolved_theme| {
+        let theme = resolved_theme();
+        let theme_str = match theme {
+            Theme::Light => "light",
+            Theme::Dark => "dark",
+        };
+        spawn(async move {
+            let _ = document::eval(&format!(
+                "document.dispatchEvent(new CustomEvent('arto:theme-changed', {{ detail: '{}' }}))",
+                theme_str
+            ))
+            .await;
+        });
+    }));
+
+    // Save last selected theme
+    use_effect(use_reactive!(|current_theme| {
+        let theme = current_theme();
+        spawn(async move {
+            *LAST_SELECTED_THEME.lock().unwrap() = theme;
+        });
+    }));
+
     let (light_class, dark_class, auto_class) = match current_theme() {
         ThemePreference::Light => (
             "theme-button theme-button--light theme-button--active",
@@ -28,29 +55,6 @@ pub fn ThemeSelector() -> Element {
             "theme-button theme-button--auto theme-button--active",
         ),
     };
-
-    // Set the current theme in JavaScript whenever it changes
-    use_effect(use_reactive!(|resolved_theme| {
-        let resolved = resolved_theme();
-        spawn(async move {
-            let eval = document::eval(&indoc::formatdoc! {r#"
-                const {{ setCurrentTheme }} = await import('{MAIN_SCRIPT}');
-                setCurrentTheme('{resolved}');
-            "#});
-            if let Err(err) = eval.await {
-                tracing::error!("Failed to set theme in JS: {err}");
-            }
-        });
-    }));
-
-    use_effect(use_reactive!(|current_theme| {
-        let theme = current_theme();
-        spawn(async move {
-            // Save the last selected theme to the global state
-            let mut last_theme = LAST_SELECTED_THEME.lock().unwrap();
-            *last_theme = theme;
-        });
-    }));
 
     rsx! {
         div {

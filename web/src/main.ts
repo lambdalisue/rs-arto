@@ -30,10 +30,12 @@ export function init(): void {
   syntaxHighlighter.mount();
   mermaidRenderer.init();
   renderCoordinator.init();
-  // Set current theme to initialize all components
-  // This must be called AFTER renderCoordinator.init()
-  // otherwise scheduleRender() in renderCoordinator.init()
-  // will be skipped due to renderCoordinator.forceRenderMermaid()
-  // called in setCurrentTheme() below
+
+  // Listen for theme changes from Rust
+  document.addEventListener("arto:theme-changed", ((event: CustomEvent) => {
+    setCurrentTheme(event.detail);
+  }) as EventListener);
+
+  // Set initial theme
   setCurrentTheme(getCurrentTheme());
 }

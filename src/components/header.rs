@@ -1,10 +1,8 @@
-mod theme_selector;
-
 use dioxus::prelude::*;
 
 use crate::components::icon::{Icon, IconName};
+use crate::components::theme_selector::ThemeSelector;
 use crate::state::AppState;
-use theme_selector::ThemeSelector;
 
 #[component]
 pub fn Header() -> Element {
@@ -96,7 +94,7 @@ pub fn Header() -> Element {
             }
 
             // Theme selector (right side)
-            ThemeSelector {}
+            ThemeSelector { current_theme: state.current_theme }
         }
     }
 }
