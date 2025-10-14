@@ -69,7 +69,6 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 - **Mermaid Diagrams** — Interactive diagram viewer with zoom, pan, and export
 - **Code Blocks** — Copy buttons for easy code sharing
 - **Math Support** — Beautiful KaTeX rendering for mathematical expressions
-- **Universal File Support** — View any file type with intelligent rendering
 - **Auto-Reload** — Automatically updates when files change on disk
 - **Theme Support** — Manual and automatic dark/light mode switching
 - **History Navigation** — Back/forward navigation through document links

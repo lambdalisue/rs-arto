@@ -14,8 +14,7 @@ The name "Arto" comes from "Art of Reading" — reflecting the philosophy that r
 
 Arto faithfully reproduces GitHub's Markdown rendering in a local, offline environment, offering a calm and precise reading experience with thoughtful typography and balanced whitespace.
 
-> [!WARNING]
-> **Beta Software Notice**
+> [!WARNING] > **Beta Software Notice**
 >
 > - This application is still in **beta** and may contain bugs or unstable behavior. Features may change without regard to backward compatibility.
 > - **macOS Only Testing**: While the underlying libraries support cross-platform development, this app has only been tested on macOS by the author. It may not work properly on other platforms, especially regarding window management (which differs significantly across operating systems). Cross-platform support is a goal, and **PRs are welcome**.
@@ -23,7 +22,6 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 ## Features
 
 - **GitHub-Style Rendering**: Accurate reproduction of GitHub's Markdown styling with full support for extended syntax
-- **Refined Typography**: Thoughtful design focused on readability and visual balance
 - **Native Performance**: Built with Rust for fast, responsive rendering
 - **File Explorer**: Built-in sidebar with file tree navigation for browsing local directories
 - **Tab Support**: Open and manage multiple documents in tabs within a single window
@@ -35,7 +33,6 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 - **Code Block Features**: Copy button for code blocks, copy Mermaid source as image
 - **Drag & Drop**: Simply drag markdown files onto the window to open them
 - **Live Navigation**: Navigate between linked markdown documents with history support (back/forward)
-- **Universal File Support**: Intelligently renders all file types - Markdown as formatted HTML, images inline, and other files as syntax-highlighted code
 - **Offline First**: No internet connection required — read your docs anytime, anywhere
 
 ## Installation
