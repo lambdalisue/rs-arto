@@ -45,5 +45,8 @@
   <!-- Override default tauri-bundler keys for ad-hoc signing compatibility -->
   <key>CSResourcesFileMapped</key>
   <false/>
+  <!-- LSRequiresCarbon is deprecated and should be false for modern macOS apps -->
+  <key>LSRequiresCarbon</key>
+  <false/>
 </dict>
 </plist>
