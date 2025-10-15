@@ -118,31 +118,64 @@ jobs:
           body: |
             ## macOS Installation
 
-            ### Security Notice
-            When downloading the DMG from GitHub, macOS may show a security warning:
-            > "Apple cannot verify that this disk image does not contain malware"
+            ### Installation Steps (2 Security Approvals Required)
 
-            This is expected for applications without Apple Developer ID signature.
+            Due to Apple's security requirements, you'll need to approve **both the DMG file and the app itself**.
 
-            ### How to Install
+            #### Step 1: Open the DMG File
 
-            **Option 1: Right-click method (Recommended)**
-            1. Download the `Arto_*.dmg` file below
-            2. Right-click (or Control+click) on the DMG file
-            3. Select "Open" from the context menu
-            4. Click "Open" in the security dialog
-            5. Drag Arto.app to Applications folder
+            1. **Download** the `Arto_*.dmg` file from the Assets section below
+            2. **Double-click the DMG file**
+               - Security warning appears: *"Apple cannot verify that this disk image does not contain malware"*
+               - Click "OK" to dismiss
+            3. **Open System Settings**
+               - Apple menu () → System Settings → Privacy & Security
+            4. **Allow the DMG** (in Security section at bottom)
+               - You'll see: *"Arto_*.dmg" was blocked from use*
+               - Click **"Open Anyway"** button
+               - Enter your password
+               - The DMG will now open
 
-            **Option 2: Terminal method**
+            #### Step 2: Install and Open the App
+
+            5. **Copy the app**
+               - Drag **Arto.app** from the DMG to your **Applications** folder
+            6. **Double-click Arto.app** to launch
+               - Security warning appears again: *"Arto cannot be opened because..."*
+               - Click "OK" to dismiss
+            7. **Allow the app** (same process as DMG)
+               - Open System Settings → Privacy & Security
+               - Scroll to Security section
+               - Find: *"Arto" was blocked from use*
+               - Click **"Open Anyway"**
+               - Enter your password
+            8. **Launch complete**
+               - Arto will now start normally
+               - Future launches won't require approval
+
+            ### Why Two Approvals Are Needed
+
+            macOS treats the DMG container and the app inside separately. Since both are unsigned,
+            each requires manual approval through System Settings. This is standard macOS security
+            for applications without Apple Developer ID certificates.
+
+            ### Quick Method (Terminal - for advanced users)
+
             ```bash
-            # Remove quarantine attribute
+            # Remove quarantine from DMG
             xattr -d com.apple.quarantine Arto_*.dmg
-
-            # Open the DMG normally
             open Arto_*.dmg
+
+            # After copying to Applications, remove quarantine from app
+            xattr -cr /Applications/Arto.app
+            open /Applications/Arto.app
             ```
 
-            ### Why This Happens
-            This application uses ad-hoc code signing instead of an Apple Developer ID certificate. The app is safe to use, but macOS requires manual approval for such applications.
+            ### Note for macOS Sequoia (15.0+) Users
+
+            The right-click → "Open" shortcut no longer works for unsigned apps.
+            You must use System Settings → Privacy & Security as described above.
+
+            ---
 
             For more information, see the [README](https://github.com/${{ github.repository }}).
