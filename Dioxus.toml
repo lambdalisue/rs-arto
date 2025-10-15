@@ -38,4 +38,4 @@ license = "LICENSE"
 provider_short_name = "Alisue"
 info_plist_path = "extras/mac/Info.plist"
 files = {}
-hardened_runtime = true
+hardened_runtime = false # because we don't have a proper Apple Developer ID
