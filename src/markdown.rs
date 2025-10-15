@@ -159,7 +159,7 @@ fn process_code_blocks<'a>(
             let html = format!(
                 r#"<pre class="preprocessed-{}" data-original-content="{}">{}</pre>"#,
                 target_lang,
-                html_escape::encode_text(&content),
+                html_escape::encode_double_quoted_attribute(&content),
                 &content,
             );
             vec![Event::Html(html.into())]
