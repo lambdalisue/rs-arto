@@ -42,5 +42,8 @@
       </array>
     </dict>
   </array>
+  <!-- Override default tauri-bundler keys for ad-hoc signing compatibility -->
+  <key>CSResourcesFileMapped</key>
+  <false/>
 </dict>
 </plist>
