@@ -115,3 +115,34 @@ jobs:
           artifactErrorsFailBuild: true
           artifacts: ./artifacts/arto-*/Arto_*.dmg
           removeArtifacts: true
+          body: |
+            ## macOS Installation
+
+            ### Security Notice
+            When downloading the DMG from GitHub, macOS may show a security warning:
+            > "Apple cannot verify that this disk image does not contain malware"
+
+            This is expected for applications without Apple Developer ID signature.
+
+            ### How to Install
+
+            **Option 1: Right-click method (Recommended)**
+            1. Download the `Arto_*.dmg` file below
+            2. Right-click (or Control+click) on the DMG file
+            3. Select "Open" from the context menu
+            4. Click "Open" in the security dialog
+            5. Drag Arto.app to Applications folder
+
+            **Option 2: Terminal method**
+            ```bash
+            # Remove quarantine attribute
+            xattr -d com.apple.quarantine Arto_*.dmg
+
+            # Open the DMG normally
+            open Arto_*.dmg
+            ```
+
+            ### Why This Happens
+            This application uses ad-hoc code signing instead of an Apple Developer ID certificate. The app is safe to use, but macOS requires manual approval for such applications.
+
+            For more information, see the [README](https://github.com/${{ github.repository }}).
