@@ -14,7 +14,8 @@ The name "Arto" comes from "Art of Reading" — reflecting the philosophy that r
 
 Arto faithfully reproduces GitHub's Markdown rendering in a local, offline environment, offering a calm and precise reading experience with thoughtful typography and balanced whitespace.
 
-> [!WARNING] > **Beta Software Notice**
+> [!WARNING]
+> **Beta Software Notice**
 >
 > - This application is still in **beta** and may contain bugs or unstable behavior. Features may change without regard to backward compatibility.
 > - **macOS Only Testing**: While the underlying libraries support cross-platform development, this app has only been tested on macOS by the author. It may not work properly on other platforms, especially regarding window management (which differs significantly across operating systems). Cross-platform support is a goal, and **PRs are welcome**.
