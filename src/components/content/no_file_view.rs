@@ -40,7 +40,15 @@ pub fn NoFileView() -> Element {
                         span {
                             class: "no-file-hint-text",
                             "Use "
-                            kbd { class: "no-file-hint-kbd", "Cmd+O" }
+                            kbd {
+                                class: "no-file-hint-kbd",
+                                {
+                                    #[cfg(target_os = "macos")]
+                                    { "Cmd+O" }
+                                    #[cfg(not(target_os = "macos"))]
+                                    { "Ctrl+O" }
+                                }
+                            }
                             " to open a file"
                         }
                     }
