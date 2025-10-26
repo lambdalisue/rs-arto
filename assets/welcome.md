@@ -20,7 +20,7 @@ To open a markdown file:
 - Use `Cmd+O` to browse and open a file
 - Use `Cmd+Shift+O` to open a directory (with file explorer)
 - Use `Cmd+T` to open a new tab
-- Use `Cmd+\` to toggle the sidebar file explorer
+- Use `Cmd+B` to toggle the sidebar file explorer
 
 ## Keyboard Shortcuts
 
@@ -30,7 +30,7 @@ To open a markdown file:
 | :------------ | :--------------------------- |
 | `Cmd+O`       | Open a file                  |
 | `Cmd+Shift+O` | Open a directory             |
-| `Cmd+\`       | Toggle sidebar file explorer |
+| `Cmd+B`       | Toggle sidebar file explorer |
 
 **Navigation**
 
@@ -46,7 +46,6 @@ To open a markdown file:
 | `Cmd+N`       | Open a new window    |
 | `Cmd+T`       | Open a new tab       |
 | `Cmd+W`       | Close current tab    |
-| `Cmd+Shift+T` | Close all tabs       |
 | `Cmd+Shift+W` | Close current window |
 
 **View**
