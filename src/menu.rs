@@ -99,6 +99,7 @@ pub fn build_menu() -> Menu {
     add_app_menu(&menu);
 
     add_file_menu(&menu);
+    add_edit_menu(&menu);
     add_view_menu(&menu);
     add_history_menu(&menu);
     add_window_menu(&menu);
@@ -160,6 +161,22 @@ fn add_file_menu(menu: &Menu) {
         .unwrap();
 
     menu.append(&file_menu).unwrap();
+}
+
+fn add_edit_menu(menu: &Menu) {
+    let edit_menu = Submenu::new("Edit", true);
+
+    edit_menu
+        .append_items(&[
+            &PredefinedMenuItem::cut(Some("Cut")),
+            &PredefinedMenuItem::copy(Some("Copy")),
+            &PredefinedMenuItem::paste(Some("Paste")),
+            &PredefinedMenuItem::separator(),
+            &PredefinedMenuItem::select_all(Some("Select All")),
+        ])
+        .unwrap();
+
+    menu.append(&edit_menu).unwrap();
 }
 
 fn add_view_menu(menu: &Menu) {
