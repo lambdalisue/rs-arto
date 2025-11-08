@@ -30,7 +30,7 @@ jobs:
           cache-dependency-path: ./web/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
-          tool: dioxus-cli@0.6
+          tool: dioxus-cli@0.7
       - run: just setup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,7 +57,7 @@ jobs:
           cache-dependency-path: ./web/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
-          tool: dioxus-cli@0.6
+          tool: dioxus-cli@0.7
       - run: just setup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,7 +84,7 @@ jobs:
           cache-dependency-path: ./web/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
-          tool: dioxus-cli@0.6
+          tool: dioxus-cli@0.7
       - run: just setup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

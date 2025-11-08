@@ -1,5 +1,6 @@
 use dioxus::html::HasFileData;
 use dioxus::prelude::*;
+use dioxus_core::use_drop;
 use dioxus_desktop::{use_muda_event_handler, window};
 use std::path::PathBuf;
 
@@ -60,13 +61,11 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
             class: if is_dragging() { "drag-over" },
             ondragover: move |evt| {
                 // Only accept file/directory drops
-                if let Some(file_engine) = evt.files() {
-                    let files = file_engine.files();
-                    if !files.is_empty() {
-                        evt.prevent_default();
-                        is_dragging.set(true);
-                        return;
-                    }
+                let files = evt.files();
+                if !files.is_empty() {
+                    evt.prevent_default();
+                    is_dragging.set(true);
+                    return;
                 }
                 is_dragging.set(false);
             },
@@ -102,17 +101,13 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
 
 /// Handle dropped files/directories - opens markdown files or sets directory as root
 async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
-    tracing::info!("handle_dropped_files called");
-    let Some(file_engine) = evt.files() else {
-        tracing::warn!("No file engine available");
+    let files = evt.files();
+    if files.is_empty() {
         return;
-    };
+    }
 
-    let files = file_engine.files();
-    tracing::info!("Dropped files: {:?}", files);
-
-    for file_name in &files {
-        let path = PathBuf::from(file_name);
+    for file_data in files {
+        let path = PathBuf::from(&file_data.name());
 
         // Resolve symlinks and canonicalize the path to handle Finder sidebar items
         let resolved_path = match std::fs::canonicalize(&path) {

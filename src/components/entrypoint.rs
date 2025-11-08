@@ -2,6 +2,7 @@ use crate::state::OPEN_EVENT_RECEIVER;
 use crate::window as window_manager;
 use dioxus::desktop::window;
 use dioxus::prelude::*;
+use dioxus_core::spawn_forever;
 use dioxus_desktop::use_muda_event_handler;
 
 #[component]
