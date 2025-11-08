@@ -88,6 +88,11 @@ jobs:
       - run: just setup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply version
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          sed -i "s/^version = \"0.0.0\"/version = \"${{ github.event.release.tag_name }}\"/" Cargo.toml
+          sed -i "s/^version = \"v\(.*\)\"/version = \"\1\"/" Cargo.toml
       - run: just build
       - uses: actions/upload-artifact@v4
         with:

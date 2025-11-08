@@ -1,6 +1,6 @@
 [package]
 name = "arto"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Alisue <lambdalisue@gmail.com>"]
 edition = "2021"
 
