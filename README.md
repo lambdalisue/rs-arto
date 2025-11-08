@@ -36,19 +36,31 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 - **Live Navigation**: Navigate between linked markdown documents with history support (back/forward)
 - **Offline First**: No internet connection required — read your docs anytime, anywhere
 
-## Screenshots
-<img width="1610" height="1443" alt="CleanShot 2025-10-26 at 16 24 54" src="https://github.com/user-attachments/assets/675b9a2f-9e1d-4355-bd05-f475b77e62e6" />
-<img width="1610" height="1443" alt="CleanShot 2025-10-26 at 16 25 13" src="https://github.com/user-attachments/assets/5012a3ce-9741-4b2e-9fb2-e8c5868638f8" />
-<img width="1610" height="1443" alt="CleanShot 2025-10-26 at 16 25 31" src="https://github.com/user-attachments/assets/84fc6c60-4166-4330-a83b-370d5e2fa534" />
+## Usage
 
-## Installation
+Use [Homebrew] tap to install. Note that the application is not signed or notarized with an Apple Developer ID so we need `--no-quarantine` here.
+See [homebrew-arto] for more information.
+
+```
+brew install --cask --no-quarantine lambdalisue/arto/arto
+```
+
+Launch the application to see the welcome screen with keyboard shortcuts and usage instructions.
+
+[Homebrew]: https://brew.sh/
+[homebrew-arto]: https://github.com/lambdalisue/homebrew-arto
+
+## Screenshots
+<img alt="CleanShot 2025-10-26 at 16 24 54" src="https://github.com/user-attachments/assets/675b9a2f-9e1d-4355-bd05-f475b77e62e6" />
+<img alt="CleanShot 2025-10-26 at 16 25 13" src="https://github.com/user-attachments/assets/5012a3ce-9741-4b2e-9fb2-e8c5868638f8" />
+<img alt="CleanShot 2025-10-26 at 16 25 31" src="https://github.com/user-attachments/assets/84fc6c60-4166-4330-a83b-370d5e2fa534" />
+
+## Development
 
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rust-lang.org/)
 - [just](https://github.com/casey/just)
 - [dioxus-cli](https://crates.io/crates/dioxus-cli)
-
-### From Source
 
 ```bash
 git clone https://github.com/lambdalisue/rs-arto.git
@@ -67,9 +79,6 @@ just install
 
 The binary will be available at `target/release/arto` or `target/dx/arto/bundle/macos/bundle/`.
 
-## Usage
-
-Launch the application to see the welcome screen with keyboard shortcuts and usage instructions.
 
 ## License
 
