@@ -114,12 +114,13 @@ jobs:
         with:
           path: ./artifacts
       - run: find .
-      - uses: ncipollo/release-action@v1.14.0
+      - uses: ncipollo/release-action@v1.20.0
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
           artifacts: ./artifacts/arto-*/Arto_*.dmg
           removeArtifacts: true
+          makeLatest: true
           body: |
             ## macOS Installation
 
