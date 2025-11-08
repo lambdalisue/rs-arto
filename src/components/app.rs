@@ -126,7 +126,11 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
             }
         };
 
-        tracing::info!("Processing dropped path: {:?}, is_dir: {}", resolved_path, resolved_path.is_dir());
+        tracing::info!(
+            "Processing dropped path: {:?}, is_dir: {}",
+            resolved_path,
+            resolved_path.is_dir()
+        );
 
         if resolved_path.is_dir() {
             // If it's a directory, set it as root and show the sidebar
