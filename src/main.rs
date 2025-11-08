@@ -102,8 +102,7 @@ fn create_config() -> Config {
                             // Skip invalid paths
                             continue;
                         };
-                        tx.try_send(open_event)
-                            .expect("Failed to send open event");
+                        tx.try_send(open_event).expect("Failed to send open event");
                     }
                 }
             }
