@@ -11,7 +11,6 @@ mod window;
 
 use dioxus::desktop::tao::event::{Event, WindowEvent};
 use dioxus::desktop::{tao::dpi::PhysicalPosition, Config, LogicalSize, WindowBuilder};
-use std::path::PathBuf;
 use tokio::sync::mpsc::channel;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::prelude::*;
@@ -69,7 +68,7 @@ fn init_tracing() {
 
 #[cfg(target_os = "macos")]
 fn create_config() -> Config {
-    let (tx, rx) = channel::<Option<PathBuf>>(10);
+    let (tx, rx) = channel::<state::OpenEvent>(10);
     state::OPEN_EVENT_RECEIVER
         .lock()
         .expect("Failed to lock OPEN_EVENT_RECEIVER")
@@ -95,13 +94,21 @@ fn create_config() -> Config {
             Event::Opened { urls, .. } => {
                 for url in urls {
                     if let Ok(path) = url.to_file_path() {
-                        tx.try_send(Some(path)).expect("Failed to send opened file");
+                        let open_event = if path.is_dir() {
+                            state::OpenEvent::Directory(path)
+                        } else if path.is_file() {
+                            state::OpenEvent::File(path)
+                        } else {
+                            // Skip invalid paths
+                            continue;
+                        };
+                        tx.try_send(open_event).expect("Failed to send open event");
                     }
                 }
             }
             Event::Reopen { .. } => {
-                // Send reopen event (None) through channel to handle it safely in component context
-                tx.try_send(None).ok();
+                // Send reopen event through channel to handle it safely in component context
+                tx.try_send(state::OpenEvent::Reopen).ok();
             }
             Event::WindowEvent {
                 event: WindowEvent::Focused(true),
@@ -118,7 +125,7 @@ fn create_config() -> Config {
 
 #[cfg(not(target_os = "macos"))]
 fn create_config() -> Config {
-    let (_tx, rx) = channel::<Option<PathBuf>>(10);
+    let (_tx, rx) = channel::<state::OpenEvent>(10);
     state::OPEN_EVENT_RECEIVER
         .lock()
         .expect("Failed to lock OPEN_EVENT_RECEIVER")

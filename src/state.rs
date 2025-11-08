@@ -8,13 +8,26 @@ use tokio::sync::mpsc::Receiver;
 use crate::history::HistoryManager;
 use crate::theme::ThemePreference;
 
+/// Open event types for distinguishing files, directories, and reopen events
+#[derive(Debug, Clone)]
+pub enum OpenEvent {
+    /// File opened from Finder/CLI
+    File(PathBuf),
+    /// Directory opened from Finder/CLI (should set sidebar root)
+    Directory(PathBuf),
+    /// App icon clicked (reopen event)
+    Reopen,
+}
+
 /// A global receiver to receive open events from the main thread
-/// - `Some(PathBuf)`: File opened from Finder/CLI
-/// - `None`: App icon clicked (reopen event)
-pub static OPEN_EVENT_RECEIVER: Mutex<Option<Receiver<Option<PathBuf>>>> = Mutex::new(None);
+pub static OPEN_EVENT_RECEIVER: Mutex<Option<Receiver<OpenEvent>>> = Mutex::new(None);
 
 /// Global broadcast sender for opening files in tabs
 pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> =
+    LazyLock::new(|| broadcast::channel(100).0);
+
+/// Global broadcast sender for opening directories in sidebar
+pub static DIRECTORY_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> =
     LazyLock::new(|| broadcast::channel(100).0);
 
 pub static LAST_SELECTED_THEME: LazyLock<Mutex<ThemePreference>> =
