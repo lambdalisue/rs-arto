@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_sdk::theme::use_system_theme;
+use dioxus_sdk_window::theme::use_system_theme;
 
 use crate::components::icon::{Icon, IconName};
 use crate::state::LAST_SELECTED_THEME;

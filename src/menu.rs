@@ -1,4 +1,4 @@
-use dioxus::prelude::{Readable, Writable};
+use dioxus::prelude::{ReadableExt, WritableExt};
 use dioxus_desktop::muda::accelerator::{Accelerator, Code, Modifiers};
 use dioxus_desktop::muda::{
     AboutMetadataBuilder, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu,

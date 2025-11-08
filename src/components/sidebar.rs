@@ -15,9 +15,9 @@ pub fn Sidebar() -> Element {
     let mut is_resizing = use_signal(|| false);
 
     let style = if is_visible {
-        format!("width: {}px; min-width: {}px", width, width)
+        format!("width: {}px;", width)
     } else {
-        String::new()
+        "width: 0;".to_string()
     };
 
     rsx! {

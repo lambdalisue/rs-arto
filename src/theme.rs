@@ -1,6 +1,6 @@
-use dioxus_sdk::theme::get_system_theme;
+use dioxus_sdk_window::theme::get_theme;
 
-pub use dioxus_sdk::theme::SystemTheme as Theme;
+pub use dioxus_sdk_window::theme::Theme;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ThemePreference {
@@ -22,7 +22,7 @@ impl From<&str> for ThemePreference {
 
 pub fn resolve_theme(theme: &ThemePreference) -> Theme {
     match theme {
-        ThemePreference::Auto => get_system_theme().unwrap_or(Theme::Light),
+        ThemePreference::Auto => get_theme().unwrap_or(Theme::Light),
         ThemePreference::Light => Theme::Light,
         ThemePreference::Dark => Theme::Dark,
     }

@@ -104,6 +104,12 @@ pub fn close_all_main_windows() {
 }
 
 pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
+    dioxus_core::spawn(async move {
+        create_new_main_window_async(file, show_welcome).await;
+    });
+}
+
+async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: bool) {
     // This cause ERROR but it seems we can ignore it safely
     // https://github.com/DioxusLabs/dioxus/issues/3872
     let dom = VirtualDom::new_with_props(App, AppProps { file, show_welcome });
@@ -122,8 +128,9 @@ pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
         // Use a custom index to set the initial theme correctly
         .with_custom_index(build_custom_index());
 
-    let handle = window().new_window(dom, config);
-    register_main_window(handle);
+    let pending = window().new_window(dom, config);
+    let handle = pending.await;
+    register_main_window(std::rc::Rc::downgrade(&handle));
 }
 
 fn build_custom_index() -> String {
@@ -186,24 +193,26 @@ pub fn open_or_focus_mermaid_window(source: String, theme: ThemePreference) {
     let diagram_id = generate_diagram_id(&source);
     let parent_id = window().id();
 
-    CHILD_WINDOWS.with(|windows| {
+    // Check if window already exists and can be focused
+    let needs_creation = CHILD_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
         windows.retain(|_, e| e.is_alive());
 
-        if windows.get(&diagram_id).is_some_and(|e| e.focus()) {
-            return;
-        }
-
-        create_mermaid_window(source, diagram_id, theme, parent_id, &mut windows);
+        !windows.get(&diagram_id).is_some_and(|e| e.focus())
     });
+
+    if needs_creation {
+        dioxus_core::spawn(create_and_register_mermaid_window(
+            source, diagram_id, theme, parent_id,
+        ));
+    }
 }
 
-fn create_mermaid_window(
+async fn create_and_register_mermaid_window(
     source: String,
     diagram_id: String,
     theme: ThemePreference,
     parent_id: WindowId,
-    windows: &mut HashMap<String, ChildWindowEntry>,
 ) {
     let dom = VirtualDom::new_with_props(
         MermaidWindow,
@@ -220,18 +229,21 @@ fn create_mermaid_window(
         .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
         .with_custom_index(build_mermaid_window_index(theme));
 
-    let handle = window().new_window(dom, config);
+    let pending = window().new_window(dom, config);
+    let ctx = pending.await;
+    let weak_handle = std::rc::Rc::downgrade(&ctx);
+    let window_id = ctx.window.id();
 
-    if let Some(ctx) = handle.upgrade() {
-        windows.insert(
+    CHILD_WINDOWS.with(|windows| {
+        windows.borrow_mut().insert(
             diagram_id,
             ChildWindowEntry {
-                handle,
-                window_id: ctx.window.id(),
+                handle: weak_handle,
+                window_id,
                 parent_id,
             },
         );
-    }
+    });
 }
 
 fn build_mermaid_window_index(theme: ThemePreference) -> String {
