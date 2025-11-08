@@ -9,7 +9,7 @@ use super::icon::{Icon, IconName};
 use super::sidebar::Sidebar;
 use super::tab_bar::TabBar;
 use crate::menu;
-use crate::state::{AppState, Tab, FILE_OPEN_BROADCAST};
+use crate::state::{AppState, Tab, DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 
 #[component]
 pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
@@ -45,6 +45,9 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
 
     // Listen for file open broadcasts from background process
     setup_file_open_listener(state.clone());
+
+    // Listen for directory open broadcasts from background process
+    setup_directory_open_listener(state.clone());
 
     // Close child windows when this window closes
     use_drop(move || {
@@ -122,6 +125,28 @@ fn setup_file_open_listener(state: AppState) {
                 if window().is_focused() {
                     tracing::info!("Opening file from broadcast: {:?}", file);
                     state_clone.open_file(file);
+                }
+            }
+        });
+    });
+}
+
+/// Setup listener for directory open broadcasts from the background process
+fn setup_directory_open_listener(state: AppState) {
+    use_effect(move || {
+        let mut state_clone = state.clone();
+        let mut rx = DIRECTORY_OPEN_BROADCAST.subscribe();
+
+        spawn(async move {
+            while let Ok(dir) = rx.recv().await {
+                // Only handle in the focused window
+                if window().is_focused() {
+                    tracing::info!("Opening directory from broadcast: {:?}", dir);
+                    state_clone.set_root_directory(dir.clone());
+                    // Optionally show the sidebar if it's hidden
+                    if !state_clone.sidebar.read().is_visible {
+                        state_clone.toggle_sidebar();
+                    }
                 }
             }
         });

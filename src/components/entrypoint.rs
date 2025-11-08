@@ -17,31 +17,49 @@ pub fn Entrypoint() -> Element {
         .take()
         .expect("OPEN_EVENT_RECEIVER is not set");
 
-    // Open the first file or show welcome screen
-    let first_file = if let Ok(Some(file)) = rx.try_recv() {
-        tracing::info!("Opening first file: {:?}", &file);
-        Some(file)
+    // Handle initial event (file, directory, or none)
+    let first_event = if let Ok(event) = rx.try_recv() {
+        tracing::info!("Received initial open event: {:?}", &event);
+        Some(event)
     } else {
-        tracing::info!("No initial file to open, showing welcome screen");
+        tracing::info!("No initial event, showing welcome screen");
         None
     };
+
+    // Extract initial file if present
+    let first_file = match &first_event {
+        Some(crate::state::OpenEvent::File(path)) => Some(path.clone()),
+        _ => None,
+    };
+
     tracing::info!("Creating first child window");
     window_manager::create_new_main_window(first_file.clone(), true);
 
-    // Handle open events (file opened or app icon clicked)
+    // Handle directory event after window creation
+    if let Some(crate::state::OpenEvent::Directory(dir)) = first_event {
+        tracing::info!("Setting initial directory: {:?}", &dir);
+        let _ = crate::state::DIRECTORY_OPEN_BROADCAST.send(dir);
+    }
+
+    // Handle open events (file opened, directory opened, or app icon clicked)
     spawn_forever(async move {
         while let Some(event) = rx.recv().await {
             match event {
-                Some(file) => {
-                    // Event::Opened
+                crate::state::OpenEvent::File(file) => {
                     if !window_manager::has_any_main_windows() {
                         window_manager::create_new_main_window(Some(file), false);
                     } else {
                         let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
                     }
                 }
-                None => {
-                    // Event::Reopen
+                crate::state::OpenEvent::Directory(dir) => {
+                    if !window_manager::has_any_main_windows() {
+                        window_manager::create_new_main_window(None, false);
+                    }
+                    // Broadcast directory change to all windows
+                    let _ = crate::state::DIRECTORY_OPEN_BROADCAST.send(dir);
+                }
+                crate::state::OpenEvent::Reopen => {
                     if !window_manager::focus_last_focused_main_window() {
                         window_manager::create_new_main_window(None, false);
                     }
