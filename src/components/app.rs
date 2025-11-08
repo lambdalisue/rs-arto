@@ -59,20 +59,28 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
             class: "app-container",
             class: if is_dragging() { "drag-over" },
             ondragover: move |evt| {
-                evt.prevent_default();
-                is_dragging.set(true);
+                // Only accept file/directory drops
+                if let Some(file_engine) = evt.files() {
+                    let files = file_engine.files();
+                    if !files.is_empty() {
+                        evt.prevent_default();
+                        is_dragging.set(true);
+                        return;
+                    }
+                }
+                is_dragging.set(false);
             },
             ondragleave: move |_| {
                 is_dragging.set(false);
             },
             ondrop: move |evt| {
-                let state = state_for_drop.clone();
-                async move {
-                    evt.prevent_default();
-                    is_dragging.set(false);
+                evt.prevent_default();
+                is_dragging.set(false);
 
+                let state = state_for_drop.clone();
+                spawn(async move {
                     handle_dropped_files(evt, state).await;
-                }
+                });
             },
 
             Sidebar {},
@@ -94,21 +102,48 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
 
 /// Handle dropped files/directories - opens markdown files or sets directory as root
 async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
+    tracing::info!("handle_dropped_files called");
     let Some(file_engine) = evt.files() else {
+        tracing::warn!("No file engine available");
         return;
     };
 
-    for file_name in &file_engine.files() {
+    let files = file_engine.files();
+    tracing::info!("Dropped files: {:?}", files);
+
+    for file_name in &files {
         let path = PathBuf::from(file_name);
 
-        if path.is_dir() {
-            // If it's a directory, set it as root
-            tracing::info!("Setting dropped directory as root: {:?}", path);
-            state.set_root_directory(path);
+        // Resolve symlinks and canonicalize the path to handle Finder sidebar items
+        let resolved_path = match std::fs::canonicalize(&path) {
+            Ok(p) => {
+                tracing::info!("Resolved path: {:?} -> {:?}", path, p);
+                p
+            }
+            Err(e) => {
+                tracing::warn!("Failed to canonicalize path {:?}: {}", path, e);
+                path.clone()
+            }
+        };
+
+        tracing::info!(
+            "Processing dropped path: {:?}, is_dir: {}",
+            resolved_path,
+            resolved_path.is_dir()
+        );
+
+        if resolved_path.is_dir() {
+            // If it's a directory, set it as root and show the sidebar
+            tracing::info!("Setting dropped directory as root: {:?}", resolved_path);
+            state.set_root_directory(resolved_path);
+            // Show the sidebar if it's hidden so users can see the directory tree
+            if !state.sidebar.read().is_visible {
+                state.toggle_sidebar();
+            }
         } else {
             // Open any file (not just markdown)
-            tracing::info!("Opening dropped file: {:?}", path);
-            state.open_file(path);
+            tracing::info!("Opening dropped file: {:?}", resolved_path);
+            state.open_file(resolved_path);
         }
     }
 }
