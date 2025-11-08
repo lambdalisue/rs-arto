@@ -184,3 +184,16 @@ jobs:
             ---
 
             For more information, see the [README](https://github.com/${{ github.repository }}).
+
+  dispatch:
+    if: ${{ github.event_name == 'release' }}
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch to Homebrew tap
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          repository: lambdalisue/homebrew-arto
+          event-type: release
+          client-payload: '{"version": "${{ github.event.release.tag_name }}", "repository": "${{ github.repository }}"}'
