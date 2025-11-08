@@ -190,10 +190,27 @@ jobs:
     needs: [release]
     runs-on: ubuntu-latest
     steps:
+      - name: Download release asset
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION_NO_V="${VERSION#v}"
+          ASSET_NAME="Arto_${VERSION_NO_V}_aarch64.dmg"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${ASSET_NAME}"
+
+          echo "Downloading ${ASSET_NAME} from ${DOWNLOAD_URL}"
+          curl -L -o "${ASSET_NAME}" "${DOWNLOAD_URL}"
+
+          # Calculate SHA256
+          SHA256=$(sha256sum "${ASSET_NAME}" | cut -d' ' -f1)
+          echo "SHA256: ${SHA256}"
+
+          # Export for next step
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "SHA256=${SHA256}" >> $GITHUB_ENV
       - name: Dispatch to Homebrew tap
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           repository: lambdalisue/homebrew-arto
-          event-type: release
-          client-payload: '{"version": "${{ github.event.release.tag_name }}", "repository": "${{ github.repository }}"}'
+          event-type: update
+          client-payload: '{"version": "${{ env.VERSION }}", "sha256": "${{ env.SHA256 }}"}'
