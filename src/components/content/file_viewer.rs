@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use dioxus_core::use_drop;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -134,37 +135,70 @@ fn use_file_loader(
 
 /// Hook to watch file for changes and trigger reload
 fn use_file_watcher(file: PathBuf, reload_trigger: Signal<usize>) {
+    // Store cancellation sender in a signal so we can access it in use_drop
+    let mut cancel_tx_signal =
+        use_signal(|| None::<tokio::sync::oneshot::Sender<()>>);
+
     use_effect(use_reactive!(|file| {
         let mut reload_trigger = reload_trigger;
         let file = file.clone();
 
+        // Cancel previous watcher if it exists
+        if let Some(old_cancel_tx) = cancel_tx_signal.take() {
+            tracing::debug!("Cancelling previous watcher for: {:?}", file);
+            let _ = old_cancel_tx.send(());
+        }
+
+        // Create a new oneshot channel for cancellation
+        let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
+        cancel_tx_signal.set(Some(cancel_tx));
+
         spawn(async move {
             let file_path = file.clone();
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(10);
 
-            if let Err(e) = FILE_WATCHER.watch(file_path.clone(), tx).await {
-                tracing::error!(
-                    "Failed to register file watcher for {:?}: {:?}",
-                    file_path,
-                    e
-                );
+            // Watch the file and get a RAII guard
+            let Ok((_guard, mut rx)) = FILE_WATCHER.watch(file_path.clone()).await else {
+                tracing::error!("Failed to register file watcher for {:?}", file_path);
                 return;
+            };
+
+            // Monitor both file changes and cancellation signal
+            loop {
+                tokio::select! {
+                    // Handle cancellation signal from cleanup
+                    _ = &mut cancel_rx => {
+                        tracing::debug!("File watcher cancelled for {:?}", file_path);
+                        break;
+                    }
+                    // Handle file change notifications
+                    result = rx.recv() => {
+                        match result {
+                            Some(()) => {
+                                tracing::info!("File change detected, reloading: {:?}", file_path);
+                                reload_trigger.set(reload_trigger() + 1);
+                            }
+                            None => {
+                                // Channel closed, exit loop
+                                tracing::debug!("File watcher channel closed for {:?}", file_path);
+                                break;
+                            }
+                        }
+                    }
+                }
             }
 
-            while rx.recv().await.is_some() {
-                tracing::info!("File change detected, reloading: {:?}", file_path);
-                reload_trigger.set(reload_trigger() + 1);
-            }
-
-            if let Err(e) = FILE_WATCHER.unwatch(file_path.clone()).await {
-                tracing::error!(
-                    "Failed to unregister file watcher for {:?}: {:?}",
-                    file_path,
-                    e
-                );
-            }
+            // Guard is automatically dropped here, unwatching the file
+            tracing::debug!("File watcher task ended for {:?}", file_path);
         });
     }));
+
+    // Cleanup when component is unmounted
+    use_drop(move || {
+        if let Some(cancel_tx) = cancel_tx_signal.take() {
+            tracing::debug!("Cleaning up file watcher on component drop");
+            let _ = cancel_tx.send(());
+        }
+    });
 }
 
 /// Hook to setup JavaScript handler for markdown link clicks
