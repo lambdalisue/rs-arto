@@ -147,21 +147,13 @@ impl FileWatcher {
                                 tracing::info!("Started watching file: {:?}", path);
                             }
                         }
-                        tracing::debug!(
-                            "Registered watcher {} for {:?}",
-                            watcher_id,
-                            path
-                        );
+                        tracing::debug!("Registered watcher {} for {:?}", watcher_id, path);
                     }
                     Some(FileWatcherCommand::Unwatch(path, watcher_id)) => {
                         let mut watchers = watchers.lock().unwrap();
                         if let Some(senders_map) = watchers.get_mut(&path) {
                             senders_map.remove(&watcher_id);
-                            tracing::debug!(
-                                "Unregistered watcher {} for {:?}",
-                                watcher_id,
-                                path
-                            );
+                            tracing::debug!("Unregistered watcher {} for {:?}", watcher_id, path);
 
                             // If no more watchers for this file, stop watching
                             if senders_map.is_empty() {

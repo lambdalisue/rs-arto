@@ -136,8 +136,7 @@ fn use_file_loader(
 /// Hook to watch file for changes and trigger reload
 fn use_file_watcher(file: PathBuf, reload_trigger: Signal<usize>) {
     // Store cancellation sender in a signal so we can access it in use_drop
-    let mut cancel_tx_signal =
-        use_signal(|| None::<tokio::sync::oneshot::Sender<()>>);
+    let mut cancel_tx_signal = use_signal(|| None::<tokio::sync::oneshot::Sender<()>>);
 
     use_effect(use_reactive!(|file| {
         let mut reload_trigger = reload_trigger;
