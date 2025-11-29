@@ -45,10 +45,27 @@ See [homebrew-arto] for more information.
 brew install --cask --no-quarantine lambdalisue/arto/arto
 ```
 
+Alternatively, [Nix] is also supported.
+For a permanent installation, use [nix-darwin] or [home-manager].
+Add the following to your flake inputs:
+
+```nix
+rs-arto.url = "github:lambdalisue/rs-arto";
+```
+
+Then add it to `environment.systemPackages` (nix-darwin) or `home.packages` (home-manager):
+
+```nix
+environment.systemPackages = [ inputs.rs-arto.packages.${system}.default ];
+```
+
 Launch the application to see the welcome screen with keyboard shortcuts and usage instructions.
 
 [Homebrew]: https://brew.sh/
 [homebrew-arto]: https://github.com/lambdalisue/homebrew-arto
+[Nix]: https://nixos.org/
+[nix-darwin]: https://github.com/nix-darwin/nix-darwin
+[home-manager]: https://github.com/nix-community/home-manager
 
 ## Screenshots
 <img alt="CleanShot 2025-10-26 at 16 24 54" src="https://github.com/user-attachments/assets/675b9a2f-9e1d-4355-bd05-f475b77e62e6" />
