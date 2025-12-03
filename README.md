@@ -88,7 +88,7 @@ Launch the application to see the welcome screen with keyboard shortcuts and usa
 ```bash
 git clone https://github.com/lambdalisue/rs-arto.git
 cd rs-arto
-just setup
+just setup  # or `nix develop` if you have Nix installed
 
 # For development
 cargo run --release

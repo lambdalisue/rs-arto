@@ -158,5 +158,26 @@
           program = "${self.packages.${system}.arto}/Applications/Arto.app/Contents/MacOS/arto";
         };
       });
+
+      devShells = eachSystem (system: {
+        default =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+            craneLib = crane.mkLib pkgs;
+          in
+          craneLib.devShell {
+            inputsFrom = with self.packages.${system}; [ web-assets ];
+            packages = [
+              pkgs.dioxus-cli
+              pkgs.just
+            ];
+
+            # Workaround: Nix sets DEVELOPER_DIR to its apple-sdk, which breaks `just build` dmg creation.
+            # https://github.com/NixOS/nixpkgs/issues/355486
+            shellHook = ''
+              unset DEVELOPER_DIR
+            '';
+          };
+      });
     };
 }
