@@ -46,6 +46,12 @@ brew install --cask --no-quarantine lambdalisue/arto/arto
 ```
 
 Alternatively, [Nix] is also supported.
+To try it without a permanent installation:
+
+```
+nix run github:lambdalisue/rs-arto
+```
+
 For a permanent installation, use [nix-darwin] or [home-manager].
 Add the following to your flake inputs:
 

@@ -151,5 +151,12 @@
           inherit arto web-assets;
         }
       );
+
+      apps = eachSystem (system: {
+        default = {
+          type = "app";
+          program = "${self.packages.${system}.arto}/Applications/Arto.app/Contents/MacOS/arto";
+        };
+      });
     };
 }
