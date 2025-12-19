@@ -42,13 +42,17 @@ pub fn FileExplorer() -> Element {
     let sidebar_state = state.sidebar.read();
     let root_directory = sidebar_state.root_directory.clone();
 
+    // Refresh counter to force DirectoryTree re-render
+    let refresh_counter = use_signal(|| 0u32);
+
     rsx! {
         div {
             class: "file-explorer",
 
             if let Some(root) = root_directory {
-                ParentNavigation { current_dir: root.clone() }
-                DirectoryTree { path: root }
+                ParentNavigation { current_dir: root.clone(), refresh_counter }
+                // Use refresh_counter as key to force re-render when reloading
+                DirectoryTree { key: "{refresh_counter}", path: root }
             } else {
                 div {
                     class: "file-explorer-empty",
@@ -60,7 +64,7 @@ pub fn FileExplorer() -> Element {
 }
 
 #[component]
-fn ParentNavigation(current_dir: PathBuf) -> Element {
+fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> Element {
     let mut state = use_context::<AppState>();
     let hide_non_markdown = state.sidebar.read().hide_non_markdown;
 
@@ -74,6 +78,24 @@ fn ParentNavigation(current_dir: PathBuf) -> Element {
         .to_string();
 
     let mut state_for_toggle = state.clone();
+
+    // Reload state for animation
+    let is_reloading = use_signal(|| false);
+    let mut is_reloading_write = is_reloading;
+
+    let on_reload = move |_| {
+        // Set reloading state for animation
+        is_reloading_write.set(true);
+
+        // Increment counter to force DirectoryTree re-render
+        refresh_counter.set(refresh_counter() + 1);
+
+        // Reset reloading state after animation
+        spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+            is_reloading_write.set(false);
+        });
+    };
 
     rsx! {
         div {
@@ -104,16 +126,33 @@ fn ParentNavigation(current_dir: PathBuf) -> Element {
                 }
             }
 
-            // File visibility toggle button
-            button {
-                class: "file-visibility-toggle",
-                title: if hide_non_markdown { "Show all files" } else { "Hide non-markdown files" },
-                onclick: move |_| {
-                    state_for_toggle.sidebar.write().hide_non_markdown = !hide_non_markdown;
-                },
-                Icon {
-                    name: if hide_non_markdown { IconName::EyeOff } else { IconName::Eye },
-                    size: 20,
+            // Toolbar buttons container
+            div {
+                class: "file-explorer-toolbar",
+
+                // Reload button
+                button {
+                    class: "file-explorer-toolbar-button",
+                    class: if *is_reloading.read() { "reloading" },
+                    title: "Reload file explorer",
+                    onclick: on_reload,
+                    Icon {
+                        name: IconName::Refresh,
+                        size: 20,
+                    }
+                }
+
+                // File visibility toggle button
+                button {
+                    class: "file-explorer-toolbar-button",
+                    title: if hide_non_markdown { "Show all files" } else { "Hide non-markdown files" },
+                    onclick: move |_| {
+                        state_for_toggle.sidebar.write().hide_non_markdown = !hide_non_markdown;
+                    },
+                    Icon {
+                        name: if hide_non_markdown { IconName::EyeOff } else { IconName::Eye },
+                        size: 20,
+                    }
                 }
             }
         }

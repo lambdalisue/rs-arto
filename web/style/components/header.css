@@ -65,3 +65,11 @@
 .header-left .file-name {
   margin-left: 4px;
 }
+
+.header-left .reload-button {
+  margin-left: 4px;
+}
+
+.header-left .reload-button.reloading .icon {
+  animation: spin 0.6s ease-in-out;
+}

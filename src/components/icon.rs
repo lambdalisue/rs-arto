@@ -24,6 +24,7 @@ pub enum IconName {
     EyeOff,
     AlertTriangle,
     AlertCircle,
+    Refresh,
 }
 
 impl fmt::Display for IconName {
@@ -48,6 +49,7 @@ impl fmt::Display for IconName {
             IconName::EyeOff => "eye-off",
             IconName::AlertTriangle => "alert-triangle",
             IconName::AlertCircle => "alert-circle",
+            IconName::Refresh => "refresh",
         };
         write!(f, "{}", name)
     }
