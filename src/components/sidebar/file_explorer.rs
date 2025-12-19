@@ -77,7 +77,7 @@ fn ParentNavigation(current_dir: PathBuf) -> Element {
 
     // Reload state for animation
     let is_reloading = use_signal(|| false);
-    let mut is_reloading_write = is_reloading.clone();
+    let mut is_reloading_write = is_reloading;
 
     // Force re-render by incrementing a counter
     let mut refresh_counter = use_signal(|| 0u32);

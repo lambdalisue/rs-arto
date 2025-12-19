@@ -51,7 +51,7 @@ pub fn Header() -> Element {
     };
 
     let is_reloading = use_signal(|| false);
-    let mut is_reloading_write = is_reloading.clone();
+    let mut is_reloading_write = is_reloading;
 
     let on_reload = move |_| {
         // Set reloading state
