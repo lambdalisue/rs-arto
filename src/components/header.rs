@@ -1,3 +1,4 @@
+use dioxus::document;
 use dioxus::prelude::*;
 
 use crate::components::icon::{Icon, IconName};
@@ -9,9 +10,9 @@ pub fn Header() -> Element {
     let state = use_context::<AppState>();
 
     let current_tab = state.current_tab();
-    let file = current_tab
+    let file_path = current_tab.as_ref().and_then(|tab| tab.file()).cloned();
+    let file = file_path
         .as_ref()
-        .and_then(|tab| tab.file())
         .map(|f| {
             f.file_name()
                 .unwrap_or(f.as_os_str())
@@ -71,8 +72,11 @@ pub fn Header() -> Element {
         });
     };
 
-    // Check if there's a file to reload
-    let can_reload = current_tab.as_ref().and_then(|tab| tab.file()).is_some();
+    // Check if there's a file to reload/copy
+    let can_reload = file_path.is_some();
+
+    // Copy feedback state
+    let mut is_copied = use_signal(|| false);
 
     rsx! {
         div {
@@ -117,6 +121,38 @@ pub fn Header() -> Element {
                     "{file}"
                 }
 
+                // Copy path button
+                if let Some(ref path) = file_path {
+                    button {
+                        class: "nav-button copy-button",
+                        class: if *is_copied.read() { "copied" },
+                        title: "Copy full path",
+                        onclick: {
+                            let path_str = path.to_string_lossy().to_string();
+                            move |_| {
+                                let escaped = path_str.replace('\\', "\\\\").replace('`', "\\`");
+                                spawn(async move {
+                                    let js = format!("navigator.clipboard.writeText(`{}`)", escaped);
+                                    let _ = document::eval(&js).await;
+                                    // Show success feedback
+                                    is_copied.set(true);
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                                    is_copied.set(false);
+                                });
+                            }
+                        },
+                        Icon {
+                            name: if *is_copied.read() { IconName::Check } else { IconName::Copy },
+                            size: 16,
+                        }
+                    }
+                }
+            }
+
+            // Right side controls
+            div {
+                class: "header-right",
+
                 // Reload button
                 button {
                     class: "nav-button reload-button",
@@ -126,10 +162,10 @@ pub fn Header() -> Element {
                     title: "Reload file",
                     Icon { name: IconName::Refresh }
                 }
-            }
 
-            // Theme selector (right side)
-            ThemeSelector { current_theme: state.current_theme }
+                // Theme selector
+                ThemeSelector { current_theme: state.current_theme }
+            }
         }
     }
 }

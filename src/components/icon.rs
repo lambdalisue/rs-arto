@@ -27,6 +27,8 @@ pub enum IconName {
     Refresh,
     Login,
     Server,
+    Copy,
+    Check,
 }
 
 impl fmt::Display for IconName {
@@ -54,6 +56,8 @@ impl fmt::Display for IconName {
             IconName::Refresh => "refresh",
             IconName::Login => "login",
             IconName::Server => "server",
+            IconName::Copy => "copy",
+            IconName::Check => "check",
         };
         write!(f, "{}", name)
     }

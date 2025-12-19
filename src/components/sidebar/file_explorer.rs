@@ -1,3 +1,4 @@
+use dioxus::document;
 use dioxus::prelude::*;
 use std::cmp::Ordering;
 use std::fs;
@@ -223,6 +224,10 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
     let path_for_click = path.clone();
     let mut state_for_enter = state.clone();
     let path_for_enter = path.clone();
+    let path_for_copy = path.clone();
+
+    // Copy feedback state
+    let mut is_copied = use_signal(|| false);
 
     rsx! {
         div {
@@ -287,6 +292,31 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                             name: IconName::Login,
                             size: 12,
                         }
+                    }
+                }
+
+                // Copy path button
+                button {
+                    class: "file-tree-copy-button",
+                    class: if *is_copied.read() { "copied" },
+                    title: "Copy full path",
+                    onclick: move |evt| {
+                        evt.stop_propagation();
+                        let path_str = path_for_copy.to_string_lossy().to_string();
+                        // Escape backticks and backslashes for JavaScript
+                        let escaped = path_str.replace('\\', "\\\\").replace('`', "\\`");
+                        spawn(async move {
+                            let js = format!("navigator.clipboard.writeText(`{}`)", escaped);
+                            let _ = document::eval(&js).await;
+                            // Show success feedback
+                            is_copied.set(true);
+                            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                            is_copied.set(false);
+                        });
+                    },
+                    Icon {
+                        name: if *is_copied.read() { IconName::Check } else { IconName::Copy },
+                        size: 12,
                     }
                 }
             }

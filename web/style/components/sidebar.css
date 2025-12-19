@@ -216,7 +216,8 @@
   opacity: 0.6;
 }
 
-/* Enter directory button - only visible on hover */
+/* Action buttons - only visible on hover */
+.file-tree-copy-button,
 .file-tree-enter-button {
   display: flex;
   align-items: center;
@@ -228,10 +229,15 @@
   color: var(--text-secondary);
   cursor: pointer;
   padding: 2px 4px;
-  margin-left: auto;
   opacity: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease;
   flex-shrink: 0;
+}
+
+/* Push action buttons to the right - enter button takes precedence if present */
+.file-tree-node-content > .file-tree-enter-button,
+.file-tree-node-content > .file-tree-copy-button:first-of-type:last-of-type {
+  margin-left: auto;
 }
 
 .file-tree-enter-label {
@@ -239,13 +245,20 @@
   font-weight: 500;
 }
 
+.file-tree-node-content:hover .file-tree-copy-button,
 .file-tree-node-content:hover .file-tree-enter-button {
   opacity: 0.6;
 }
 
+.file-tree-copy-button:hover,
 .file-tree-enter-button:hover {
   opacity: 1 !important;
   background-color: var(--hover-bg);
+}
+
+.file-tree-copy-button.copied {
+  opacity: 1 !important;
+  color: var(--copy-button-success-fg);
 }
 
 /* Main area adjustment */
