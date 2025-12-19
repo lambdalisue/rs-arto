@@ -25,6 +25,8 @@ const icons = [
   "alert-triangle",
   "alert-circle",
   "refresh",
+  "login",
+  "server",
 ];
 const iconsDir = path.join(__dirname, "../node_modules/@tabler/icons/icons/outline");
 const outputPath = path.join(__dirname, "../public/icons/tabler-sprite.svg");

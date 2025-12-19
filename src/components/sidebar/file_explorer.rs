@@ -101,7 +101,7 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
         div {
             class: "parent-nav-container",
 
-            // Parent directory navigation (if exists)
+            // Parent directory navigation or root indicator
             if has_parent {
                 div {
                     class: "file-tree-node parent-nav",
@@ -121,6 +121,24 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
                         span {
                             class: "file-tree-label",
                             "{dir_name}"
+                        }
+                    }
+                }
+            } else {
+                // Show root indicator when at filesystem root
+                div {
+                    class: "file-tree-node parent-nav root-indicator",
+
+                    div {
+                        class: "file-tree-node-content",
+                        Icon {
+                            name: IconName::Server,
+                            size: 16,
+                            class: "file-tree-icon",
+                        }
+                        span {
+                            class: "file-tree-label",
+                            "/"
                         }
                     }
                 }
@@ -203,8 +221,8 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
 
     let mut state_for_click = state.clone();
     let path_for_click = path.clone();
-    let mut state_for_dblclick = state.clone();
-    let path_for_dblclick = path.clone();
+    let mut state_for_enter = state.clone();
+    let path_for_enter = path.clone();
 
     rsx! {
         div {
@@ -221,12 +239,6 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                     } else {
                         // Open any file (not just markdown)
                         state_for_click.open_file(path_clone);
-                    }
-                },
-                ondoubleclick: move |_| {
-                    let path_clone = path_for_dblclick.clone();
-                    if is_dir {
-                        state_for_dblclick.set_root_directory(path_clone);
                     }
                 },
 
@@ -257,6 +269,25 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                     class: "file-tree-label",
                     class: if !is_markdown && !is_dir { "disabled" },
                     "{name}"
+                }
+
+                // Enter directory button (only for directories)
+                if is_dir {
+                    button {
+                        class: "file-tree-enter-button",
+                        title: "Open as root directory",
+                        onclick: move |evt| {
+                            // Prevent triggering parent click handler
+                            evt.stop_propagation();
+                            let path_clone = path_for_enter.clone();
+                            state_for_enter.set_root_directory(path_clone);
+                        },
+                        span { class: "file-tree-enter-label", "Enter" }
+                        Icon {
+                            name: IconName::Login,
+                            size: 12,
+                        }
+                    }
                 }
             }
 
