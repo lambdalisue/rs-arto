@@ -42,13 +42,17 @@ pub fn FileExplorer() -> Element {
     let sidebar_state = state.sidebar.read();
     let root_directory = sidebar_state.root_directory.clone();
 
+    // Refresh counter to force DirectoryTree re-render
+    let refresh_counter = use_signal(|| 0u32);
+
     rsx! {
         div {
             class: "file-explorer",
 
             if let Some(root) = root_directory {
-                ParentNavigation { current_dir: root.clone() }
-                DirectoryTree { path: root }
+                ParentNavigation { current_dir: root.clone(), refresh_counter }
+                // Use refresh_counter as key to force re-render when reloading
+                DirectoryTree { key: "{refresh_counter}", path: root }
             } else {
                 div {
                     class: "file-explorer-empty",
@@ -60,7 +64,7 @@ pub fn FileExplorer() -> Element {
 }
 
 #[component]
-fn ParentNavigation(current_dir: PathBuf) -> Element {
+fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> Element {
     let mut state = use_context::<AppState>();
     let hide_non_markdown = state.sidebar.read().hide_non_markdown;
 
@@ -79,14 +83,11 @@ fn ParentNavigation(current_dir: PathBuf) -> Element {
     let is_reloading = use_signal(|| false);
     let mut is_reloading_write = is_reloading;
 
-    // Force re-render by incrementing a counter
-    let mut refresh_counter = use_signal(|| 0u32);
-
     let on_reload = move |_| {
         // Set reloading state for animation
         is_reloading_write.set(true);
 
-        // Increment counter to force component re-render
+        // Increment counter to force DirectoryTree re-render
         refresh_counter.set(refresh_counter() + 1);
 
         // Reset reloading state after animation
