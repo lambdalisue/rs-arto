@@ -75,7 +75,15 @@
   margin: 0 0 8px -8px;
 }
 
-.file-visibility-toggle {
+/* File explorer toolbar */
+.file-explorer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.file-explorer-toolbar-button {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -91,18 +99,32 @@
   flex-shrink: 0;
 }
 
-.file-visibility-toggle:hover {
+.file-explorer-toolbar-button:hover {
   border-color: var(--border-color);
   background: var(--bg-primary);
 }
 
-.file-visibility-toggle .icon {
+.file-explorer-toolbar-button .icon {
   color: var(--text-secondary);
   opacity: 0.7;
 }
 
-.file-visibility-toggle:hover .icon {
+.file-explorer-toolbar-button:hover .icon {
   opacity: 1;
+}
+
+/* Reload button animation */
+.file-explorer-toolbar-button.reloading .icon {
+  animation: spin 0.6s ease-in-out;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .file-explorer-empty {

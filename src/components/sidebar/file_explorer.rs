@@ -75,6 +75,27 @@ fn ParentNavigation(current_dir: PathBuf) -> Element {
 
     let mut state_for_toggle = state.clone();
 
+    // Reload state for animation
+    let is_reloading = use_signal(|| false);
+    let mut is_reloading_write = is_reloading.clone();
+
+    // Force re-render by incrementing a counter
+    let mut refresh_counter = use_signal(|| 0u32);
+
+    let on_reload = move |_| {
+        // Set reloading state for animation
+        is_reloading_write.set(true);
+
+        // Increment counter to force component re-render
+        refresh_counter.set(refresh_counter() + 1);
+
+        // Reset reloading state after animation
+        spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+            is_reloading_write.set(false);
+        });
+    };
+
     rsx! {
         div {
             class: "parent-nav-container",
@@ -104,16 +125,33 @@ fn ParentNavigation(current_dir: PathBuf) -> Element {
                 }
             }
 
-            // File visibility toggle button
-            button {
-                class: "file-visibility-toggle",
-                title: if hide_non_markdown { "Show all files" } else { "Hide non-markdown files" },
-                onclick: move |_| {
-                    state_for_toggle.sidebar.write().hide_non_markdown = !hide_non_markdown;
-                },
-                Icon {
-                    name: if hide_non_markdown { IconName::EyeOff } else { IconName::Eye },
-                    size: 20,
+            // Toolbar buttons container
+            div {
+                class: "file-explorer-toolbar",
+
+                // Reload button
+                button {
+                    class: "file-explorer-toolbar-button",
+                    class: if *is_reloading.read() { "reloading" },
+                    title: "Reload file explorer",
+                    onclick: on_reload,
+                    Icon {
+                        name: IconName::Refresh,
+                        size: 20,
+                    }
+                }
+
+                // File visibility toggle button
+                button {
+                    class: "file-explorer-toolbar-button",
+                    title: if hide_non_markdown { "Show all files" } else { "Hide non-markdown files" },
+                    onclick: move |_| {
+                        state_for_toggle.sidebar.write().hide_non_markdown = !hide_non_markdown;
+                    },
+                    Icon {
+                        name: if hide_non_markdown { IconName::EyeOff } else { IconName::Eye },
+                        size: 20,
+                    }
                 }
             }
         }
