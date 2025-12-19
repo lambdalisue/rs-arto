@@ -32,6 +32,7 @@ pub fn Header() -> Element {
     let mut state_for_back = state.clone();
     let mut state_for_forward = state.clone();
     let mut state_for_sidebar = state.clone();
+    let mut state_for_reload = state.clone();
 
     let on_back = move |_| {
         state_for_back.update_current_tab(|tab| {
@@ -48,6 +49,30 @@ pub fn Header() -> Element {
             }
         });
     };
+
+    let is_reloading = use_signal(|| false);
+    let mut is_reloading_write = is_reloading.clone();
+
+    let on_reload = move |_| {
+        // Set reloading state
+        is_reloading_write.set(true);
+
+        state_for_reload.update_current_tab(|tab| {
+            if let Some(path) = tab.file().cloned() {
+                // Reload by reassigning the same file path
+                tab.content = crate::state::TabContent::File(path);
+            }
+        });
+
+        // Reset reloading state after animation
+        spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+            is_reloading_write.set(false);
+        });
+    };
+
+    // Check if there's a file to reload
+    let can_reload = current_tab.as_ref().and_then(|tab| tab.file()).is_some();
 
     rsx! {
         div {
@@ -90,6 +115,16 @@ pub fn Header() -> Element {
                 span {
                     class: "file-name",
                     "{file}"
+                }
+
+                // Reload button
+                button {
+                    class: "nav-button reload-button",
+                    class: if *is_reloading.read() { "reloading" },
+                    disabled: !can_reload,
+                    onclick: on_reload,
+                    title: "Reload file",
+                    Icon { name: IconName::Refresh }
                 }
             }
 
