@@ -101,6 +101,17 @@ impl AppState {
         }
     }
 
+    /// Add an existing tab (preserves history and content) and optionally switch to it
+    pub fn add_existing_tab(&mut self, tab: Tab, switch_to: bool) {
+        let mut tabs = self.tabs.write();
+        tabs.push(tab);
+
+        if switch_to {
+            let new_tab_index = tabs.len() - 1;
+            self.active_tab.set(new_tab_index);
+        }
+    }
+
     /// Close a tab by index, handling edge cases
     pub fn close_tab(&mut self, index: usize) {
         let mut tabs = self.tabs.write();
@@ -206,6 +217,42 @@ impl AppState {
             let new_index = tabs.len() - 1;
             drop(tabs);
             self.active_tab.set(new_index);
+        }
+    }
+
+    /// Reorder a tab from one position to another (for drag-and-drop)
+    pub fn reorder_tab(&mut self, from: usize, to: usize) {
+        let mut tabs = self.tabs.write();
+
+        // Validate indices
+        if from >= tabs.len() || to >= tabs.len() || from == to {
+            return;
+        }
+
+        // Remove the tab from the source position
+        let tab = tabs.remove(from);
+
+        // Insert at the target position
+        tabs.insert(to, tab);
+
+        // Update active tab index if necessary
+        let current_active = *self.active_tab.read();
+        let new_active = if current_active == from {
+            // The active tab was moved
+            to
+        } else if current_active > from && current_active <= to {
+            // Active tab was in the affected range, shift left
+            current_active - 1
+        } else if current_active < from && current_active >= to {
+            // Active tab was in the affected range, shift right
+            current_active + 1
+        } else {
+            // Active tab was not affected
+            current_active
+        };
+
+        if new_active != current_active {
+            self.active_tab.set(new_active);
         }
     }
 }

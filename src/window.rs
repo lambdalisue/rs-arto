@@ -5,11 +5,25 @@ use dioxus::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::LazyLock;
+use tokio::sync::broadcast;
 
 use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
 use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
+use crate::state::Tab;
 use crate::theme::{resolve_theme, ThemePreference};
+
+/// Broadcast channel for transferring tabs between windows
+pub static TAB_TRANSFER_BROADCAST: LazyLock<broadcast::Sender<TabTransfer>> =
+    LazyLock::new(|| broadcast::channel(16).0);
+
+/// Information about a tab being transferred to another window
+#[derive(Clone, Debug)]
+pub struct TabTransfer {
+    pub target_window: WindowId,
+    pub tab: Tab,
+}
 
 pub mod helpers;
 pub use helpers::*;
@@ -117,6 +131,40 @@ pub fn close_all_main_windows() {
     MAIN_WINDOWS.with(|w| w.borrow_mut().clear());
 }
 
+/// Get the window ID at a specific screen position (x, y in screen coordinates)
+/// Returns None if no window is found at that position
+pub fn get_window_at_position(x: i32, y: i32) -> Option<WindowId> {
+    MAIN_WINDOWS.with(|windows| {
+        let windows = windows.borrow();
+        for weak_ctx in windows.iter() {
+            if let Some(ctx) = weak_ctx.upgrade() {
+                // Get window position and size
+                let pos = ctx.window.outer_position();
+                let size = ctx.window.outer_size();
+
+                if let Ok(pos) = pos {
+                    let x_min = pos.x;
+                    let x_max = pos.x + size.width as i32;
+                    let y_min = pos.y;
+                    let y_max = pos.y + size.height as i32;
+
+                    // Check if the point is within this window's bounds
+                    if x >= x_min && x < x_max && y >= y_min && y < y_max {
+                        tracing::debug!(
+                            window_id = ?ctx.window.id(),
+                            x, y,
+                            bounds = ?(x_min, y_min, x_max, y_max),
+                            "Found window at cursor position"
+                        );
+                        return Some(ctx.window.id());
+                    }
+                }
+            }
+        }
+        None
+    })
+}
+
 pub fn create_new_main_window(
     file: Option<PathBuf>,
     directory: Option<PathBuf>,
@@ -125,6 +173,70 @@ pub fn create_new_main_window(
     dioxus_core::spawn(async move {
         create_new_main_window_async(file, directory, show_welcome).await;
     });
+}
+
+/// Detach a tab to a new window
+pub fn detach_tab_to_new_window(tab: Tab, directory: Option<PathBuf>) {
+    dioxus_core::spawn(async move {
+        // Create a new window with the tab's file (if it has one)
+        let file = tab.file().cloned();
+        let new_window_id = create_new_main_window_with_callback(file, directory, false, move |window_id| {
+            // Broadcast the tab transfer to the new window
+            let _ = TAB_TRANSFER_BROADCAST.send(TabTransfer {
+                target_window: window_id,
+                tab: tab.clone(),
+            });
+        }).await;
+
+        tracing::debug!(?new_window_id, "Created new window for detached tab");
+    });
+}
+
+async fn create_new_main_window_with_callback<F>(
+    file: Option<PathBuf>,
+    directory: Option<PathBuf>,
+    show_welcome: bool,
+    callback: F,
+) -> WindowId
+where
+    F: FnOnce(WindowId) + 'static,
+{
+    let is_first_window = !has_any_main_windows();
+    let theme_value = get_theme_value(is_first_window);
+    let directory_value = get_directory_value(is_first_window, file.as_ref(), directory);
+    let sidebar_value = get_sidebar_value(is_first_window);
+
+    let dom = VirtualDom::new_with_props(
+        App,
+        AppProps {
+            file,
+            directory: directory_value.directory,
+            sidebar_open: sidebar_value.open,
+            sidebar_width: sidebar_value.width,
+            sidebar_show_all_files: sidebar_value.show_all_files,
+            show_welcome,
+        },
+    );
+
+    let config = Config::new()
+        .with_menu(None)
+        .with_window(
+            WindowBuilder::new()
+                .with_title("Arto")
+                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+        )
+        .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
+        .with_custom_index(build_custom_index(theme_value.theme));
+
+    let pending = window().new_window(dom, config);
+    let handle = pending.await;
+    let window_id = handle.window.id();
+    register_main_window(std::rc::Rc::downgrade(&handle));
+
+    // Call the callback with the new window ID
+    callback(window_id);
+
+    window_id
 }
 
 pub async fn create_new_main_window_async(

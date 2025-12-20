@@ -14,6 +14,7 @@ use crate::assets::MAIN_SCRIPT;
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::menu;
 use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
+use crate::window::TAB_TRANSFER_BROADCAST;
 
 #[component]
 pub fn App(
@@ -80,6 +81,9 @@ pub fn App(
 
     // Listen for directory open broadcasts from background process
     setup_directory_open_listener(state);
+
+    // Listen for tab transfers from other windows
+    setup_tab_transfer_listener(state);
 
     // Save state and close child windows when this window closes
     use_drop(move || {
@@ -206,6 +210,34 @@ fn setup_directory_open_listener(mut state: AppState) {
                     // Optionally show the sidebar if it's hidden
                     if !state.sidebar.read().open {
                         state.toggle_sidebar();
+                    }
+                }
+            }
+        });
+    });
+}
+
+/// Setup listener for tab transfers from other windows
+fn setup_tab_transfer_listener(mut state: AppState) {
+    use_effect(move || {
+        let mut rx = TAB_TRANSFER_BROADCAST.subscribe();
+        let current_window_id = window().id();
+
+        spawn(async move {
+            while let Ok(transfer) = rx.recv().await {
+                // Only handle transfers targeted at this window
+                if transfer.target_window == current_window_id {
+                    tracing::info!(
+                        ?transfer.target_window,
+                        "Receiving transferred tab in new window"
+                    );
+
+                    // Replace the first tab if it's empty, otherwise add the transferred tab
+                    if state.is_current_tab_no_file() {
+                        let mut tabs = state.tabs.write();
+                        tabs[0] = transfer.tab;
+                    } else {
+                        state.add_existing_tab(transfer.tab, true);
                     }
                 }
             }

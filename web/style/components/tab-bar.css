@@ -118,3 +118,14 @@
 .tab-new:hover {
   opacity: 1;
 }
+
+/* Drag and drop visual feedback */
+.tab.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.tab.drag-over {
+  border-left: 2px solid var(--accent-bg);
+  padding-left: 10px; /* Compensate for border */
+}
