@@ -42,8 +42,8 @@ pub fn PreferencesView() -> Element {
     let mut active_tab = use_signal(|| *LAST_PREFERENCES_TAB.lock().unwrap());
     let mut save_status = use_signal(|| SaveStatus::Idle);
 
-    // Load initial config on mount
-    use_effect(move || {
+    // Load initial config on mount (use_hook runs only once)
+    use_hook(|| {
         let cfg = CONFIG.read().clone();
         config.set(cfg);
         has_changes.set(false);

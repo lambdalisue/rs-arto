@@ -43,6 +43,7 @@ pub fn AboutTab() -> Element {
                     a {
                         href: "https://github.com/lambdalisue/rs-arto",
                         target: "_blank",
+                        rel: "noopener noreferrer",
                         class: "about-link",
                         span { class: "about-link-icon", Icon { name: IconName::BrandGithub, size: 20 } }
                         span { class: "about-link-text", "View on GitHub" }
@@ -50,6 +51,7 @@ pub fn AboutTab() -> Element {
                     a {
                         href: "https://github.com/lambdalisue/rs-arto/issues",
                         target: "_blank",
+                        rel: "noopener noreferrer",
                         class: "about-link",
                         span { class: "about-link-icon", Icon { name: IconName::Bug, size: 20 } }
                         span { class: "about-link-text", "Report an Issue" }

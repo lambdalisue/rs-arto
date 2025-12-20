@@ -8,7 +8,17 @@ pub fn SidebarTab(
     has_changes: Signal<bool>,
     current_sidebar_width: f64,
 ) -> Element {
-    let cfg = config.read();
+    // Extract values upfront to avoid holding read guard across closures
+    let (default_open, default_width, default_show_all_files, on_startup, on_new_window) = {
+        let cfg = config.read();
+        (
+            cfg.sidebar.default_open,
+            cfg.sidebar.default_width,
+            cfg.sidebar.default_show_all_files,
+            cfg.sidebar.on_startup,
+            cfg.sidebar.on_new_window,
+        )
+    };
 
     rsx! {
         div {
@@ -39,7 +49,7 @@ pub fn SidebarTab(
                             description: Some("Sidebar open by default".to_string()),
                         },
                     ],
-                    selected: cfg.sidebar.default_open,
+                    selected: default_open,
                     on_change: move |new_state| {
                         config.write().sidebar.default_open = new_state;
                         has_changes.set(true);
@@ -55,7 +65,7 @@ pub fn SidebarTab(
                     p { class: "preference-description", "The default sidebar width in pixels." }
                 }
                 SliderInput {
-                    value: cfg.sidebar.default_width,
+                    value: default_width,
                     min: 200.0,
                     max: 600.0,
                     step: 10.0,
@@ -91,7 +101,7 @@ pub fn SidebarTab(
                             description: Some("Show all file types".to_string()),
                         },
                     ],
-                    selected: cfg.sidebar.default_show_all_files,
+                    selected: default_show_all_files,
                     on_change: move |new_state| {
                         config.write().sidebar.default_show_all_files = new_state;
                         has_changes.set(true);
@@ -124,7 +134,7 @@ pub fn SidebarTab(
                             description: Some("Resume from last closed window".to_string()),
                         },
                     ],
-                    selected: cfg.sidebar.on_startup,
+                    selected: on_startup,
                     on_change: move |new_behavior| {
                         config.write().sidebar.on_startup = new_behavior;
                         has_changes.set(true);
@@ -155,7 +165,7 @@ pub fn SidebarTab(
                             description: Some("Same as current window".to_string()),
                         },
                     ],
-                    selected: cfg.sidebar.on_new_window,
+                    selected: on_new_window,
                     on_change: move |new_behavior| {
                         config.write().sidebar.on_new_window = new_behavior;
                         has_changes.set(true);

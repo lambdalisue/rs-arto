@@ -9,7 +9,15 @@ pub fn DirectoryTab(
     has_changes: Signal<bool>,
     current_directory: Option<PathBuf>,
 ) -> Element {
-    let cfg = config.read();
+    // Extract values upfront to avoid holding read guard across closures
+    let (default_directory, on_startup, on_new_window) = {
+        let cfg = config.read();
+        (
+            cfg.directory.default_directory.clone(),
+            cfg.directory.on_startup,
+            cfg.directory.on_new_window,
+        )
+    };
 
     rsx! {
         div {
@@ -25,7 +33,7 @@ pub fn DirectoryTab(
                     p { class: "preference-description", "The directory to open when no specific directory is specified." }
                 }
                 DirectoryPicker {
-                    value: cfg.directory.default_directory.clone(),
+                    value: default_directory,
                     placeholder: "Not set".to_string(),
                     on_change: move |new_value| {
                         config.write().directory.default_directory = new_value;
@@ -60,7 +68,7 @@ pub fn DirectoryTab(
                             description: Some("Resume from last closed window".to_string()),
                         },
                     ],
-                    selected: cfg.directory.on_startup,
+                    selected: on_startup,
                     on_change: move |new_behavior| {
                         config.write().directory.on_startup = new_behavior;
                         has_changes.set(true);
@@ -91,7 +99,7 @@ pub fn DirectoryTab(
                             description: Some("Same as current window".to_string()),
                         },
                     ],
-                    selected: cfg.directory.on_new_window,
+                    selected: on_new_window,
                     on_change: move |new_behavior| {
                         config.write().directory.on_new_window = new_behavior;
                         has_changes.set(true);

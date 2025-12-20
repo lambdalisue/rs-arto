@@ -46,10 +46,10 @@ pub fn Entrypoint() -> Element {
         None
     };
 
-    // Extract initial file if present
+    // Extract initial file if present (directories handled separately via broadcast)
     let first_file = match &first_event {
         Some(OpenEvent::File(path)) => Some(path.clone()),
-        Some(OpenEvent::Directory(path)) => Some(path.clone()),
+        Some(OpenEvent::Directory(_)) => None,
         _ => None,
     };
 

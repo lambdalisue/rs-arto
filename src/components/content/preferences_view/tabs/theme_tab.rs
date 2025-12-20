@@ -6,7 +6,15 @@ use dioxus::prelude::*;
 
 #[component]
 pub fn ThemeTab(config: Signal<Config>, has_changes: Signal<bool>) -> Element {
-    let cfg = config.read();
+    // Extract values upfront to avoid holding read guard across closures
+    let (default_theme, on_startup, on_new_window) = {
+        let cfg = config.read();
+        (
+            cfg.theme.default_theme,
+            cfg.theme.on_startup,
+            cfg.theme.on_new_window,
+        )
+    };
 
     rsx! {
         div {
@@ -43,7 +51,7 @@ pub fn ThemeTab(config: Signal<Config>, has_changes: Signal<bool>) -> Element {
                             description: None,
                         },
                     ],
-                    selected: cfg.theme.default_theme,
+                    selected: default_theme,
                     on_change: move |new_theme| {
                         config.write().theme.default_theme = new_theme;
                         has_changes.set(true);
@@ -76,7 +84,7 @@ pub fn ThemeTab(config: Signal<Config>, has_changes: Signal<bool>) -> Element {
                             description: Some("Resume from last closed window".to_string()),
                         },
                     ],
-                    selected: cfg.theme.on_startup,
+                    selected: on_startup,
                     on_change: move |new_behavior| {
                         config.write().theme.on_startup = new_behavior;
                         has_changes.set(true);
@@ -107,7 +115,7 @@ pub fn ThemeTab(config: Signal<Config>, has_changes: Signal<bool>) -> Element {
                             description: Some("Same as current window".to_string()),
                         },
                     ],
-                    selected: cfg.theme.on_new_window,
+                    selected: on_new_window,
                     on_change: move |new_behavior| {
                         config.write().theme.on_new_window = new_behavior;
                         has_changes.set(true);

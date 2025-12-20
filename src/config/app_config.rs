@@ -12,7 +12,7 @@ pub use theme_config::ThemeConfig;
 
 /// Global application configuration
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct Config {
     pub directory: DirectoryConfig,
     pub theme: ThemeConfig,

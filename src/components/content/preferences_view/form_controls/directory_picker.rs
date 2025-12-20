@@ -11,9 +11,11 @@ pub fn DirectoryPicker(
     current_directory: Option<PathBuf>,
 ) -> Element {
     let handle_browse = move |_| {
-        if let Some(path) = pick_directory() {
-            on_change.call(Some(path));
-        }
+        spawn(async move {
+            if let Some(path) = pick_directory().await {
+                on_change.call(Some(path));
+            }
+        });
     };
 
     let current_dir_clone = current_directory.clone();
@@ -56,8 +58,11 @@ pub fn DirectoryPicker(
     }
 }
 
-/// Helper function to open native directory picker dialog
-fn pick_directory() -> Option<PathBuf> {
-    use rfd::FileDialog;
-    FileDialog::new().pick_folder()
+/// Helper function to open native directory picker dialog (async to prevent UI freeze)
+async fn pick_directory() -> Option<PathBuf> {
+    use rfd::AsyncFileDialog;
+    AsyncFileDialog::new()
+        .pick_folder()
+        .await
+        .map(|h| h.path().to_path_buf())
 }
