@@ -294,23 +294,4 @@ use_effect(move || {
 
 **Why split:** Some actions don't need state (new window), others do (close tab, preferences).
 
-#### Platform-Specific Menus
-
-```rust
-#[cfg(target_os = "macos")]
-fn build_menu() -> Menu {
-    Menu::new()
-        .add_submenu("Arto", true, app_menu())
-        .add_submenu("File", false, file_menu())
-        // macOS-specific menu structure
-}
-
-#[cfg(not(target_os = "macos"))]
-fn build_menu() -> Menu {
-    Menu::new()
-        .add_submenu("File", false, file_menu())
-        // Standard menu structure
-}
-```
-
 **IMPORTANT:** Replace `PredefinedMenuItem::about()` with custom `MenuId::About` to control navigation.

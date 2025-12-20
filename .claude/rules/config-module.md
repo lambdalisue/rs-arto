@@ -70,14 +70,11 @@ pub struct Config {
 ### File Locations
 
 ```rust
-// Platform-specific config directory
-#[cfg(target_os = "macos")]
-{
-    if let Some(mut path) = dirs::config_local_dir() {
-        path.push("app-name");
-        path.push("config.json");
-        return path;
-    }
+// Config directory (macOS)
+if let Some(mut path) = dirs::config_local_dir() {
+    path.push("app-name");
+    path.push("config.json");
+    return path;
 }
 ```
 

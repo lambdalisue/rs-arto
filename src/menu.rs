@@ -95,14 +95,11 @@ fn create_menu_item(
 
 /// Build the application menu bar
 pub fn build_menu() -> Menu {
-    #[cfg(target_os = "macos")]
     disable_automatic_window_tabbing();
 
     let menu = Menu::new();
 
-    #[cfg(target_os = "macos")]
     add_app_menu(&menu);
-
     add_file_menu(&menu);
     add_edit_menu(&menu);
     add_view_menu(&menu);
@@ -113,7 +110,6 @@ pub fn build_menu() -> Menu {
     menu
 }
 
-#[cfg(target_os = "macos")]
 fn add_app_menu(menu: &Menu) {
     let arto_menu = Submenu::new("Arto", true);
 
@@ -253,12 +249,9 @@ fn add_help_menu(menu: &Menu) {
     menu.append(&help_menu).unwrap();
 }
 
-/// Get Cmd (macOS) or Ctrl (others) modifier with optional additional modifiers
+/// Get Cmd modifier with optional additional modifiers
 fn get_cmd_or_ctrl(code: Code, additional: Option<Modifiers>) -> Accelerator {
-    #[cfg(target_os = "macos")]
     let base_modifier = Modifiers::SUPER;
-    #[cfg(not(target_os = "macos"))]
-    let base_modifier = Modifiers::CONTROL;
 
     let modifiers = if let Some(additional_mods) = additional {
         base_modifier | additional_mods
@@ -430,7 +423,6 @@ fn pick_directory() -> Option<PathBuf> {
     dir
 }
 
-#[cfg(target_os = "macos")]
 fn disable_automatic_window_tabbing() {
     use objc2::MainThreadMarker;
     use objc2_app_kit::NSWindow;

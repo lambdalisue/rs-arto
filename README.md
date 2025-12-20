@@ -18,7 +18,7 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 > **Beta Software Notice**
 >
 > - This application is still in **beta** and may contain bugs or unstable behavior. Features may change without regard to backward compatibility.
-> - **macOS Only Testing**: While the underlying libraries support cross-platform development, this app has only been tested on macOS by the author. It may not work properly on other platforms, especially regarding window management (which differs significantly across operating systems). Cross-platform support is a goal, and **PRs are welcome**.
+> - **macOS Only**: This application is currently designed exclusively for macOS and does not support other platforms. However, cross-platform support is a long-term goal, and **PRs are welcome**.
 
 ## Features
 

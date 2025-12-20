@@ -66,7 +66,6 @@ fn init_tracing() {
         .with(fmt_layer);
 
     // On macOS, log to Console.app via oslog
-    #[cfg(target_os = "macos")]
     let registry = registry.with(
         tracing_oslog::OsLogger::new("com.lambdalisue.Arto", "default").with_filter(silence_filter),
     );
@@ -74,7 +73,6 @@ fn init_tracing() {
     registry.init();
 }
 
-#[cfg(target_os = "macos")]
 fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
     // Create event channel and store receiver for MainApp
     let (tx, rx) = channel::<components::main_app::OpenEvent>(10);
@@ -114,40 +112,6 @@ fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
                 window::update_last_focused_window(*window_id);
             }
             _ => {}
-        })
-        .with_menu(menu)
-        .with_window(
-            WindowBuilder::new()
-                .with_title("Arto")
-                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
-        )
-        // Add main style in config. Otherwise the style takes time to load and
-        // the window appears unstyled for a brief moment.
-        .with_custom_head(
-            indoc::formatdoc! {r#"<link rel="stylesheet" href="{}">"#, assets::MAIN_STYLE},
-        )
-        // Use a custom index to set the initial theme correctly
-        .with_custom_index(window::build_custom_index(theme_value.theme))
-}
-
-#[cfg(not(target_os = "macos"))]
-fn create_config(
-    theme_value: window::helpers::ThemeValue,
-    _tx: tokio::sync::mpsc::Sender<components::main_app::OpenEvent>,
-) -> Config {
-    let menu = menu::build_menu();
-
-    Config::new()
-        // Listen to window focus events
-        .with_custom_event_handler(move |event, _target| {
-            if let Event::WindowEvent {
-                event: WindowEvent::Focused(true),
-                window_id,
-                ..
-            } = event
-            {
-                window::update_last_focused_window(*window_id);
-            }
         })
         .with_menu(menu)
         .with_window(
