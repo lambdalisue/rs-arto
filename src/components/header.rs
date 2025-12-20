@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 
 use crate::components::icon::{Icon, IconName};
 use crate::components::theme_selector::ThemeSelector;
-use crate::state::AppState;
+use crate::state::{AppState, TabContent};
 
 #[component]
 pub fn Header() -> Element {
@@ -28,12 +28,12 @@ pub fn Header() -> Element {
         .as_ref()
         .is_some_and(|tab| tab.history.can_go_forward());
 
-    let is_sidebar_visible = state.sidebar.read().is_visible;
+    let is_sidebar_open = state.sidebar.read().open;
 
-    let mut state_for_back = state.clone();
-    let mut state_for_forward = state.clone();
-    let mut state_for_sidebar = state.clone();
-    let mut state_for_reload = state.clone();
+    let mut state_for_back = state;
+    let mut state_for_forward = state;
+    let mut state_for_sidebar = state;
+    let mut state_for_reload = state;
 
     let on_back = move |_| {
         state_for_back.update_current_tab(|tab| {
@@ -89,7 +89,7 @@ pub fn Header() -> Element {
                 // Sidebar toggle button
                 button {
                     class: "sidebar-toggle-button",
-                    class: if is_sidebar_visible { "active" },
+                    class: if is_sidebar_open { "active" },
                     onclick: move |_| {
                         state_for_sidebar.toggle_sidebar();
                     },
@@ -165,6 +165,25 @@ pub fn Header() -> Element {
 
                 // Theme selector
                 ThemeSelector { current_theme: state.current_theme }
+
+                // Preferences button
+                {
+                    let mut state_for_prefs = state;
+                    let is_preferences_active = current_tab
+                        .as_ref()
+                        .is_some_and(|tab| matches!(tab.content, TabContent::Preferences));
+                    rsx! {
+                        button {
+                            class: "nav-button preferences-button",
+                            class: if is_preferences_active { "active" },
+                            title: "Preferences",
+                            onclick: move |_| {
+                                state_for_prefs.open_preferences();
+                            },
+                            Icon { name: IconName::Gear, size: 18 }
+                        }
+                    }
+                }
             }
         }
     }

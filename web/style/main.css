@@ -8,6 +8,7 @@
 @import url("./components/content.css");
 @import url("./components/content/code-copy.css");
 @import url("./components/mermaid-window.css");
+@import url("./components/preferences.css");
 @import url("katex/dist/katex.min.css");
 
 /* App-wide styling */

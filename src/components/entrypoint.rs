@@ -1,9 +1,28 @@
-use crate::state::OPEN_EVENT_RECEIVER;
+use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::window as window_manager;
 use dioxus::desktop::window;
 use dioxus::prelude::*;
 use dioxus_core::spawn_forever;
 use dioxus_desktop::use_muda_event_handler;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use tokio::sync::mpsc::Receiver;
+
+/// Open event types for distinguishing files, directories, and reopen events
+/// Used to communicate between OS event handler (main.rs) and Entrypoint component
+#[derive(Debug, Clone)]
+pub enum OpenEvent {
+    /// File opened from Finder/CLI
+    File(PathBuf),
+    /// Directory opened from Finder/CLI (should set sidebar root)
+    Directory(PathBuf),
+    /// App icon clicked (reopen event)
+    Reopen,
+}
+
+/// A global receiver to receive open events from the main thread (OS → Dioxus context)
+/// This is set once by main.rs and consumed once by this Entrypoint component.
+pub static OPEN_EVENT_RECEIVER: Mutex<Option<Receiver<OpenEvent>>> = Mutex::new(None);
 
 #[component]
 pub fn Entrypoint() -> Element {
@@ -27,40 +46,50 @@ pub fn Entrypoint() -> Element {
         None
     };
 
-    // Extract initial file if present
+    // Extract initial file if present (directories handled separately via broadcast)
     let first_file = match &first_event {
-        Some(crate::state::OpenEvent::File(path)) => Some(path.clone()),
+        Some(OpenEvent::File(path)) => Some(path.clone()),
+        Some(OpenEvent::Directory(_)) => None,
         _ => None,
     };
 
-    tracing::info!("Creating first child window");
-    window_manager::create_new_main_window(first_file.clone(), true);
+    // Clone first_event for use inside spawn
+    let first_event_for_spawn = first_event.clone();
 
-    // Handle directory event after window creation
-    if let Some(crate::state::OpenEvent::Directory(dir)) = first_event {
-        tracing::info!("Setting initial directory: {:?}", &dir);
-        let _ = crate::state::DIRECTORY_OPEN_BROADCAST.send(dir);
-    }
+    // Create first window
+    spawn(async move {
+        // Create first window (theme/directory settings applied in window.rs)
+        tracing::info!("Creating first child window");
+        window_manager::create_new_main_window_async(first_file.clone(), true).await;
+
+        // Handle explicit directory event (overrides config settings)
+        // Wait until window is fully initialized before sending broadcast
+        if let Some(OpenEvent::Directory(dir)) = first_event_for_spawn {
+            tracing::info!("Setting initial directory from event: {:?}", &dir);
+            let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
+        }
+    });
 
     // Handle open events (file opened, directory opened, or app icon clicked)
     spawn_forever(async move {
         while let Some(event) = rx.recv().await {
             match event {
-                crate::state::OpenEvent::File(file) => {
+                OpenEvent::File(file) => {
                     if !window_manager::has_any_main_windows() {
                         window_manager::create_new_main_window(Some(file), false);
                     } else {
-                        let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
+                        let _ = FILE_OPEN_BROADCAST.send(file);
                     }
                 }
-                crate::state::OpenEvent::Directory(dir) => {
+                OpenEvent::Directory(dir) => {
                     if !window_manager::has_any_main_windows() {
-                        window_manager::create_new_main_window(None, false);
+                        // Wait for window to be fully initialized before broadcasting
+                        window_manager::create_new_main_window_async(None, false).await;
                     }
                     // Broadcast directory change to all windows
-                    let _ = crate::state::DIRECTORY_OPEN_BROADCAST.send(dir);
+                    let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
                 }
-                crate::state::OpenEvent::Reopen => {
+                OpenEvent::Reopen => {
                     if !window_manager::focus_last_focused_main_window() {
                         window_manager::create_new_main_window(None, false);
                     }

@@ -3,6 +3,7 @@ use dioxus_sdk_window::theme::get_theme;
 pub use dioxus_sdk_window::theme::Theme;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ThemePreference {
     #[default]
     Auto,

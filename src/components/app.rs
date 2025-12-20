@@ -9,24 +9,44 @@ use super::header::Header;
 use super::icon::{Icon, IconName};
 use super::sidebar::Sidebar;
 use super::tab_bar::TabBar;
+use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::menu;
-use crate::state::{AppState, Tab, DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
+use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
 
 #[component]
-pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
+pub fn App(
+    file: Option<PathBuf>,
+    show_welcome: bool,
+    initial_directory: PathBuf,
+    initial_sidebar_visible: bool,
+    initial_sidebar_width: f64,
+    initial_show_all_files: bool,
+) -> Element {
     // Initialize application state with optional initial file or welcome screen
-    let state = use_context_provider(|| {
+    let mut state = use_context_provider(|| {
         let mut app_state = AppState::default();
-        if let Some(path) = file {
-            // Set sidebar root directory to file's parent directory on window initialization
-            if let Some(parent) = path.parent() {
-                app_state.sidebar.write().root_directory = Some(parent.to_path_buf());
-            }
+        if let Some(path) = file.clone() {
             app_state.tabs.write()[0] = Tab::new(Some(path));
         } else if show_welcome {
             // Show welcome screen with embedded markdown content
             let welcome_content = crate::assets::get_default_markdown_content();
             app_state.tabs.write()[0] = Tab::with_inline_content(welcome_content);
+        }
+        // Apply initial directory from config (for startup/new window behavior)
+        *app_state.directory.write() = Some(initial_directory.clone());
+        // Update last focused state for "Last Focused" behavior
+        LAST_FOCUSED_STATE.write().directory = Some(initial_directory);
+        // Apply initial sidebar settings from config
+        {
+            let mut sidebar = app_state.sidebar.write();
+            sidebar.open = initial_sidebar_visible;
+            sidebar.width = initial_sidebar_width;
+            sidebar.show_all_files = initial_show_all_files;
+            // Update last focused state for "Last Focused" behavior
+            let mut state = LAST_FOCUSED_STATE.write();
+            state.sidebar_open = initial_sidebar_visible;
+            state.sidebar_width = initial_sidebar_width;
+            state.sidebar_show_all_files = initial_show_all_files;
         }
         app_state
     });
@@ -34,24 +54,27 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
     // Track drag-and-drop hover state
     let mut is_dragging = use_signal(|| false);
 
-    // Clone state for event handlers
-    let mut state_for_menu = state.clone();
-    let state_for_drop = state.clone();
-
     // Handle menu events (only state-dependent events, not global ones)
     use_muda_event_handler(move |event| {
         // Only handle state-dependent events
-        menu::handle_menu_event_with_state(event, &mut state_for_menu);
+        menu::handle_menu_event_with_state(event, &mut state);
     });
 
     // Listen for file open broadcasts from background process
-    setup_file_open_listener(state.clone());
+    setup_file_open_listener(state);
 
     // Listen for directory open broadcasts from background process
-    setup_directory_open_listener(state.clone());
+    setup_directory_open_listener(state);
 
-    // Close child windows when this window closes
+    // Save state and close child windows when this window closes
     use_drop(move || {
+        // Save last used state from this window
+        // Read directly from state signals instead of global statics
+        // to ensure we get the current window's values, not the global last-modified values
+        let persisted = PersistedState::from(&state);
+        persisted.save();
+
+        // Close child windows
         crate::window::close_child_windows_for_parent(window().id());
     });
 
@@ -76,7 +99,6 @@ pub fn App(file: Option<PathBuf>, show_welcome: bool) -> Element {
                 evt.prevent_default();
                 is_dragging.set(false);
 
-                let state = state_for_drop.clone();
                 spawn(async move {
                     handle_dropped_files(evt, state).await;
                 });
@@ -132,7 +154,7 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
             tracing::info!("Setting dropped directory as root: {:?}", resolved_path);
             state.set_root_directory(resolved_path);
             // Show the sidebar if it's hidden so users can see the directory tree
-            if !state.sidebar.read().is_visible {
+            if !state.sidebar.read().open {
                 state.toggle_sidebar();
             }
         } else {
@@ -144,9 +166,8 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
 }
 
 /// Setup listener for file open broadcasts from the background process
-fn setup_file_open_listener(state: AppState) {
+fn setup_file_open_listener(mut state: AppState) {
     use_effect(move || {
-        let mut state_clone = state.clone();
         let mut rx = FILE_OPEN_BROADCAST.subscribe();
 
         spawn(async move {
@@ -154,7 +175,7 @@ fn setup_file_open_listener(state: AppState) {
                 // Only handle in the focused window
                 if window().is_focused() {
                     tracing::info!("Opening file from broadcast: {:?}", file);
-                    state_clone.open_file(file);
+                    state.open_file(file);
                 }
             }
         });
@@ -162,9 +183,8 @@ fn setup_file_open_listener(state: AppState) {
 }
 
 /// Setup listener for directory open broadcasts from the background process
-fn setup_directory_open_listener(state: AppState) {
+fn setup_directory_open_listener(mut state: AppState) {
     use_effect(move || {
-        let mut state_clone = state.clone();
         let mut rx = DIRECTORY_OPEN_BROADCAST.subscribe();
 
         spawn(async move {
@@ -172,10 +192,10 @@ fn setup_directory_open_listener(state: AppState) {
                 // Only handle in the focused window
                 if window().is_focused() {
                     tracing::info!("Opening directory from broadcast: {:?}", dir);
-                    state_clone.set_root_directory(dir.clone());
+                    state.set_root_directory(dir.clone());
                     // Optionally show the sidebar if it's hidden
-                    if !state_clone.sidebar.read().is_visible {
-                        state_clone.toggle_sidebar();
+                    if !state.sidebar.read().open {
+                        state.toggle_sidebar();
                     }
                 }
             }

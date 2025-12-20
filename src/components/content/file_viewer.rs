@@ -27,9 +27,9 @@ pub fn FileViewer(file: PathBuf) -> Element {
 
     // Setup component hooks
     use_main_script_loader();
-    use_file_loader(file.clone(), html, reload_trigger, state.clone());
+    use_file_loader(file.clone(), html, reload_trigger, state);
     use_file_watcher(file.clone(), reload_trigger);
-    use_link_click_handler(file, state.clone());
+    use_link_click_handler(file, state);
     use_mermaid_window_handler();
 
     rsx! {
@@ -73,7 +73,7 @@ fn use_file_loader(
         let mut html = html;
         let _ = reload_trigger();
         let file = file.clone();
-        let mut state_for_error = state.clone();
+        let mut state_for_error = state;
 
         spawn(async move {
             tracing::info!("Loading and rendering file: {:?}", &file);
@@ -182,7 +182,7 @@ fn use_link_click_handler(file: PathBuf, state: AppState) {
             .map(|p| p.to_path_buf())
             .unwrap_or_else(|| PathBuf::from("."));
 
-        let mut state_clone = state.clone();
+        let mut state_clone = state;
 
         spawn(async move {
             while let Ok(click_data) = eval_provider.recv::<LinkClickData>().await {

@@ -90,7 +90,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
-  color: var(--text-color);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -103,6 +103,11 @@
   &:hover:not(:disabled) {
     border-color: var(--border-color);
     background: var(--bg-secondary);
+    color: var(--text-color);
+  }
+
+  &.active {
+    color: var(--text-color);
   }
 
   &:disabled {
@@ -111,7 +116,7 @@
   }
 
   .icon {
-    color: var(--text-color);
+    color: inherit;
   }
 }
 

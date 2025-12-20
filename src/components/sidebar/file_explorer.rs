@@ -40,8 +40,7 @@ fn read_sorted_entries(path: &PathBuf) -> Vec<PathBuf> {
 #[component]
 pub fn FileExplorer() -> Element {
     let state = use_context::<AppState>();
-    let sidebar_state = state.sidebar.read();
-    let root_directory = sidebar_state.root_directory.clone();
+    let root_directory = state.directory.read().clone();
 
     // Refresh counter to force DirectoryTree re-render
     let refresh_counter = use_signal(|| 0u32);
@@ -67,7 +66,7 @@ pub fn FileExplorer() -> Element {
 #[component]
 fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> Element {
     let mut state = use_context::<AppState>();
-    let hide_non_markdown = state.sidebar.read().hide_non_markdown;
+    let show_all_files = state.sidebar.read().show_all_files;
 
     let has_parent = current_dir.parent().is_some();
 
@@ -78,7 +77,7 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
         .unwrap_or("..")
         .to_string();
 
-    let mut state_for_toggle = state.clone();
+    let mut state_for_toggle = state;
 
     // Reload state for animation
     let is_reloading = use_signal(|| false);
@@ -164,12 +163,12 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
                 // File visibility toggle button
                 button {
                     class: "file-explorer-toolbar-button",
-                    title: if hide_non_markdown { "Show all files" } else { "Hide non-markdown files" },
+                    title: if show_all_files { "Hide non-markdown files" } else { "Show all files" },
                     onclick: move |_| {
-                        state_for_toggle.sidebar.write().hide_non_markdown = !hide_non_markdown;
+                        state_for_toggle.sidebar.write().show_all_files = !show_all_files;
                     },
                     Icon {
-                        name: if hide_non_markdown { IconName::EyeOff } else { IconName::Eye },
+                        name: if show_all_files { IconName::Eye } else { IconName::EyeOff },
                         size: 20,
                     }
                 }
@@ -198,7 +197,7 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
 
     let is_dir = path.is_dir();
     let is_expanded = state.sidebar.read().expanded_dirs.contains(&path);
-    let hide_non_markdown = state.sidebar.read().hide_non_markdown;
+    let show_all_files = state.sidebar.read().show_all_files;
 
     let name = path
         .file_name()
@@ -208,8 +207,8 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
 
     let is_markdown = !is_dir && is_markdown_file(&path);
 
-    // Hide non-markdown files if the setting is enabled
-    if hide_non_markdown && !is_dir && !is_markdown {
+    // Hide non-markdown files if show_all_files is disabled
+    if !show_all_files && !is_dir && !is_markdown {
         return rsx! {};
     }
 
@@ -220,9 +219,9 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
 
     let indent_style = format!("padding-left: {}px", depth * 20);
 
-    let mut state_for_click = state.clone();
+    let mut state_for_click = state;
     let path_for_click = path.clone();
-    let mut state_for_enter = state.clone();
+    let mut state_for_enter = state;
     let path_for_enter = path.clone();
     let path_for_copy = path.clone();
 

@@ -12,6 +12,7 @@ fn get_tab_display_name(tab: &crate::state::Tab) -> String {
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or_else(|| "Unnamed file".to_string()),
         TabContent::Inline(_) => "Welcome".to_string(),
+        TabContent::Preferences => "Preferences".to_string(),
         TabContent::None => "No file".to_string(),
     }
 }
@@ -48,8 +49,8 @@ fn TabItem(index: usize, tab: crate::state::Tab, is_active: bool) -> Element {
     let tab_name = get_tab_display_name(&tab);
 
     // Clone state for event handlers
-    let mut state_for_switch = state.clone();
-    let mut state_for_close = state.clone();
+    let mut state_for_switch = state;
+    let mut state_for_close = state;
 
     rsx! {
         div {
