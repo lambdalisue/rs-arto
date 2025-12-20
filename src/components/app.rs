@@ -83,16 +83,11 @@ pub fn App(
             class: "app-container",
             class: if is_dragging() { "drag-over" },
             ondragover: move |evt| {
-                // Only accept file/directory drops
-                let files = evt.files();
-                if !files.is_empty() {
-                    evt.prevent_default();
-                    is_dragging.set(true);
-                    return;
-                }
-                is_dragging.set(false);
+                evt.prevent_default();
+                is_dragging.set(true);
             },
-            ondragleave: move |_| {
+            ondragleave: move |evt| {
+                evt.prevent_default();
                 is_dragging.set(false);
             },
             ondrop: move |evt| {
@@ -129,7 +124,7 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
     }
 
     for file_data in files {
-        let path = PathBuf::from(&file_data.name());
+        let path = &file_data.path();
 
         // Resolve symlinks and canonicalize the path to handle Finder sidebar items
         let resolved_path = match std::fs::canonicalize(&path) {
@@ -216,7 +211,7 @@ fn DragDropOverlay() -> Element {
                 }
                 div {
                     class: "drag-drop-text",
-                    "Drop markdown file to open"
+                    "Drop Markdown file or directory to open"
                 }
             }
         }
