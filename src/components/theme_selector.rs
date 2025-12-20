@@ -1,5 +1,6 @@
 use dioxus::document;
 use dioxus::prelude::*;
+use dioxus_core::spawn_forever;
 use dioxus_sdk_window::theme::use_system_theme;
 
 use crate::components::icon::{Icon, IconName};
@@ -43,21 +44,28 @@ pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
     // Expansion state for dropdown menu
     let mut is_expanded = use_signal(|| false);
 
-    use_effect(move || {
+    // Setup listeners once on component mount (not on every render)
+    use_hook(|| {
+        // Register global mousedown listener (idempotent via flag)
         spawn(async move {
             let _ = document::eval(
                 r#"
-                document.addEventListener('mousedown', (e) => {
-                    const selector = e.target.closest('.theme-selector');
-                    if (!selector) {
-                        window.postMessage({ type: '__close_theme_dropdown' }, window);
-                    }
-                });
+                if (!window.__theme_dropdown_listener) {
+                    window.__theme_dropdown_listener = true;
+                    document.addEventListener('mousedown', (e) => {
+                        const selector = e.target.closest('.theme-selector');
+                        if (!selector) {
+                            window.postMessage({ type: '__close_theme_dropdown' }, window);
+                        }
+                    });
+                }
                 "#,
             )
             .await;
         });
-        spawn(async move {
+
+        // Listen for close messages indefinitely
+        spawn_forever(async move {
             loop {
                 let _ = document::eval(
                     r#"

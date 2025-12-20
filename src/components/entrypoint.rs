@@ -57,20 +57,11 @@ pub fn Entrypoint() -> Element {
     };
 
     // Create first window
-    spawn({
-        let first_event = first_event.clone();
-        async move {
-            // Create first window (theme/directory settings applied in window.rs)
-            tracing::info!("Creating first child window");
-            window_manager::create_new_main_window_async(first_file, first_directory, true).await;
-
-            // Handle explicit directory event (overrides config settings)
-            // Wait until window is fully initialized before sending broadcast
-            if let Some(OpenEvent::Directory(dir)) = first_event {
-                tracing::info!("Setting initial directory from event: {:?}", &dir);
-                let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
-            }
-        }
+    spawn(async move {
+        // Create first window (theme/directory settings applied in window.rs)
+        // Directory is passed directly as parameter, no need for broadcast
+        tracing::info!("Creating first child window");
+        window_manager::create_new_main_window_async(first_file, first_directory, true).await;
     });
 
     // Handle open events (file opened, directory opened, or app icon clicked)
@@ -86,8 +77,7 @@ pub fn Entrypoint() -> Element {
                 }
                 OpenEvent::Directory(dir) => {
                     if !window_manager::has_any_main_windows() {
-                        // Wait for window to be fully initialized before broadcasting
-                        window_manager::create_new_main_window_async(None, Some(dir), false).await;
+                        window_manager::create_new_main_window(None, Some(dir), false);
                     } else {
                         // Broadcast directory change to all windows
                         let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
