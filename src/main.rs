@@ -1,5 +1,7 @@
 mod assets;
 mod components;
+mod config;
+mod events;
 mod history;
 mod markdown;
 mod menu;
@@ -68,8 +70,8 @@ fn init_tracing() {
 
 #[cfg(target_os = "macos")]
 fn create_config() -> Config {
-    let (tx, rx) = channel::<state::OpenEvent>(10);
-    state::OPEN_EVENT_RECEIVER
+    let (tx, rx) = channel::<components::entrypoint::OpenEvent>(10);
+    components::entrypoint::OPEN_EVENT_RECEIVER
         .lock()
         .expect("Failed to lock OPEN_EVENT_RECEIVER")
         .replace(rx);
@@ -95,9 +97,9 @@ fn create_config() -> Config {
                 for url in urls {
                     if let Ok(path) = url.to_file_path() {
                         let open_event = if path.is_dir() {
-                            state::OpenEvent::Directory(path)
+                            components::entrypoint::OpenEvent::Directory(path)
                         } else if path.is_file() {
-                            state::OpenEvent::File(path)
+                            components::entrypoint::OpenEvent::File(path)
                         } else {
                             // Skip invalid paths
                             continue;
@@ -108,7 +110,7 @@ fn create_config() -> Config {
             }
             Event::Reopen { .. } => {
                 // Send reopen event through channel to handle it safely in component context
-                tx.try_send(state::OpenEvent::Reopen).ok();
+                tx.try_send(components::entrypoint::OpenEvent::Reopen).ok();
             }
             Event::WindowEvent {
                 event: WindowEvent::Focused(true),
@@ -125,8 +127,8 @@ fn create_config() -> Config {
 
 #[cfg(not(target_os = "macos"))]
 fn create_config() -> Config {
-    let (_tx, rx) = channel::<state::OpenEvent>(10);
-    state::OPEN_EVENT_RECEIVER
+    let (_tx, rx) = channel::<components::entrypoint::OpenEvent>(10);
+    components::entrypoint::OPEN_EVENT_RECEIVER
         .lock()
         .expect("Failed to lock OPEN_EVENT_RECEIVER")
         .replace(rx);

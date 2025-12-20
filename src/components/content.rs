@@ -2,6 +2,7 @@ mod file_error_view;
 mod file_viewer;
 mod inline_viewer;
 mod no_file_view;
+mod preferences_view;
 
 use dioxus::prelude::*;
 
@@ -10,6 +11,10 @@ use file_error_view::FileErrorView;
 use file_viewer::FileViewer;
 use inline_viewer::InlineViewer;
 use no_file_view::NoFileView;
+use preferences_view::PreferencesView;
+
+// Re-export for menu system
+pub use preferences_view::set_preferences_tab_to_about;
 
 #[component]
 pub fn Content() -> Element {
@@ -21,7 +26,13 @@ pub fn Content() -> Element {
 
     // Use CSS zoom property for vector-based scaling (not transform: scale)
     // This ensures fonts and images remain sharp at any zoom level
-    let zoom_style = format!("zoom: {};", zoom_level());
+    // Note: Preferences page has its own layout, so we skip zoom for it
+    let is_preferences = matches!(content, Some(TabContent::Preferences));
+    let zoom_style = if is_preferences {
+        String::new()
+    } else {
+        format!("zoom: {};", zoom_level())
+    };
 
     rsx! {
         div {
@@ -42,6 +53,9 @@ pub fn Content() -> Element {
                         .unwrap_or("Unknown file")
                         .to_string();
                     rsx! { FileErrorView { filename, error_message: error } }
+                },
+                Some(TabContent::Preferences) => {
+                    rsx! { PreferencesView {} }
                 },
                 _ => rsx! { NoFileView {} },
             }

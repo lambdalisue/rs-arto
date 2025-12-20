@@ -29,6 +29,10 @@ pub enum IconName {
     Server,
     Copy,
     Check,
+    Gear,
+    InfoCircle,
+    BrandGithub,
+    Bug,
 }
 
 impl fmt::Display for IconName {
@@ -58,6 +62,10 @@ impl fmt::Display for IconName {
             IconName::Server => "server",
             IconName::Copy => "copy",
             IconName::Check => "check",
+            IconName::Gear => "settings",
+            IconName::InfoCircle => "info-circle",
+            IconName::BrandGithub => "brand-github",
+            IconName::Bug => "bug",
         };
         write!(f, "{}", name)
     }

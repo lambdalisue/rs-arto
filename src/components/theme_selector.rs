@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use dioxus_sdk_window::theme::use_system_theme;
 
 use crate::components::icon::{Icon, IconName};
-use crate::state::LAST_SELECTED_THEME;
+use crate::state::LAST_FOCUSED_STATE;
 use crate::theme::{Theme, ThemePreference};
 
 #[component]
@@ -15,28 +15,29 @@ pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
     });
 
     // Dispatch custom event when resolved theme changes
-    use_effect(use_reactive!(|resolved_theme| {
+    use_effect(move || {
         let theme = resolved_theme();
         let theme_str = match theme {
             Theme::Light => "light",
             Theme::Dark => "dark",
         };
+        tracing::info!("Theme changed to: {}", theme_str);
+        let theme_str_owned = theme_str.to_string();
         spawn(async move {
+            tracing::info!("Dispatching theme-changed event: {}", theme_str_owned);
             let _ = document::eval(&format!(
                 "document.dispatchEvent(new CustomEvent('arto:theme-changed', {{ detail: '{}' }}))",
-                theme_str
+                theme_str_owned
             ))
             .await;
         });
-    }));
+    });
 
-    // Save last selected theme
-    use_effect(use_reactive!(|current_theme| {
+    // Save last selected theme in memory (persisted on window close)
+    use_effect(move || {
         let theme = current_theme();
-        spawn(async move {
-            *LAST_SELECTED_THEME.lock().unwrap() = theme;
-        });
-    }));
+        LAST_FOCUSED_STATE.write().theme = theme;
+    });
 
     let (light_class, dark_class, auto_class) = match current_theme() {
         ThemePreference::Light => (

@@ -1,17 +1,17 @@
 use dioxus::prelude::{ReadableExt, WritableExt};
 use dioxus_desktop::muda::accelerator::{Accelerator, Code, Modifiers};
-use dioxus_desktop::muda::{
-    AboutMetadataBuilder, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu,
-};
+use dioxus_desktop::muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use dioxus_desktop::window;
 use std::path::PathBuf;
 
+use crate::components::content::set_preferences_tab_to_about;
 use crate::state::AppState;
 use crate::window;
 
 /// Menu identifier enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MenuId {
+    About,
     NewWindow,
     NewTab,
     Open,
@@ -21,6 +21,7 @@ enum MenuId {
     CloseWindow,
     CloseAllChildWindows,
     CloseAllWindows,
+    Preferences,
     ToggleSidebar,
     ActualSize,
     ZoomIn,
@@ -34,6 +35,7 @@ impl MenuId {
     /// Convert menu ID string to enum variant
     fn from_str(s: &str) -> Option<Self> {
         match s {
+            "app.about" => Some(Self::About),
             "file.new_window" => Some(Self::NewWindow),
             "file.new_tab" => Some(Self::NewTab),
             "file.open" => Some(Self::Open),
@@ -43,6 +45,7 @@ impl MenuId {
             "file.close_window" => Some(Self::CloseWindow),
             "window.close_all_child_windows" => Some(Self::CloseAllChildWindows),
             "window.close_all_windows" => Some(Self::CloseAllWindows),
+            "app.preferences" => Some(Self::Preferences),
             "view.toggle_sidebar" => Some(Self::ToggleSidebar),
             "view.actual_size" => Some(Self::ActualSize),
             "view.zoom_in" => Some(Self::ZoomIn),
@@ -57,6 +60,7 @@ impl MenuId {
     /// Get the string ID for this menu item
     fn as_str(self) -> &'static str {
         match self {
+            Self::About => "app.about",
             Self::NewWindow => "file.new_window",
             Self::NewTab => "file.new_tab",
             Self::Open => "file.open",
@@ -66,6 +70,7 @@ impl MenuId {
             Self::CloseWindow => "file.close_window",
             Self::CloseAllChildWindows => "window.close_all_child_windows",
             Self::CloseAllWindows => "window.close_all_windows",
+            Self::Preferences => "app.preferences",
             Self::ToggleSidebar => "view.toggle_sidebar",
             Self::ActualSize => "view.actual_size",
             Self::ZoomIn => "view.zoom_in",
@@ -111,20 +116,17 @@ pub fn build_menu() -> Menu {
 #[cfg(target_os = "macos")]
 fn add_app_menu(menu: &Menu) {
     let arto_menu = Submenu::new("Arto", true);
-    let about_metadata = AboutMetadataBuilder::new()
-        .name(Some("Arto".to_string()))
-        .version(Some(env!("CARGO_PKG_VERSION")))
-        .authors(Some(
-            vec!["lambdalisue <lambdalisue@gmail.com>".to_string()],
-        ))
-        .website(Some("https://github.com/lambdalisue/rs-arto".to_string()))
-        .website_label(Some("GitHub".to_string()))
-        .copyright(Some("Copyright 2025 lambdalisue".to_string()))
-        .build();
 
     arto_menu
         .append_items(&[
-            &PredefinedMenuItem::about(Some("Arto"), Some(about_metadata)),
+            &create_menu_item(MenuId::About, "About Arto", None, None),
+            &PredefinedMenuItem::separator(),
+            &create_menu_item(
+                MenuId::Preferences,
+                "Preferences...",
+                Some(Code::Comma),
+                None,
+            ),
             &PredefinedMenuItem::separator(),
             &PredefinedMenuItem::quit(Some("Quit")),
         ])
@@ -288,6 +290,10 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
             }
             return false;
         }
+        MenuId::Preferences => {
+            // Preferences is now handled by state-based handler
+            return false;
+        }
         MenuId::CloseAllChildWindows => {
             window::close_child_windows_for_last_focused();
         }
@@ -320,6 +326,14 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
     };
 
     match id {
+        MenuId::About => {
+            // Set the preferences tab to About before opening
+            set_preferences_tab_to_about();
+            state.open_preferences();
+        }
+        MenuId::Preferences => {
+            state.open_preferences();
+        }
         MenuId::NewTab => {
             state.add_tab(None, true);
         }

@@ -9,8 +9,10 @@ use std::path::PathBuf;
 use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
 use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
-use crate::state::LAST_SELECTED_THEME;
 use crate::theme::{resolve_theme, ThemePreference};
+
+mod helpers;
+use helpers::*;
 
 struct ChildWindowEntry {
     handle: WeakDesktopContext,
@@ -110,9 +112,31 @@ pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
 }
 
 async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: bool) {
+    // Check if this is the first window (0 -> 1 transition)
+    // Use "On Startup" (Last Closed) for first window, "On New Window" (Last Focused) for additional
+    let is_first_window = !has_any_main_windows();
+
+    // Get theme from config and state
+    let theme_value = get_theme_value(is_first_window);
+    // Get directory from config and state
+    let directory_value = get_directory_value(is_first_window);
+
+    // Get sidebar settings from config and state
+    let sidebar_value = get_sidebar_value(is_first_window);
+
     // This cause ERROR but it seems we can ignore it safely
     // https://github.com/DioxusLabs/dioxus/issues/3872
-    let dom = VirtualDom::new_with_props(App, AppProps { file, show_welcome });
+    let dom = VirtualDom::new_with_props(
+        App,
+        AppProps {
+            file,
+            show_welcome,
+            initial_directory: directory_value.directory,
+            initial_sidebar_visible: sidebar_value.open,
+            initial_sidebar_width: sidebar_value.width,
+            initial_show_all_files: sidebar_value.show_all_files,
+        },
+    );
     // Set None for child window menu to avoid panic when closing windows.
     // The menu from the main window will be used instead.
     let config = Config::new()
@@ -126,15 +150,15 @@ async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: bool)
         // the window appears unstyled for a brief moment.
         .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
         // Use a custom index to set the initial theme correctly
-        .with_custom_index(build_custom_index());
+        .with_custom_index(build_custom_index(theme_value.theme));
 
     let pending = window().new_window(dom, config);
     let handle = pending.await;
     register_main_window(std::rc::Rc::downgrade(&handle));
 }
 
-fn build_custom_index() -> String {
-    let theme = resolve_theme(&LAST_SELECTED_THEME.lock().unwrap());
+fn build_custom_index(theme_preference: ThemePreference) -> String {
+    let theme = resolve_theme(&theme_preference);
     indoc::formatdoc! {r#"
     <!DOCTYPE html>
     <html>
