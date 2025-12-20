@@ -83,7 +83,8 @@ pub fn Entrypoint() -> Element {
                 }
                 OpenEvent::Directory(dir) => {
                     if !window_manager::has_any_main_windows() {
-                        window_manager::create_new_main_window(None, false);
+                        // Wait for window to be fully initialized before broadcasting
+                        window_manager::create_new_main_window_async(None, false).await;
                     }
                     // Broadcast directory change to all windows
                     let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
