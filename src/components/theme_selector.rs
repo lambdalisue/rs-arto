@@ -1,3 +1,4 @@
+use dioxus::document;
 use dioxus::prelude::*;
 use dioxus_sdk_window::theme::use_system_theme;
 
@@ -39,59 +40,124 @@ pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
         LAST_FOCUSED_STATE.write().theme = theme;
     });
 
-    let (light_class, dark_class, auto_class) = match current_theme() {
-        ThemePreference::Light => (
-            "theme-button theme-button--light theme-button--active",
-            "theme-button theme-button--dark",
-            "theme-button theme-button--auto",
-        ),
-        ThemePreference::Dark => (
-            "theme-button theme-button--light",
-            "theme-button theme-button--dark theme-button--active",
-            "theme-button theme-button--auto",
-        ),
-        ThemePreference::Auto => (
-            "theme-button theme-button--light",
-            "theme-button theme-button--dark",
-            "theme-button theme-button--auto theme-button--active",
-        ),
+    // Expansion state for dropdown menu
+    let mut is_expanded = use_signal(|| false);
+
+    use_effect(move || {
+        spawn(async move {
+            let _ = document::eval(
+                r#"
+                document.addEventListener('mousedown', (e) => {
+                    const selector = e.target.closest('.theme-selector');
+                    if (!selector) {
+                        window.postMessage({ type: '__close_theme_dropdown' }, window);
+                    }
+                });
+                "#,
+            )
+            .await;
+        });
+        spawn(async move {
+            loop {
+                let _ = document::eval(
+                    r#"
+                    await new Promise((resolve) => {
+                        const handler = (e) => {
+                            if (e.data?.type === '__close_theme_dropdown') {
+                                resolve();
+                            }
+                        };
+                        window.addEventListener('message', handler, { once: true });
+                    })
+                    "#,
+                )
+                .await;
+
+                // Only close if actually expanded
+                if is_expanded() {
+                    is_expanded.set(false);
+                }
+            }
+        });
+    });
+
+    // Get current theme icon and title
+    let (current_icon, current_title) = match current_theme() {
+        ThemePreference::Light => (IconName::Sun, "Light theme"),
+        ThemePreference::Dark => (IconName::Moon, "Dark theme"),
+        ThemePreference::Auto => (IconName::SunMoon, "Auto theme (follows system)"),
+    };
+
+    // Get other theme options (remaining 2 themes)
+    let other_themes = match current_theme() {
+        ThemePreference::Light => [
+            (ThemePreference::Dark, IconName::Moon, "Dark theme"),
+            (
+                ThemePreference::Auto,
+                IconName::SunMoon,
+                "Auto theme (follows system)",
+            ),
+        ],
+        ThemePreference::Dark => [
+            (ThemePreference::Light, IconName::Sun, "Light theme"),
+            (
+                ThemePreference::Auto,
+                IconName::SunMoon,
+                "Auto theme (follows system)",
+            ),
+        ],
+        ThemePreference::Auto => [
+            (ThemePreference::Light, IconName::Sun, "Light theme"),
+            (ThemePreference::Dark, IconName::Moon, "Dark theme"),
+        ],
     };
 
     rsx! {
         div {
             class: "theme-selector",
 
+            // Main button (current theme)
             button {
-                class: light_class,
-                "aria-pressed": if current_theme() == ThemePreference::Light { "true" } else { "false" },
-                onclick: move |_| {
-                    let mut current_theme = current_theme;
-                    current_theme.set(ThemePreference::Light);
+                class: "theme-selector-main",
+                "aria-expanded": if is_expanded() { "true" } else { "false" },
+                "aria-haspopup": "menu",
+                title: current_title,
+                onmousedown: move |evt| {
+                    evt.stop_propagation();
                 },
-                title: "Light theme",
-                Icon { name: IconName::Sun, size: 18 }
+                onclick: move |evt| {
+                    evt.stop_propagation();
+                    is_expanded.set(!is_expanded());
+                },
+                Icon { name: current_icon, size: 18 }
             }
 
-            button {
-                class: dark_class,
-                "aria-pressed": if current_theme() == ThemePreference::Dark { "true" } else { "false" },
-                onclick: move |_| {
-                    let mut current_theme = current_theme;
-                    current_theme.set(ThemePreference::Dark);
+            // Dropdown menu (remaining 2 themes)
+            div {
+                class: "theme-selector-dropdown",
+                class: if is_expanded() { "theme-selector-dropdown--expanded" },
+                role: "menu",
+                onmousedown: move |evt| {
+                    evt.stop_propagation();
                 },
-                title: "Dark theme",
-                Icon { name: IconName::Moon, size: 18 }
-            }
 
-            button {
-                class: auto_class,
-                "aria-pressed": if current_theme() == ThemePreference::Auto { "true" } else { "false" },
-                onclick: move |_| {
-                    let mut current_theme = current_theme;
-                    current_theme.set(ThemePreference::Auto);
-                },
-                title: "Auto theme (follows system)",
-                Icon { name: IconName::Contrast2, size: 18 }
+                for (theme, icon, title) in other_themes {
+                    button {
+                        class: "theme-option",
+                        role: "menuitem",
+                        title: title,
+                        onmousedown: move |evt| {
+                            evt.stop_propagation();
+                        },
+                        onclick: move |evt| {
+                            evt.stop_propagation();
+                            let mut current_theme = current_theme;
+                            current_theme.set(theme);
+                            is_expanded.set(false);
+                        },
+                        Icon { name: icon, size: 18 }
+                    }
+                }
             }
         }
     }
