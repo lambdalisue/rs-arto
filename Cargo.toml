@@ -9,8 +9,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.100"
 base64 = "0.22.1"
-dioxus = { version = "0.7.1", features = [] }
-dioxus-desktop = "0.7.1"
+dioxus = { version = "0.7.2", features = [] }
+dioxus-desktop = "0.7.2"
 dioxus-sdk = { version = "0.7.0", features = ["window"] }
 dioxus-sdk-window = "0.7.0"
 dotenvy = "0.15.7"
