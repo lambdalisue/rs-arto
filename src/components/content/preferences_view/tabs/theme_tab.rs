@@ -34,7 +34,7 @@ pub fn ThemeTab(config: Signal<Config>, has_changes: Signal<bool>) -> Element {
                     options: vec![
                         OptionCardItem {
                             value: ThemePreference::Auto,
-                            icon: Some(IconName::Contrast2),
+                            icon: Some(IconName::SunMoon),
                             title: "Auto".to_string(),
                             description: None,
                         },

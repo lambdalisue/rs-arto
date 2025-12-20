@@ -7,7 +7,7 @@ const TABLER_SPRITE: Asset = asset!("/assets/dist/icons/tabler-sprite.svg");
 pub enum IconName {
     Sun,
     Moon,
-    Contrast2,
+    SunMoon,
     ChevronLeft,
     ChevronRight,
     ChevronDown,
@@ -40,7 +40,7 @@ impl fmt::Display for IconName {
         let name = match self {
             IconName::Sun => "sun",
             IconName::Moon => "moon",
-            IconName::Contrast2 => "contrast-2",
+            IconName::SunMoon => "sun-moon",
             IconName::ChevronLeft => "chevron-left",
             IconName::ChevronRight => "chevron-right",
             IconName::ChevronDown => "chevron-down",
