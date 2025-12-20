@@ -1,5 +1,3 @@
-use dioxus_sdk_window::theme::get_theme;
-
 pub use dioxus_sdk_window::theme::Theme;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -23,7 +21,15 @@ impl From<&str> for ThemePreference {
 
 pub fn resolve_theme(theme: &ThemePreference) -> Theme {
     match theme {
-        ThemePreference::Auto => get_theme().unwrap_or(Theme::Light),
+        // NOTE:
+        // We cannot use dioxus_sdk_window::theme::get_theme here because
+        // it requires a Dioxus runtime and cannot be called from outside
+        // of Dioxus context. That's why we use dark_light crate instead.
+        ThemePreference::Auto => match dark_light::detect() {
+            Ok(dark_light::Mode::Light) => Theme::Light,
+            Ok(dark_light::Mode::Dark) => Theme::Dark,
+            Ok(dark_light::Mode::Unspecified) | Err(_) => Theme::Light,
+        },
         ThemePreference::Light => Theme::Light,
         ThemePreference::Dark => Theme::Dark,
     }

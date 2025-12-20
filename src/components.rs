@@ -1,8 +1,8 @@
 pub mod app;
 pub mod content;
-pub mod entrypoint;
 pub mod header;
 pub mod icon;
+pub mod main_app;
 pub mod mermaid_window;
 pub mod sidebar;
 pub mod tab_bar;

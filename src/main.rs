@@ -12,7 +12,8 @@ mod watcher;
 mod window;
 
 use dioxus::desktop::tao::event::{Event, WindowEvent};
-use dioxus::desktop::{tao::dpi::PhysicalPosition, Config, LogicalSize, WindowBuilder};
+use dioxus::desktop::Config;
+use dioxus::desktop::WindowBuilder;
 use tokio::sync::mpsc::channel;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::prelude::*;
@@ -30,10 +31,15 @@ fn main() {
     }
     init_tracing();
 
-    let config = create_config();
+    // Create config with theme value and event sender
+    let theme_value = window::helpers::get_theme_value(true);
+    let config = create_config(theme_value);
+
+    // Launch MainApp (first window only)
+    // Initial event will be consumed inside MainApp after Dioxus starts
     dioxus::LaunchBuilder::desktop()
         .with_cfg(config)
-        .launch(components::entrypoint::Entrypoint);
+        .launch(components::main_app::MainApp);
 }
 
 fn init_tracing() {
@@ -62,34 +68,22 @@ fn init_tracing() {
     // On macOS, log to Console.app via oslog
     #[cfg(target_os = "macos")]
     let registry = registry.with(
-        tracing_oslog::OsLogger::new("com.lambdalisue.Arto", "defaut").with_filter(silence_filter),
+        tracing_oslog::OsLogger::new("com.lambdalisue.Arto", "default").with_filter(silence_filter),
     );
 
     registry.init();
 }
 
 #[cfg(target_os = "macos")]
-fn create_config() -> Config {
-    let (tx, rx) = channel::<components::entrypoint::OpenEvent>(10);
-    components::entrypoint::OPEN_EVENT_RECEIVER
+fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
+    // Create event channel and store receiver for MainApp
+    let (tx, rx) = channel::<components::main_app::OpenEvent>(10);
+    components::main_app::OPEN_EVENT_RECEIVER
         .lock()
         .expect("Failed to lock OPEN_EVENT_RECEIVER")
         .replace(rx);
 
     let menu = menu::build_menu();
-
-    // Create a hidden background window for menu handling
-    // This window should not be visible to users
-    let window = WindowBuilder::new()
-        .with_focused(false)
-        // Must be visible at start, otherwise child windows won't be shown
-        // We will hide it immediately after creation in the component
-        .with_visible(true)
-        // Make the window as small and unobtrusive as possible
-        .with_decorations(false)
-        .with_position(PhysicalPosition::new(0, 0))
-        // Must be at least 1x1, otherwise it will panic
-        .with_inner_size(LogicalSize::new(1, 1));
 
     Config::new()
         .with_custom_event_handler(move |event, _target| match event {
@@ -97,9 +91,9 @@ fn create_config() -> Config {
                 for url in urls {
                     if let Ok(path) = url.to_file_path() {
                         let open_event = if path.is_dir() {
-                            components::entrypoint::OpenEvent::Directory(path)
+                            components::main_app::OpenEvent::Directory(path)
                         } else if path.is_file() {
-                            components::entrypoint::OpenEvent::File(path)
+                            components::main_app::OpenEvent::File(path)
                         } else {
                             // Skip invalid paths
                             continue;
@@ -110,7 +104,7 @@ fn create_config() -> Config {
             }
             Event::Reopen { .. } => {
                 // Send reopen event through channel to handle it safely in component context
-                tx.try_send(components::entrypoint::OpenEvent::Reopen).ok();
+                tx.try_send(components::main_app::OpenEvent::Reopen).ok();
             }
             Event::WindowEvent {
                 event: WindowEvent::Focused(true),
@@ -122,31 +116,26 @@ fn create_config() -> Config {
             _ => {}
         })
         .with_menu(menu)
-        .with_window(window)
+        .with_window(
+            WindowBuilder::new()
+                .with_title("Arto")
+                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+        )
+        // Add main style in config. Otherwise the style takes time to load and
+        // the window appears unstyled for a brief moment.
+        .with_custom_head(
+            indoc::formatdoc! {r#"<link rel="stylesheet" href="{}">"#, assets::MAIN_STYLE},
+        )
+        // Use a custom index to set the initial theme correctly
+        .with_custom_index(window::build_custom_index(theme_value.theme))
 }
 
 #[cfg(not(target_os = "macos"))]
-fn create_config() -> Config {
-    let (_tx, rx) = channel::<components::entrypoint::OpenEvent>(10);
-    components::entrypoint::OPEN_EVENT_RECEIVER
-        .lock()
-        .expect("Failed to lock OPEN_EVENT_RECEIVER")
-        .replace(rx);
-
+fn create_config(
+    theme_value: window::helpers::ThemeValue,
+    _tx: tokio::sync::mpsc::Sender<components::main_app::OpenEvent>,
+) -> Config {
     let menu = menu::build_menu();
-
-    // Create a hidden background window for menu handling
-    // This window should not be visible to users
-    let window = WindowBuilder::new()
-        .with_focused(false)
-        // Must be visible at start, otherwise child windows won't be shown
-        // We will hide it immediately after creation in the component
-        .with_visible(true)
-        // Make the window as small and unobtrusive as possible
-        .with_decorations(false)
-        .with_position(PhysicalPosition::new(0, 0))
-        // Must be at least 1x1, otherwise it will panic
-        .with_inner_size(LogicalSize::new(1, 1));
 
     Config::new()
         // Listen to window focus events
@@ -161,7 +150,16 @@ fn create_config() -> Config {
             }
         })
         .with_menu(menu)
-        .with_window(window)
-        // This is important to avoid panic when closing child windows
-        .with_close_behaviour(WindowCloseBehaviour::LastWindowHides)
+        .with_window(
+            WindowBuilder::new()
+                .with_title("Arto")
+                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+        )
+        // Add main style in config. Otherwise the style takes time to load and
+        // the window appears unstyled for a brief moment.
+        .with_custom_head(
+            indoc::formatdoc! {r#"<link rel="stylesheet" href="{}">"#, assets::MAIN_STYLE},
+        )
+        // Use a custom index to set the initial theme correctly
+        .with_custom_index(window::build_custom_index(theme_value.theme))
 }
