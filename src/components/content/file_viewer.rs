@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use crate::assets::MAIN_SCRIPT;
 use crate::markdown::render_to_html;
 use crate::state::{AppState, TabContent};
 use crate::utils::file::is_markdown_file;
@@ -26,7 +25,6 @@ pub fn FileViewer(file: PathBuf) -> Element {
     let reload_trigger = use_signal(|| 0usize);
 
     // Setup component hooks
-    use_main_script_loader();
     use_file_loader(file.clone(), html, reload_trigger, state);
     use_file_watcher(file.clone(), reload_trigger);
     use_link_click_handler(file, state);
@@ -41,25 +39,6 @@ pub fn FileViewer(file: PathBuf) -> Element {
             }
         }
     }
-}
-
-/// Hook to load the main JavaScript bundle once on mount
-fn use_main_script_loader() {
-    use_effect(|| {
-        spawn(async move {
-            let eval = document::eval(&indoc::formatdoc! {r#"
-                const {{ init }} = await import("{MAIN_SCRIPT}");
-                if (document.readyState === "loading") {{
-                    document.addEventListener("DOMContentLoaded", init);
-                }} else {{
-                    init();
-                }}
-            "#});
-            if let Err(e) = eval.await {
-                tracing::error!("Failed to load main script: {}", e);
-            }
-        });
-    });
 }
 
 /// Hook to load and render file content

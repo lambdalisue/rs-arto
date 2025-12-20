@@ -1,6 +1,6 @@
+use dioxus::desktop::tao::window::WindowId;
+use dioxus::desktop::{window, Config, WeakDesktopContext, WindowBuilder};
 use dioxus::prelude::*;
-use dioxus_desktop::tao::window::WindowId;
-use dioxus_desktop::{window, Config, WeakDesktopContext, WindowBuilder};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -11,8 +11,8 @@ use crate::components::app::{App, AppProps};
 use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
 use crate::theme::{resolve_theme, ThemePreference};
 
-mod helpers;
-use helpers::*;
+pub mod helpers;
+pub use helpers::*;
 
 struct ChildWindowEntry {
     handle: WeakDesktopContext,
@@ -53,7 +53,7 @@ thread_local! {
     static LAST_FOCUSED_WINDOW: RefCell<Option<WindowId>> = const { RefCell::new(None) };
 }
 
-fn register_main_window(handle: WeakDesktopContext) {
+pub fn register_main_window(handle: WeakDesktopContext) {
     MAIN_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
         windows.retain(|w| w.upgrade().is_some());
@@ -63,11 +63,23 @@ fn register_main_window(handle: WeakDesktopContext) {
     });
 }
 
+/// Checks if there are any visible main windows.
+///
+/// Note: With WindowCloseBehaviour::WindowHides, closed windows remain in memory
+/// with valid weak references but are not visible. We must check visibility to
+/// avoid sending events (e.g., FILE_OPEN_BROADCAST) to hidden windows, which would
+/// be invisible to users.
 pub fn has_any_main_windows() -> bool {
     MAIN_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
+        // Remove destroyed windows
         windows.retain(|w| w.upgrade().is_some());
-        !windows.is_empty()
+        // Check if any remaining windows are actually visible
+        windows.iter().any(|w| {
+            w.upgrade()
+                .and_then(|ctx| ctx.window.is_visible().then_some(true))
+                .unwrap_or(false)
+        })
     })
 }
 
@@ -166,7 +178,7 @@ pub async fn create_new_main_window_async(
     register_main_window(std::rc::Rc::downgrade(&handle));
 }
 
-fn build_custom_index(theme_preference: ThemePreference) -> String {
+pub fn build_custom_index(theme_preference: ThemePreference) -> String {
     let theme = resolve_theme(&theme_preference);
     indoc::formatdoc! {r#"
     <!DOCTYPE html>

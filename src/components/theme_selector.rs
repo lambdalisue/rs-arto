@@ -1,6 +1,5 @@
 use dioxus::document;
 use dioxus::prelude::*;
-use dioxus_core::spawn_forever;
 use dioxus_sdk_window::theme::use_system_theme;
 
 use crate::components::icon::{Icon, IconName};
@@ -44,38 +43,20 @@ pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
     // Expansion state for dropdown menu
     let mut is_expanded = use_signal(|| false);
 
-    // Setup listeners once on component mount (not on every render)
+    // Listen for clicks outside the theme selector
     use_hook(|| {
-        // Register global mousedown listener (idempotent via flag)
         spawn(async move {
-            let _ = document::eval(
-                r#"
-                if (!window.__theme_dropdown_listener) {
-                    window.__theme_dropdown_listener = true;
-                    document.addEventListener('mousedown', (e) => {
-                        const selector = e.target.closest('.theme-selector');
-                        if (!selector) {
-                            window.postMessage({ type: '__close_theme_dropdown' }, window);
-                        }
-                    });
-                }
-                "#,
-            )
-            .await;
-        });
-
-        // Listen for close messages indefinitely
-        spawn_forever(async move {
             loop {
                 let _ = document::eval(
                     r#"
                     await new Promise((resolve) => {
                         const handler = (e) => {
-                            if (e.data?.type === '__close_theme_dropdown') {
+                            const selector = e.target.closest('.theme-selector');
+                            if (!selector) {
                                 resolve();
                             }
                         };
-                        window.addEventListener('message', handler, { once: true });
+                        document.addEventListener('mousedown', handler, { once: true });
                     })
                     "#,
                 )
