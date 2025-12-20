@@ -1,7 +1,6 @@
 use dioxus::prelude::*;
 use std::path::Path;
 
-use crate::assets::MAIN_SCRIPT;
 use crate::markdown::render_to_html;
 
 #[component]
@@ -9,7 +8,6 @@ pub fn InlineViewer(markdown: String) -> Element {
     let html = use_signal(String::new);
 
     // Setup component hooks
-    use_main_script_loader();
     use_inline_markdown_loader(markdown, html);
 
     rsx! {
@@ -21,25 +19,6 @@ pub fn InlineViewer(markdown: String) -> Element {
             }
         }
     }
-}
-
-/// Hook to load the main JavaScript bundle once on mount
-fn use_main_script_loader() {
-    use_effect(|| {
-        spawn(async move {
-            let eval = document::eval(&indoc::formatdoc! {r#"
-                const {{ init }} = await import("{MAIN_SCRIPT}");
-                if (document.readyState === "loading") {{
-                    document.addEventListener("DOMContentLoaded", init);
-                }} else {{
-                    init();
-                }}
-            "#});
-            if let Err(e) = eval.await {
-                tracing::error!("Failed to load main script: {}", e);
-            }
-        });
-    });
 }
 
 /// Hook to render inline markdown content

@@ -1,3 +1,4 @@
+use dioxus::document;
 use dioxus::html::HasFileData;
 use dioxus::prelude::*;
 use dioxus_core::use_drop;
@@ -9,6 +10,7 @@ use super::header::Header;
 use super::icon::{Icon, IconName};
 use super::sidebar::Sidebar;
 use super::tab_bar::TabBar;
+use crate::assets::MAIN_SCRIPT;
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::menu;
 use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
@@ -53,6 +55,19 @@ pub fn App(
 
     // Track drag-and-drop hover state
     let mut is_dragging = use_signal(|| false);
+
+    // Initialize JavaScript main module (theme listeners, etc.)
+    use_hook(|| {
+        spawn(async move {
+            let _ = document::eval(&format!(
+                r#"
+                const {{ init }} = await import("{MAIN_SCRIPT}");
+                init();
+                "#
+            ))
+            .await;
+        });
+    });
 
     // Handle menu events (only state-dependent events, not global ones)
     use_muda_event_handler(move |event| {
