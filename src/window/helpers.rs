@@ -1,7 +1,7 @@
 use crate::config::{NewWindowBehavior, StartupBehavior, CONFIG};
 use crate::state::LAST_FOCUSED_STATE;
 use crate::theme::ThemePreference;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // ============================================================================
 // Value Types
@@ -51,28 +51,45 @@ pub fn get_theme_value(is_first_window: bool) -> ThemeValue {
     ThemeValue { theme }
 }
 
-pub fn get_directory_value(is_first_window: bool) -> DirectoryValue {
-    let cfg = CONFIG.read();
-    let directory: Option<PathBuf> = if is_first_window {
-        match cfg.directory.on_startup {
-            StartupBehavior::Default => cfg.directory.default_directory.clone(),
-            StartupBehavior::LastClosed => LAST_FOCUSED_STATE
-                .read()
-                .directory
-                .clone()
-                .or_else(|| cfg.directory.default_directory.clone()),
-        }
-    } else {
-        match cfg.directory.on_new_window {
-            NewWindowBehavior::Default => cfg.directory.default_directory.clone(),
-            NewWindowBehavior::LastFocused => LAST_FOCUSED_STATE
-                .read()
-                .directory
-                .clone()
-                .or_else(|| cfg.directory.default_directory.clone()),
+pub fn get_directory_value(
+    is_first_window: bool,
+    file: Option<impl AsRef<Path>>,
+    directory: Option<impl AsRef<Path>>,
+) -> DirectoryValue {
+    let directory = {
+        if let Some(directory) = directory.map(|v| v.as_ref().to_owned()) {
+            // Use the specified directory
+            directory
+        } else if let Some(directory) =
+            file.and_then(|v| v.as_ref().parent().map(ToOwned::to_owned))
+        {
+            // Use parent directory of the specified file
+            directory
+        } else {
+            // Use default or last directory
+            let cfg = CONFIG.read();
+            let directory: Option<PathBuf> = if is_first_window {
+                match cfg.directory.on_startup {
+                    StartupBehavior::Default => cfg.directory.default_directory.clone(),
+                    StartupBehavior::LastClosed => LAST_FOCUSED_STATE
+                        .read()
+                        .directory
+                        .clone()
+                        .or_else(|| cfg.directory.default_directory.clone()),
+                }
+            } else {
+                match cfg.directory.on_new_window {
+                    NewWindowBehavior::Default => cfg.directory.default_directory.clone(),
+                    NewWindowBehavior::LastFocused => LAST_FOCUSED_STATE
+                        .read()
+                        .directory
+                        .clone()
+                        .or_else(|| cfg.directory.default_directory.clone()),
+                }
+            };
+            resolve_directory(directory)
         }
     };
-    let directory = resolve_directory(directory);
     DirectoryValue { directory }
 }
 
@@ -156,14 +173,14 @@ mod tests {
 
     #[test]
     fn test_get_directory_value_first_window() {
-        let result = get_directory_value(true);
+        let result = get_directory_value(true, None::<PathBuf>, None::<PathBuf>);
         // Should return a DirectoryValue with a non-empty path
         assert!(!result.directory.as_os_str().is_empty());
     }
 
     #[test]
     fn test_get_directory_value_new_window() {
-        let result = get_directory_value(false);
+        let result = get_directory_value(false, None::<PathBuf>, None::<PathBuf>);
         // Should return a DirectoryValue with a non-empty path
         assert!(!result.directory.as_os_str().is_empty());
     }

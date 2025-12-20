@@ -16,11 +16,11 @@ use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
 #[component]
 pub fn App(
     file: Option<PathBuf>,
+    directory: PathBuf,
+    sidebar_open: bool,
+    sidebar_width: f64,
+    sidebar_show_all_files: bool,
     show_welcome: bool,
-    initial_directory: PathBuf,
-    initial_sidebar_visible: bool,
-    initial_sidebar_width: f64,
-    initial_show_all_files: bool,
 ) -> Element {
     // Initialize application state with optional initial file or welcome screen
     let mut state = use_context_provider(|| {
@@ -33,20 +33,20 @@ pub fn App(
             app_state.tabs.write()[0] = Tab::with_inline_content(welcome_content);
         }
         // Apply initial directory from config (for startup/new window behavior)
-        *app_state.directory.write() = Some(initial_directory.clone());
+        *app_state.directory.write() = Some(directory.clone());
         // Update last focused state for "Last Focused" behavior
-        LAST_FOCUSED_STATE.write().directory = Some(initial_directory);
+        LAST_FOCUSED_STATE.write().directory = Some(directory);
         // Apply initial sidebar settings from config
         {
             let mut sidebar = app_state.sidebar.write();
-            sidebar.open = initial_sidebar_visible;
-            sidebar.width = initial_sidebar_width;
-            sidebar.show_all_files = initial_show_all_files;
+            sidebar.open = sidebar_open;
+            sidebar.width = sidebar_width;
+            sidebar.show_all_files = sidebar_show_all_files;
             // Update last focused state for "Last Focused" behavior
             let mut state = LAST_FOCUSED_STATE.write();
-            state.sidebar_open = initial_sidebar_visible;
-            state.sidebar_width = initial_sidebar_width;
-            state.sidebar_show_all_files = initial_show_all_files;
+            state.sidebar_open = sidebar_open;
+            state.sidebar_width = sidebar_width;
+            state.sidebar_show_all_files = sidebar_show_all_files;
         }
         app_state
     });
@@ -83,16 +83,11 @@ pub fn App(
             class: "app-container",
             class: if is_dragging() { "drag-over" },
             ondragover: move |evt| {
-                // Only accept file/directory drops
-                let files = evt.files();
-                if !files.is_empty() {
-                    evt.prevent_default();
-                    is_dragging.set(true);
-                    return;
-                }
-                is_dragging.set(false);
+                evt.prevent_default();
+                is_dragging.set(true);
             },
-            ondragleave: move |_| {
+            ondragleave: move |evt| {
+                evt.prevent_default();
                 is_dragging.set(false);
             },
             ondrop: move |evt| {
@@ -129,7 +124,7 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
     }
 
     for file_data in files {
-        let path = PathBuf::from(&file_data.name());
+        let path = file_data.path();
 
         // Resolve symlinks and canonicalize the path to handle Finder sidebar items
         let resolved_path = match std::fs::canonicalize(&path) {
@@ -216,7 +211,7 @@ fn DragDropOverlay() -> Element {
                 }
                 div {
                     class: "drag-drop-text",
-                    "Drop markdown file to open"
+                    "Drop Markdown file or directory to open"
                 }
             }
         }

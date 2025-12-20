@@ -281,11 +281,11 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
 
     match id {
         MenuId::NewWindow => {
-            window::create_new_main_window(None, false);
+            window::create_new_main_window(None, None, false);
         }
         MenuId::NewTab => {
             if !window::has_any_main_windows() {
-                window::create_new_main_window(None, false);
+                window::create_new_main_window(None, None, false);
                 return true;
             }
             return false;

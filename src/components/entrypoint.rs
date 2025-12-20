@@ -49,25 +49,19 @@ pub fn Entrypoint() -> Element {
     // Extract initial file if present (directories handled separately via broadcast)
     let first_file = match &first_event {
         Some(OpenEvent::File(path)) => Some(path.clone()),
-        Some(OpenEvent::Directory(_)) => None,
         _ => None,
     };
-
-    // Clone first_event for use inside spawn
-    let first_event_for_spawn = first_event.clone();
+    let first_directory = match &first_event {
+        Some(OpenEvent::Directory(path)) => Some(path.clone()),
+        _ => None,
+    };
 
     // Create first window
     spawn(async move {
         // Create first window (theme/directory settings applied in window.rs)
+        // Directory is passed directly as parameter, no need for broadcast
         tracing::info!("Creating first child window");
-        window_manager::create_new_main_window_async(first_file.clone(), true).await;
-
-        // Handle explicit directory event (overrides config settings)
-        // Wait until window is fully initialized before sending broadcast
-        if let Some(OpenEvent::Directory(dir)) = first_event_for_spawn {
-            tracing::info!("Setting initial directory from event: {:?}", &dir);
-            let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
-        }
+        window_manager::create_new_main_window_async(first_file, first_directory, true).await;
     });
 
     // Handle open events (file opened, directory opened, or app icon clicked)
@@ -76,22 +70,22 @@ pub fn Entrypoint() -> Element {
             match event {
                 OpenEvent::File(file) => {
                     if !window_manager::has_any_main_windows() {
-                        window_manager::create_new_main_window(Some(file), false);
+                        window_manager::create_new_main_window(Some(file), None, false);
                     } else {
                         let _ = FILE_OPEN_BROADCAST.send(file);
                     }
                 }
                 OpenEvent::Directory(dir) => {
                     if !window_manager::has_any_main_windows() {
-                        // Wait for window to be fully initialized before broadcasting
-                        window_manager::create_new_main_window_async(None, false).await;
+                        window_manager::create_new_main_window(None, Some(dir), false);
+                    } else {
+                        // Broadcast directory change to all windows
+                        let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
                     }
-                    // Broadcast directory change to all windows
-                    let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
                 }
                 OpenEvent::Reopen => {
                     if !window_manager::focus_last_focused_main_window() {
-                        window_manager::create_new_main_window(None, false);
+                        window_manager::create_new_main_window(None, None, false);
                     }
                 }
             }

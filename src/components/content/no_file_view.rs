@@ -29,7 +29,7 @@ pub fn NoFileView() -> Element {
                             class: "no-file-hint-icon",
                             Icon { name: IconName::FolderOpen, size: 20 }
                         }
-                        span { class: "no-file-hint-text", "Drag and drop a markdown file here" }
+                        span { class: "no-file-hint-text", "Drag and drop a Markdown file or directory here" }
                     }
                     div {
                         class: "no-file-hint",

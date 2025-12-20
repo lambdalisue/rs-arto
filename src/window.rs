@@ -105,21 +105,30 @@ pub fn close_all_main_windows() {
     MAIN_WINDOWS.with(|w| w.borrow_mut().clear());
 }
 
-pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
+pub fn create_new_main_window(
+    file: Option<PathBuf>,
+    directory: Option<PathBuf>,
+    show_welcome: bool,
+) {
     dioxus_core::spawn(async move {
-        create_new_main_window_async(file, show_welcome).await;
+        create_new_main_window_async(file, directory, show_welcome).await;
     });
 }
 
-pub async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: bool) {
+pub async fn create_new_main_window_async(
+    file: Option<PathBuf>,
+    directory: Option<PathBuf>,
+    show_welcome: bool,
+) {
     // Check if this is the first window (0 -> 1 transition)
     // Use "On Startup" (Last Closed) for first window, "On New Window" (Last Focused) for additional
     let is_first_window = !has_any_main_windows();
 
     // Get theme from config and state
     let theme_value = get_theme_value(is_first_window);
+
     // Get directory from config and state
-    let directory_value = get_directory_value(is_first_window);
+    let directory_value = get_directory_value(is_first_window, file.as_ref(), directory);
 
     // Get sidebar settings from config and state
     let sidebar_value = get_sidebar_value(is_first_window);
@@ -130,11 +139,11 @@ pub async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: b
         App,
         AppProps {
             file,
+            directory: directory_value.directory,
+            sidebar_open: sidebar_value.open,
+            sidebar_width: sidebar_value.width,
+            sidebar_show_all_files: sidebar_value.show_all_files,
             show_welcome,
-            initial_directory: directory_value.directory,
-            initial_sidebar_visible: sidebar_value.open,
-            initial_sidebar_width: sidebar_value.width,
-            initial_show_all_files: sidebar_value.show_all_files,
         },
     );
     // Set None for child window menu to avoid panic when closing windows.

@@ -48,11 +48,11 @@ pub fn FileExplorer() -> Element {
     rsx! {
         div {
             class: "file-explorer",
+            key: "{refresh_counter}",
 
             if let Some(root) = root_directory {
                 ParentNavigation { current_dir: root.clone(), refresh_counter }
-                // Use refresh_counter as key to force re-render when reloading
-                DirectoryTree { key: "{refresh_counter}", path: root }
+                DirectoryTree { path: root }
             } else {
                 div {
                     class: "file-explorer-empty",

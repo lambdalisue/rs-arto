@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const icons = [
   "sun",
   "moon",
-  "contrast-2",
+  "sun-moon",
   "chevron-left",
   "chevron-right",
   "chevron-down",

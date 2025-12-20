@@ -87,7 +87,7 @@ pub fn PreferencesView() -> Element {
                             active_tab.set(PreferencesTab::Theme);
                             *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::Theme;
                         },
-                        Icon { name: IconName::Contrast2, size: 18 }
+                        Icon { name: IconName::SunMoon, size: 18 }
                         span { "Theme" }
                     }
                     button {
