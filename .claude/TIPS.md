@@ -733,12 +733,12 @@ pub struct PersistedState {
 
 **Layer 1: mpsc channel (OS → Dioxus context)**
 - `OPEN_EVENT_RECEIVER` receives OS events (File Open, App Reopen)
-- Single consumer: `Entrypoint` component
+- Single consumer: `MainApp` component
 - `take()` ensures one-time consumption
 
-**Layer 2: broadcast channels (Entrypoint → multiple windows)**
+**Layer 2: broadcast channels (MainApp → multiple windows)**
 - `FILE_OPEN_BROADCAST` / `DIRECTORY_OPEN_BROADCAST`
-- Producer: `Entrypoint` component
+- Producer: `MainApp` component
 - Consumers: All `App` components (each window subscribes)
 
 **Layer 3: Focus-based filtering**
@@ -753,12 +753,12 @@ pub struct PersistedState {
 
 **Key pattern:**
 ```rust
-// Entrypoint: OS event → broadcast
-crate::state::OpenEvent::File(file) => {
+// MainApp: OS event → broadcast
+components::main_app::OpenEvent::File(file) => {
     if !window_manager::has_any_main_windows() {
-        window_manager::create_new_main_window(Some(file), false);
+        window_manager::create_new_main_window(Some(file), None, false);
     } else {
-        let _ = crate::state::FILE_OPEN_BROADCAST.send(file);
+        let _ = FILE_OPEN_BROADCAST.send(file);
     }
 }
 
@@ -803,7 +803,7 @@ src/state/globals.rs    # ← Contains event channels because "global"
 **Good pattern: Grouping by usage scope**
 ```
 src/events.rs                    # ← Broadcast channels (multiple files)
-src/components/entrypoint.rs     # ← OpenEvent + mpsc receiver (2 files only)
+src/components/main_app.rs       # ← OpenEvent + mpsc receiver (2 files only)
 ```
 
 **Decision tree for placement:**
@@ -812,11 +812,11 @@ src/components/entrypoint.rs     # ← OpenEvent + mpsc receiver (2 files only)
 How many files use this code?
 ├─ 2 files only
 │  └─ Define in one of the two files
-│     Example: OpenEvent in entrypoint.rs (main.rs ↔ entrypoint.rs)
+│     Example: OpenEvent in main_app.rs (main.rs ↔ main_app.rs)
 │
 └─ 3+ files
    └─ Create independent module
-      Example: FILE_OPEN_BROADCAST in events.rs (entrypoint.rs → multiple app.rs)
+      Example: FILE_OPEN_BROADCAST in events.rs (main_app.rs → multiple app.rs)
 ```
 
 **Real example from session:**
@@ -826,8 +826,8 @@ Initial (wrong):
 - Problem: `OPEN_EVENT_RECEIVER` (2 files) mixed with `FILE_OPEN_BROADCAST` (many files)
 
 Final (correct):
-- `components/entrypoint.rs`: `OpenEvent` + `OPEN_EVENT_RECEIVER` (main.rs ↔ entrypoint.rs only)
-- `events.rs`: `FILE_OPEN_BROADCAST` + `DIRECTORY_OPEN_BROADCAST` (entrypoint.rs → multiple app.rs)
+- `components/main_app.rs`: `OpenEvent` + `OPEN_EVENT_RECEIVER` (main.rs ↔ main_app.rs only)
+- `events.rs`: `FILE_OPEN_BROADCAST` + `DIRECTORY_OPEN_BROADCAST` (main_app.rs → multiple app.rs)
 
 **Insight**: Don't group by "what it is" (globals, events, state). Group by "where it's used" (2 files vs many files).
 
@@ -839,28 +839,28 @@ Final (correct):
 ```rust
 // Single module with mixed responsibilities
 pub static OPEN_EVENT_RECEIVER: ...;       // Layer 1: OS → Dioxus
-pub static FILE_OPEN_BROADCAST: ...;        // Layer 2: Entrypoint → Apps
+pub static FILE_OPEN_BROADCAST: ...;        // Layer 2: MainApp → Apps
 ```
 
 **Good approach - separate by layer:**
 ```rust
-// Layer 1: OS → Dioxus (entrypoint.rs)
+// Layer 1: OS → Dioxus (main_app.rs)
 pub enum OpenEvent { ... }
 pub static OPEN_EVENT_RECEIVER: Mutex<Option<Receiver<OpenEvent>>> = ...;
 
-// Layer 2: Entrypoint → Apps (events.rs)
+// Layer 2: MainApp → Apps (events.rs)
 pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> = ...;
 ```
 
 **Questions to ask:**
-1. What are the communication boundaries? (OS/Dioxus, Entrypoint/Apps)
+1. What are the communication boundaries? (OS/Dioxus, MainApp/Apps)
 2. What crosses each boundary? (OpenEvent, PathBuf)
 3. Who are the senders/receivers? (1:1 vs 1:N)
 4. Where should the channel live? (Closer to the unique side)
 
 **Pattern from session:**
-- Layer 1 (mpsc): OS event handler → single Entrypoint → use `Mutex<Option<Receiver>>`
-- Layer 2 (broadcast): Entrypoint → multiple Apps → use `LazyLock<broadcast::Sender>`
+- Layer 1 (mpsc): OS event handler → single MainApp → use `Mutex<Option<Receiver>>`
+- Layer 2 (broadcast): MainApp → multiple Apps → use `LazyLock<broadcast::Sender>`
 - Don't mix layers in the same module just because they're "event-related"
 
 ---
@@ -900,6 +900,49 @@ pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> = ...;
 - Use `use_effect()` to setup event listeners once, not on every state change
 - Use `postMessage` for JavaScript → Rust communication when dealing with async events
 - Keep external click detection simple: one listener setup, one message listener loop
+
+---
+
+## Session: 2025-12-21 16:30
+
+### Eliminating Background Window Workaround
+
+- **Problem Solved**: Removed 1x1 hidden background window pattern that was a workaround for Dioxus v0.6 issues
+- **Solution**: MainApp component now renders the first visible window directly, not a background window
+- **Key Change**: First window uses MainApp (with system event handling), additional windows use App directly
+- **Critical Fix**: Must register first window in `MAIN_WINDOWS` list via `register_main_window()` or `has_any_main_windows()` will always return false
+
+### Initialization Order Bugs
+
+- **Channel Creation**: Must create tokio mpsc channel BEFORE trying to read from receiver (obvious but easy to miss during refactoring)
+- **Event Timing**: Initial OS events (file open from Finder) arrive BEFORE Dioxus starts, so must consume them inside component after launch, not in `main()`
+- **Window Registration**: First window must be registered in `MAIN_WINDOWS` for window counting logic to work
+
+### Dioxus Signal Lifetime Issues
+
+- **spawn_forever Warning**: Using `spawn_forever` with component-scoped signals causes lifetime warnings because task outlives component
+- **Solution**: Use `use_hook` + `spawn` instead - task is automatically cancelled when component drops
+- **When spawn_forever IS correct**: Only for app-lifetime components like MainApp that live until app quits
+- **Pattern**: `use_effect` + `spawn` for reactive listeners, `use_hook` + `spawn` for one-time infinite loops
+
+### JavaScript Initialization
+
+- **Problem**: `init()` in web/src/main.ts only called when opening files, not on window creation
+- **Fix**: Call `init()` in App component's `use_hook` to ensure theme listeners are registered in all windows
+- **Cleanup**: Remove redundant `init()` calls from FileViewer and InlineViewer (DRY principle)
+- **Result**: 90 lines of code removed by centralizing initialization
+
+### Review Process
+
+- **User Expectation**: When rebasing, don't just delete conflicting files - check what changes were in origin and ensure they're migrated
+- **Copilot Comments**: GitHub Copilot leaves inline code comments, not just PR summaries - must query API differently to find them
+- **Critical vs Nitpicks**: Address critical issues (initialization bugs, missing features) immediately; batch low-priority fixes (typos, alphabetization) with fixup commits
+
+### Code Simplification Philosophy
+
+- **User Feedback**: "複雑化しすぎ" (too complex) - always prefer simple solutions over elaborate architectures
+- **Example**: Instead of global broadcast channels + polling + multiple spawns, just use `use_hook` + `spawn` with simple event listener
+- **Principle**: Only add complexity when simple approach genuinely doesn't work
 
 ---
 

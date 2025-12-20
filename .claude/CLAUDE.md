@@ -22,23 +22,18 @@
 
 ### Window Management & Lifecycle
 
-**Arto uses a multi-window architecture with a hidden background window:**
+**Arto uses a multi-window architecture:**
 
 #### Window Types
 
-1. **Background Entrypoint Window** (hidden)
-   - Created at startup, never shown to user
+1. **Main Windows** (user-visible)
+   - First window launched from `main()` uses MainApp component
    - Handles system events: file open, app reopen
-   - Prevents multiple app instances
-   - Required for macOS menu system
-   - Parent of all main windows
-
-2. **Main Windows** (user-visible)
-   - Created on demand (File → New Window)
+   - Uses `WindowCloseBehaviour::WindowHides` (last window hides instead of quitting)
+   - Additional windows created on demand (File → New Window)
    - Each has independent tabs and state
-   - Child windows properly close when parent closes
 
-3. **Child Windows** (specialized)
+2. **Child Windows** (specialized)
    - Mermaid diagram viewer, etc.
    - Owned by a parent main window
    - Auto-close when parent closes
@@ -46,19 +41,25 @@
 #### Window Creation Pattern
 
 ```rust
-// Initial window (async startup)
-let initial_dir = config::get_startup_directory().await;
-let initial_theme = config::get_startup_theme().await;
-window::open_window(initial_dir, Some(initial_theme)).await?;
+// First window (synchronous initialization in main())
+let is_first_window = true;
+let theme_value = window::helpers::get_theme_value(is_first_window);
+let directory_value = window::helpers::get_directory_value(is_first_window, file.as_ref(), directory);
+let sidebar_value = window::helpers::get_sidebar_value(is_first_window);
 
-// New window (sync, uses last focused state)
-let new_dir = config::get_new_window_directory();
-let new_theme = config::get_new_window_theme();
-window::open_window_sync(new_dir, Some(new_theme));
+// Launch MainApp with pre-resolved values
+dioxus::LaunchBuilder::desktop()
+    .with_cfg(config)
+    .launch(components::main_app::MainApp);
+
+// Additional windows (async creation)
+window_manager::create_new_main_window(file, directory, show_welcome);
 ```
 
 **Key differences:**
-- **Startup**: Uses `Session` from `state.json` (last closed window)
+- **First window**: Resolved synchronously in `main()` before Dioxus launch (eliminates flash)
+- **Additional windows**: Created asynchronously using helper functions
+- **Startup**: Uses `PersistedState` from `state.json` (last closed window)
 - **New Window**: Uses in-memory globals (last focused window)
 
 #### Window Lifecycle Hooks
@@ -253,16 +254,21 @@ Menu events are handled in two places:
 
 **1. Global Handler** (no state access):
 ```rust
-// In entrypoint.rs
-menu_event.listen(move |event: MenuEvent| {
+// In main_app.rs
+use_muda_event_handler(move |event| {
+    crate::menu::handle_menu_event_global(event);
+});
+
+// In menu.rs
+pub fn handle_menu_event_global(event: MenuEvent) {
     match event.id.as_ref().parse::<MenuId>() {
         MenuId::NewWindow => {
-            window::open_window_sync(None, None);
+            window_manager::create_new_main_window(None, None, false);
         }
         // Other global actions...
         _ => {}
     }
-});
+}
 ```
 
 **2. State-Dependent Handler** (in App component):
