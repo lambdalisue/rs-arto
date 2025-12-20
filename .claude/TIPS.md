@@ -865,6 +865,44 @@ pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> = ...;
 
 ---
 
+---
+
+## Session: 2025-12-21 16:45
+
+### Theme Selector Slide Dropdown Implementation
+
+**UI Design Patterns:**
+- Transform CSS for vertical-only slide: Use `translateX(-50%)` for centering in BOTH initial and expanded states, only animate `translateY(-8px)` → `translateY(0)`
+- Faint icons by default: `opacity: 0.5` for inactive state, `opacity: 1` on hover and when expanded (`aria-expanded="true"`)
+- Icon choice: `sun-moon` (Tabler Icons) is ideal for Auto theme (system follows) instead of generic `contrast-2`
+
+**Dioxus + JavaScript Integration:**
+- **Critical**: In `document::eval()`, JavaScript Promises MUST use `await`: `await new Promise((resolve) => {...})`
+- Without `await`, the JavaScript Promise isn't waited for - execution continues without waiting for the event
+- Pattern for outside-click detection:
+  ```rust
+  let _ = document::eval(r#"
+      await new Promise((resolve) => {
+          const handler = (e) => {
+              if (condition) resolve();
+          };
+          window.addEventListener('event', handler, { once: true });
+      })
+  "#).await;
+  ```
+
+**User Feedback:**
+- Don't change specs without permission: When debugging, stick to original requirements (user said "don't change specs arbitrarily" when ESC key close was suggested)
+- Avoid over-engineering: Simple solutions preferred over complex abstractions (user said "too much ripple effect" when global signals were added)
+- Root cause analysis matters: User correctly identified "simple issue - just missing await" after multiple wrong attempts at fixing
+
+**Component State Management:**
+- Use `use_effect()` to setup event listeners once, not on every state change
+- Use `postMessage` for JavaScript → Rust communication when dealing with async events
+- Keep external click detection simple: one listener setup, one message listener loop
+
+---
+
 ## Further Reading
 
 - **CLAUDE.md**: Full architectural patterns and guidelines
