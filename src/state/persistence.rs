@@ -86,7 +86,14 @@ impl PersistedState {
     pub fn save(&self) {
         let path = Self::path();
 
-        tracing::debug!(path = %path.display(), ?self, "Saving persisted state");
+        tracing::debug!(
+            path = %path.display(),
+            theme = ?self.theme,
+            sidebar_open = self.sidebar_open,
+            sidebar_width = self.sidebar_width,
+            sidebar_show_all_files = self.sidebar_show_all_files,
+            "Saving persisted state"
+        );
 
         // Save to file synchronously
         if let Some(parent) = path.parent() {

@@ -60,9 +60,10 @@ pub fn Entrypoint() -> Element {
     spawn(async move {
         // Create first window (theme/directory settings applied in window.rs)
         tracing::info!("Creating first child window");
-        window_manager::create_new_main_window(first_file.clone(), true);
+        window_manager::create_new_main_window_async(first_file.clone(), true).await;
 
         // Handle explicit directory event (overrides config settings)
+        // Wait until window is fully initialized before sending broadcast
         if let Some(OpenEvent::Directory(dir)) = first_event_for_spawn {
             tracing::info!("Setting initial directory from event: {:?}", &dir);
             let _ = DIRECTORY_OPEN_BROADCAST.send(dir);

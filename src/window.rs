@@ -111,7 +111,7 @@ pub fn create_new_main_window(file: Option<PathBuf>, show_welcome: bool) {
     });
 }
 
-async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: bool) {
+pub async fn create_new_main_window_async(file: Option<PathBuf>, show_welcome: bool) {
     // Check if this is the first window (0 -> 1 transition)
     // Use "On Startup" (Last Closed) for first window, "On New Window" (Last Focused) for additional
     let is_first_window = !has_any_main_windows();
