@@ -328,7 +328,7 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
             state.open_preferences();
         }
         MenuId::NewTab => {
-            state.add_tab(None, true);
+            state.add_empty_tab(true);
         }
         MenuId::Open => {
             if let Some(file) = pick_markdown_file() {
@@ -348,7 +348,7 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
             // Close all tabs except one, then clear it
             let mut tabs = state.tabs.write();
             tabs.clear();
-            tabs.push(crate::state::Tab::new(None));
+            tabs.push(crate::state::Tab::default());
             state.active_tab.set(0);
         }
         MenuId::CloseWindow => {
@@ -373,14 +373,14 @@ pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> 
         MenuId::GoBack => {
             state.update_current_tab(|tab| {
                 if let Some(path) = tab.history.go_back() {
-                    tab.content = crate::state::TabContent::File(path);
+                    tab.content = crate::state::TabContent::File(path.to_owned());
                 }
             });
         }
         MenuId::GoForward => {
             state.update_current_tab(|tab| {
                 if let Some(path) = tab.history.go_forward() {
-                    tab.content = crate::state::TabContent::File(path);
+                    tab.content = crate::state::TabContent::File(path.to_owned());
                 }
             });
         }

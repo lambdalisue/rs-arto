@@ -1,7 +1,7 @@
 use super::AppState;
 use crate::history::HistoryManager;
 use dioxus::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Content source for a tab
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -20,26 +20,23 @@ pub enum TabContent {
 }
 
 /// Represents a single tab with its content and navigation history
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Tab {
     pub content: TabContent,
     pub history: HistoryManager,
 }
 
 impl Tab {
-    pub fn new(file: Option<PathBuf>) -> Self {
+    pub fn new(file: impl Into<PathBuf>) -> Self {
+        let file = file.into();
         let mut history = HistoryManager::new();
-        let content = match file {
-            Some(path) => {
-                history.push(path.clone());
-                TabContent::File(path)
-            }
-            None => TabContent::None,
-        };
+        history.push(file.clone());
+        let content = TabContent::File(file);
         Self { content, history }
     }
 
-    pub fn with_inline_content(content: String) -> Self {
+    pub fn with_inline_content(content: impl Into<String>) -> Self {
+        let content = content.into();
         Self {
             content: TabContent::Inline(content),
             history: HistoryManager::new(),
@@ -47,7 +44,7 @@ impl Tab {
     }
 
     /// Get the file path if this tab has a file
-    pub fn file(&self) -> Option<&PathBuf> {
+    pub fn file(&self) -> Option<&Path> {
         match &self.content {
             TabContent::File(path) | TabContent::FileError(path, _) => Some(path),
             _ => None,
@@ -63,7 +60,8 @@ impl Tab {
     }
 
     /// Navigate to a file in this tab
-    pub fn navigate_to(&mut self, file: PathBuf) {
+    pub fn navigate_to(&mut self, file: impl Into<PathBuf>) {
+        let file = file.into();
         self.history.push(file.clone());
         self.content = TabContent::File(file);
     }
@@ -91,9 +89,20 @@ impl AppState {
     }
 
     /// Add a new tab and optionally switch to it
-    pub fn add_tab(&mut self, file: Option<PathBuf>, switch_to: bool) {
+    pub fn add_tab(&mut self, file: impl Into<PathBuf>, switch_to: bool) {
         let mut tabs = self.tabs.write();
         tabs.push(Tab::new(file));
+
+        if switch_to {
+            let new_tab_index = tabs.len() - 1;
+            self.active_tab.set(new_tab_index);
+        }
+    }
+
+    /// Add a new tab and optionally switch to it
+    pub fn add_empty_tab(&mut self, switch_to: bool) {
+        let mut tabs = self.tabs.write();
+        tabs.push(Tab::default());
 
         if switch_to {
             let new_tab_index = tabs.len() - 1;
@@ -108,7 +117,7 @@ impl AppState {
         // Keep at least one tab (clear it instead of removing)
         if tabs.len() <= 1 {
             if let Some(tab) = tabs.first_mut() {
-                *tab = Tab::new(None);
+                *tab = Tab::default();
             }
             return;
         }
@@ -145,7 +154,8 @@ impl AppState {
     }
 
     /// Find the index of a tab that has the specified file open
-    pub fn find_tab_with_file(&self, file: &PathBuf) -> Option<usize> {
+    pub fn find_tab_with_file(&self, file: impl AsRef<Path>) -> Option<usize> {
+        let file = file.as_ref();
         let tabs = self.tabs.read();
         tabs.iter()
             .position(|tab| tab.file().map(|f| f == file).unwrap_or(false))
@@ -153,9 +163,10 @@ impl AppState {
 
     /// Open a file, reusing NoFile tab or existing tab with the same file if possible
     /// Used when opening from sidebar or external sources
-    pub fn open_file(&mut self, file: PathBuf) {
+    pub fn open_file(&mut self, file: impl AsRef<Path>) {
+        let file = file.as_ref();
         // Check if the file is already open in another tab
-        if let Some(tab_index) = self.find_tab_with_file(&file) {
+        if let Some(tab_index) = self.find_tab_with_file(file) {
             // Switch to the existing tab instead of creating a new one
             self.switch_to_tab(tab_index);
         } else if self.is_current_tab_no_file() {
@@ -165,13 +176,13 @@ impl AppState {
             });
         } else {
             // Otherwise, create a new tab
-            self.add_tab(Some(file), true);
+            self.add_tab(file, true);
         }
     }
 
     /// Navigate to a file in the current tab (for in-tab navigation like markdown links)
     /// Always opens in current tab regardless of whether file is open elsewhere
-    pub fn navigate_to_file(&mut self, file: PathBuf) {
+    pub fn navigate_to_file(&mut self, file: impl Into<PathBuf>) {
         self.update_current_tab(|tab| {
             tab.navigate_to(file);
         });
@@ -215,7 +226,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tab_default() {
+    fn test_tab_empty() {
         let tab = Tab::default();
         assert_eq!(tab.content, TabContent::None);
         assert!(tab.is_no_file());
@@ -224,18 +235,11 @@ mod tests {
     #[test]
     fn test_tab_new_with_file() {
         let path = PathBuf::from("/test/file.md");
-        let tab = Tab::new(Some(path.clone()));
+        let tab = Tab::new(path.clone());
 
         assert_eq!(tab.content, TabContent::File(path.clone()));
-        assert_eq!(tab.file(), Some(&path));
+        assert_eq!(tab.file(), Some(path.as_path()));
         assert!(!tab.is_no_file());
-    }
-
-    #[test]
-    fn test_tab_new_without_file() {
-        let tab = Tab::new(None);
-        assert_eq!(tab.content, TabContent::None);
-        assert!(tab.is_no_file());
     }
 
     #[test]
@@ -250,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_tab_is_no_file() {
-        assert!(Tab::new(None).is_no_file());
+        assert!(Tab::default().is_no_file());
         assert!(Tab::with_inline_content("test".to_string()).is_no_file());
 
         let tab = Tab {
@@ -280,18 +284,18 @@ mod tests {
         tab.navigate_to(path.clone());
 
         assert_eq!(tab.content, TabContent::File(path.clone()));
-        assert_eq!(tab.file(), Some(&path));
+        assert_eq!(tab.file(), Some(path.as_path()));
     }
 
     #[test]
     fn test_tab_file() {
         let path = PathBuf::from("/test/file.md");
 
-        let mut tab = Tab::new(Some(path.clone()));
-        assert_eq!(tab.file(), Some(&path));
+        let mut tab = Tab::new(path.clone());
+        assert_eq!(tab.file(), Some(path.as_path()));
 
         tab.content = TabContent::FileError(path.clone(), "error".to_string());
-        assert_eq!(tab.file(), Some(&path));
+        assert_eq!(tab.file(), Some(path.as_path()));
 
         tab.content = TabContent::None;
         assert_eq!(tab.file(), None);

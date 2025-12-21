@@ -179,7 +179,7 @@ pub async fn create_new_main_window_async(
 }
 
 pub fn build_custom_index(theme_preference: ThemePreference) -> String {
-    let theme = resolve_theme(&theme_preference);
+    let theme = resolve_theme(theme_preference);
     indoc::formatdoc! {r#"
     <!DOCTYPE html>
     <html>
@@ -292,7 +292,7 @@ async fn create_and_register_mermaid_window(
 }
 
 fn build_mermaid_window_index(theme: ThemePreference) -> String {
-    let resolved_theme = resolve_theme(&theme);
+    let resolved_theme = resolve_theme(theme);
     indoc::formatdoc! {r#"
     <!DOCTYPE html>
     <html>

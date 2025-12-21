@@ -77,8 +77,6 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
         .unwrap_or("..")
         .to_string();
 
-    let mut state_for_toggle = state;
-
     // Reload state for animation
     let is_reloading = use_signal(|| false);
     let mut is_reloading_write = is_reloading;
@@ -165,7 +163,7 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
                     class: "file-explorer-toolbar-button",
                     title: if show_all_files { "Hide non-markdown files" } else { "Show all files" },
                     onclick: move |_| {
-                        state_for_toggle.sidebar.write().show_all_files = !show_all_files;
+                        state.sidebar.write().show_all_files = !show_all_files;
                     },
                     Icon {
                         name: if show_all_files { IconName::Eye } else { IconName::EyeOff },
@@ -193,7 +191,7 @@ fn DirectoryTree(path: PathBuf) -> Element {
 
 #[component]
 fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
-    let state = use_context::<AppState>();
+    let mut state = use_context::<AppState>();
 
     let is_dir = path.is_dir();
     let is_expanded = state.sidebar.read().expanded_dirs.contains(&path);
@@ -214,16 +212,10 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
 
     let current_tab = state.current_tab();
     let is_active = current_tab
-        .and_then(|tab| tab.file().map(|f| f == &path))
+        .and_then(|tab| tab.file().map(|f| f == path))
         .unwrap_or(false);
 
     let indent_style = format!("padding-left: {}px", depth * 20);
-
-    let mut state_for_click = state;
-    let path_for_click = path.clone();
-    let mut state_for_enter = state;
-    let path_for_enter = path.clone();
-    let path_for_copy = path.clone();
 
     // Copy feedback state
     let mut is_copied = use_signal(|| false);
@@ -236,13 +228,15 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
             div {
                 class: "file-tree-node-content",
                 style: "{indent_style}",
-                onclick: move |_| {
-                    let path_clone = path_for_click.clone();
-                    if is_dir {
-                        state_for_click.toggle_directory_expansion(path_clone);
-                    } else {
-                        // Open any file (not just markdown)
-                        state_for_click.open_file(path_clone);
+                onclick: {
+                    let path = path.clone();
+                    move |_| {
+                        if is_dir {
+                            state.toggle_directory_expansion(&path);
+                        } else {
+                            // Open any file (not just markdown)
+                            state.open_file(&path);
+                        }
                     }
                 },
 
@@ -280,11 +274,13 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                     button {
                         class: "file-tree-enter-button",
                         title: "Open as root directory",
-                        onclick: move |evt| {
-                            // Prevent triggering parent click handler
-                            evt.stop_propagation();
-                            let path_clone = path_for_enter.clone();
-                            state_for_enter.set_root_directory(path_clone);
+                        onclick: {
+                            let path = path.clone();
+                            move |evt| {
+                                // Prevent triggering parent click handler
+                                evt.stop_propagation();
+                                state.set_root_directory(&path);
+                            }
                         },
                         span { class: "file-tree-enter-label", "Enter" }
                         Icon {
@@ -301,7 +297,7 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                     title: "Copy full path",
                     onclick: move |evt| {
                         evt.stop_propagation();
-                        let path_str = path_for_copy.to_string_lossy().to_string();
+                        let path_str = path.to_string_lossy().to_string();
                         // Escape backticks and backslashes for JavaScript
                         let escaped = path_str.replace('\\', "\\\\").replace('`', "\\`");
                         spawn(async move {

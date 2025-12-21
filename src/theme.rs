@@ -19,7 +19,7 @@ impl From<&str> for ThemePreference {
     }
 }
 
-pub fn resolve_theme(theme: &ThemePreference) -> Theme {
+pub fn resolve_theme(theme: ThemePreference) -> Theme {
     match theme {
         // NOTE:
         // We cannot use dioxus_sdk_window::theme::get_theme here because

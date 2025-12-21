@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 use thiserror::Error;
-use tokio::sync::mpsc::{self, Sender};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Debug, Error)]
 pub enum WatcherError {
@@ -126,15 +126,19 @@ impl FileWatcher {
     }
 
     /// Watch a file and receive notifications when it changes
-    pub async fn watch(&self, path: PathBuf, tx: Sender<()>) -> WatcherResult<()> {
+    pub async fn watch(&self, path: impl Into<PathBuf>) -> WatcherResult<Receiver<()>> {
+        let path = path.into();
+        let (tx, rx) = mpsc::channel(100);
         self.command_tx
             .send(FileWatcherCommand::Watch(path, tx))
             .await
-            .map_err(|_| WatcherError::CommandFailed)
+            .map_err(|_| WatcherError::CommandFailed)?;
+        Ok(rx)
     }
 
     /// Stop watching a file
-    pub async fn unwatch(&self, path: PathBuf) -> WatcherResult<()> {
+    pub async fn unwatch(&self, path: impl Into<PathBuf>) -> WatcherResult<()> {
+        let path = path.into();
         self.command_tx
             .send(FileWatcherCommand::Unwatch(path))
             .await
