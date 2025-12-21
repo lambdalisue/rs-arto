@@ -7,10 +7,10 @@ use crate::state::{AppState, TabContent};
 
 #[component]
 pub fn Header() -> Element {
-    let state = use_context::<AppState>();
+    let mut state = use_context::<AppState>();
 
     let current_tab = state.current_tab();
-    let file_path = current_tab.as_ref().and_then(|tab| tab.file()).cloned();
+    let file_path = current_tab.as_ref().and_then(|tab| tab.file());
     let file = file_path
         .as_ref()
         .map(|f| {
@@ -30,23 +30,18 @@ pub fn Header() -> Element {
 
     let is_sidebar_open = state.sidebar.read().open;
 
-    let mut state_for_back = state;
-    let mut state_for_forward = state;
-    let mut state_for_sidebar = state;
-    let mut state_for_reload = state;
-
     let on_back = move |_| {
-        state_for_back.update_current_tab(|tab| {
+        state.update_current_tab(|tab| {
             if let Some(path) = tab.history.go_back() {
-                tab.content = crate::state::TabContent::File(path);
+                tab.content = crate::state::TabContent::File(path.to_owned());
             }
         });
     };
 
     let on_forward = move |_| {
-        state_for_forward.update_current_tab(|tab| {
+        state.update_current_tab(|tab| {
             if let Some(path) = tab.history.go_forward() {
-                tab.content = crate::state::TabContent::File(path);
+                tab.content = crate::state::TabContent::File(path.to_owned());
             }
         });
     };
@@ -58,10 +53,10 @@ pub fn Header() -> Element {
         // Set reloading state
         is_reloading_write.set(true);
 
-        state_for_reload.update_current_tab(|tab| {
-            if let Some(path) = tab.file().cloned() {
+        state.update_current_tab(|tab| {
+            if let Some(path) = tab.file() {
                 // Reload by reassigning the same file path
-                tab.content = crate::state::TabContent::File(path);
+                tab.content = crate::state::TabContent::File(path.to_owned());
             }
         });
 
@@ -91,7 +86,7 @@ pub fn Header() -> Element {
                     class: "sidebar-toggle-button",
                     class: if is_sidebar_open { "active" },
                     onclick: move |_| {
-                        state_for_sidebar.toggle_sidebar();
+                        state.toggle_sidebar();
                     },
                     Icon {
                         name: IconName::Sidebar,
@@ -122,7 +117,7 @@ pub fn Header() -> Element {
                 }
 
                 // Copy path button
-                if let Some(ref path) = file_path {
+                if let Some(path) = file_path {
                     button {
                         class: "nav-button copy-button",
                         class: if *is_copied.read() { "copied" },
@@ -168,7 +163,6 @@ pub fn Header() -> Element {
 
                 // Preferences button
                 {
-                    let mut state_for_prefs = state;
                     let is_preferences_active = current_tab
                         .as_ref()
                         .is_some_and(|tab| matches!(tab.content, TabContent::Preferences));
@@ -178,7 +172,7 @@ pub fn Header() -> Element {
                             class: if is_preferences_active { "active" },
                             title: "Preferences",
                             onclick: move |_| {
-                                state_for_prefs.open_preferences();
+                                state.open_preferences();
                             },
                             Icon { name: IconName::Gear, size: 18 }
                         }

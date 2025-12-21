@@ -26,13 +26,7 @@ pub fn Content() -> Element {
 
     // Use CSS zoom property for vector-based scaling (not transform: scale)
     // This ensures fonts and images remain sharp at any zoom level
-    // Note: Preferences page has its own layout, so we skip zoom for it
-    let is_preferences = matches!(content, Some(TabContent::Preferences));
-    let zoom_style = if is_preferences {
-        String::new()
-    } else {
-        format!("zoom: {};", zoom_level())
-    };
+    let zoom_style = format!("zoom: {};", zoom_level());
 
     rsx! {
         div {

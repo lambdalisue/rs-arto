@@ -46,13 +46,12 @@ fn use_file_loader(
     file: PathBuf,
     html: Signal<String>,
     reload_trigger: Signal<usize>,
-    state: AppState,
+    mut state: AppState,
 ) {
     use_effect(use_reactive!(|file, reload_trigger| {
         let mut html = html;
         let _ = reload_trigger();
         let file = file.clone();
-        let mut state_for_error = state;
 
         spawn(async move {
             tracing::info!("Loading and rendering file: {:?}", &file);
@@ -101,7 +100,7 @@ fn use_file_loader(
 
                     // Update tab content to FileError
                     let file_clone = file.clone();
-                    state_for_error.update_current_tab(move |tab| {
+                    state.update_current_tab(move |tab| {
                         tab.content = TabContent::FileError(file_clone, error_msg);
                     });
                     html.set(String::new());
@@ -119,18 +118,19 @@ fn use_file_watcher(file: PathBuf, reload_trigger: Signal<usize>) {
 
         spawn(async move {
             let file_path = file.clone();
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(10);
+            let mut watcher = match FILE_WATCHER.watch(file_path.clone()).await {
+                Ok(watcher) => watcher,
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to register file watcher for {:?}: {:?}",
+                        file_path,
+                        e
+                    );
+                    return;
+                }
+            };
 
-            if let Err(e) = FILE_WATCHER.watch(file_path.clone(), tx).await {
-                tracing::error!(
-                    "Failed to register file watcher for {:?}: {:?}",
-                    file_path,
-                    e
-                );
-                return;
-            }
-
-            while rx.recv().await.is_some() {
+            while watcher.recv().await.is_some() {
                 tracing::info!("File change detected, reloading: {:?}", file_path);
                 reload_trigger.set(reload_trigger() + 1);
             }
@@ -189,7 +189,7 @@ fn handle_link_click(click_data: LinkClickData, base_dir: &Path, state: &mut App
     match button {
         MIDDLE_CLICK => {
             // Open in new tab (always create a new tab for middle-click)
-            state.add_tab(Some(canonical_path), true);
+            state.add_tab(canonical_path, true);
         }
         LEFT_CLICK => {
             // Navigate in current tab (in-tab navigation, no existing tab check)

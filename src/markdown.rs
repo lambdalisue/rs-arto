@@ -5,7 +5,10 @@ use pulldown_cmark::{html, CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
 use std::path::{Path, PathBuf};
 
 /// Render Markdown to HTML
-pub fn render_to_html(markdown: &str, base_path: &Path) -> Result<String> {
+pub fn render_to_html(markdown: impl AsRef<str>, base_path: impl AsRef<Path>) -> Result<String> {
+    let markdown = markdown.as_ref();
+    let base_path = base_path.as_ref();
+
     // Enable GitHub Flavored Markdown options
     let options = Options::all();
 

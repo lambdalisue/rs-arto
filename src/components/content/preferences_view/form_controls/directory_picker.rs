@@ -18,10 +18,12 @@ pub fn DirectoryPicker(
         });
     };
 
-    let current_dir_clone = current_directory.clone();
-    let handle_use_current = move |_| {
-        if current_dir_clone.is_some() {
-            on_change.call(current_dir_clone.clone());
+    let handle_use_current = {
+        let current_dir = current_directory.clone();
+        move |_| {
+            if current_dir.is_some() {
+                on_change.call(current_dir.clone());
+            }
         }
     };
 

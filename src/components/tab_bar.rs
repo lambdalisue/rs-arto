@@ -45,19 +45,15 @@ pub fn TabBar() -> Element {
 
 #[component]
 fn TabItem(index: usize, tab: crate::state::Tab, is_active: bool) -> Element {
-    let state = use_context::<AppState>();
+    let mut state = use_context::<AppState>();
     let tab_name = get_tab_display_name(&tab);
-
-    // Clone state for event handlers
-    let mut state_for_switch = state;
-    let mut state_for_close = state;
 
     rsx! {
         div {
             class: "tab",
             class: if is_active { "active" },
             onclick: move |_| {
-                state_for_switch.switch_to_tab(index);
+                state.switch_to_tab(index);
             },
 
             span {
@@ -69,7 +65,7 @@ fn TabItem(index: usize, tab: crate::state::Tab, is_active: bool) -> Element {
                 class: "tab-close",
                 onclick: move |evt| {
                     evt.stop_propagation();
-                    state_for_close.close_tab(index);
+                    state.close_tab(index);
                 },
                 Icon { name: IconName::Close, size: 14 }
             }
@@ -85,7 +81,7 @@ fn NewTabButton() -> Element {
         button {
             class: "tab-new",
             onclick: move |_| {
-                state.add_tab(None, true);
+                state.add_empty_tab(true);
             },
             Icon { name: IconName::Add, size: 16 }
         }

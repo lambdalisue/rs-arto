@@ -28,7 +28,7 @@ pub fn App(
     let mut state = use_context_provider(|| {
         let mut app_state = AppState::default();
         if let Some(path) = file.clone() {
-            app_state.tabs.write()[0] = Tab::new(Some(path));
+            app_state.tabs.write()[0] = Tab::new(path);
         } else if show_welcome {
             // Show welcome screen with embedded markdown content
             let welcome_content = crate::assets::get_default_markdown_content();

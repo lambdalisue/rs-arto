@@ -2,7 +2,7 @@ use super::super::persistence::LAST_FOCUSED_STATE;
 use super::AppState;
 use dioxus::prelude::*;
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Represents the state of the sidebar file explorer
 #[derive(Debug, Clone, PartialEq)]
@@ -26,11 +26,12 @@ impl Default for Sidebar {
 
 impl Sidebar {
     /// Toggle directory expansion state
-    pub fn toggle_expansion(&mut self, path: PathBuf) {
-        if self.expanded_dirs.contains(&path) {
-            self.expanded_dirs.remove(&path);
+    pub fn toggle_expansion(&mut self, path: impl AsRef<Path>) {
+        let path = path.as_ref();
+        if self.expanded_dirs.contains(path) {
+            self.expanded_dirs.remove(path);
         } else {
-            self.expanded_dirs.insert(path);
+            self.expanded_dirs.insert(path.to_owned());
         }
     }
 }
@@ -43,16 +44,8 @@ impl AppState {
         LAST_FOCUSED_STATE.write().sidebar_open = sidebar.open;
     }
 
-    /// Set the root directory for the sidebar file explorer
-    /// Note: The directory is persisted to state file when window closes
-    pub fn set_root_directory(&mut self, path: PathBuf) {
-        *self.directory.write() = Some(path.clone());
-        self.sidebar.write().expanded_dirs.clear();
-        LAST_FOCUSED_STATE.write().directory = Some(path);
-    }
-
     /// Toggle directory expansion state
-    pub fn toggle_directory_expansion(&mut self, path: PathBuf) {
+    pub fn toggle_directory_expansion(&mut self, path: impl AsRef<Path>) {
         let mut sidebar = self.sidebar.write();
         sidebar.toggle_expansion(path);
     }

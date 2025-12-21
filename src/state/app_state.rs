@@ -52,3 +52,14 @@ impl Default for AppState {
         }
     }
 }
+
+impl AppState {
+    /// Set the root directory
+    /// Note: The directory is persisted to state file when window closes
+    pub fn set_root_directory(&mut self, path: impl Into<PathBuf>) {
+        let path = path.into();
+        *self.directory.write() = Some(path.clone());
+        self.sidebar.write().expanded_dirs.clear();
+        LAST_FOCUSED_STATE.write().directory = Some(path);
+    }
+}
