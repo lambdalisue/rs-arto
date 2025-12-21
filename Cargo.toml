@@ -30,6 +30,8 @@ thiserror = "2.0.9"
 tokio = "1.47.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
+display-info = "0.4.4"
+mouse_position = "0.1.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.3"

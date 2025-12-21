@@ -83,6 +83,8 @@ fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
 
     let menu = menu::build_menu();
 
+    let resolved = window::get_window_value(true);
+
     Config::new()
         .with_custom_event_handler(move |event, _target| match event {
             Event::Opened { urls, .. } => {
@@ -117,7 +119,8 @@ fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
         .with_window(
             WindowBuilder::new()
                 .with_title("Arto")
-                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+                .with_position(resolved.position)
+                .with_inner_size(resolved.size),
         )
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.

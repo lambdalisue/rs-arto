@@ -1,8 +1,10 @@
+use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
+use dioxus::desktop::tao::event::{Event as TaoEvent, WindowEvent};
+use dioxus::desktop::{use_muda_event_handler, use_wry_event_handler, window};
 use dioxus::document;
 use dioxus::html::HasFileData;
 use dioxus::prelude::*;
 use dioxus_core::use_drop;
-use dioxus_desktop::{use_muda_event_handler, window};
 use std::path::PathBuf;
 
 use super::content::Content;
@@ -50,9 +52,14 @@ pub fn App(
             state.sidebar_width = sidebar_width;
             state.sidebar_show_all_files = sidebar_show_all_files;
         }
+        let scale = window().scale_factor();
+        *app_state.position.write() = window()
+            .outer_position()
+            .expect("failed to get outer position")
+            .to_logical(scale);
+        *app_state.size.write() = window().outer_size().to_logical(scale);
         app_state
     });
-
     // Track drag-and-drop hover state
     let mut is_dragging = use_signal(|| false);
 
@@ -75,6 +82,72 @@ pub fn App(
         menu::handle_menu_event_with_state(event, &mut state);
     });
 
+    let sync_window_metrics =
+        |position: Option<LogicalPosition<i32>>, size: Option<LogicalSize<u32>>| {
+            if let Some(position) = position {
+                *state.position.write() = position;
+            }
+            if let Some(size) = size {
+                *state.size.write() = size;
+            }
+            if position.is_some() || size.is_some() {
+                let mut last_focused = LAST_FOCUSED_STATE.write();
+                if let Some(position) = position {
+                    last_focused.window_position = position.into();
+                }
+                if let Some(size) = size {
+                    last_focused.window_size = size.into();
+                }
+            }
+        };
+
+    // Handle window events
+    use_wry_event_handler(move |event, _| match event {
+        TaoEvent::WindowEvent {
+            event: WindowEvent::Resized(size),
+            window_id,
+            ..
+        } => {
+            let window = window();
+            if window_id == &window.id() {
+                sync_window_metrics(
+                    None,
+                    Some(size.to_logical::<u32>(window.scale_factor())),
+                );
+            }
+        }
+        TaoEvent::WindowEvent {
+            event: WindowEvent::Moved(position),
+            window_id,
+            ..
+        } => {
+            let window = window();
+            if window_id == &window.id() {
+                sync_window_metrics(
+                    Some(position.to_logical::<i32>(window.scale_factor())),
+                    None,
+                );
+            }
+        }
+        TaoEvent::WindowEvent {
+            event: WindowEvent::Focused(true),
+            window_id,
+            ..
+        } => {
+            let window = window();
+            if window_id == &window.id() {
+                let scale = window.scale_factor();
+                let position = window
+                    .outer_position()
+                    .ok()
+                    .map(|pos| pos.to_logical::<i32>(scale));
+                let size = Some(window.outer_size().to_logical::<u32>(scale));
+                sync_window_metrics(position, size);
+            }
+        }
+        _ => {}
+    });
+
     // Listen for file open broadcasts from background process
     setup_file_open_listener(state);
 
@@ -86,7 +159,15 @@ pub fn App(
         // Save last used state from this window
         // Read directly from state signals instead of global statics
         // to ensure we get the current window's values, not the global last-modified values
-        let persisted = PersistedState::from(&state);
+        let mut persisted = PersistedState::from(&state);
+        let window_metrics = crate::window::helpers::capture_window_metrics(&window().window);
+        persisted.window_position = window_metrics.position;
+        persisted.window_size = window_metrics.size;
+        {
+            let mut last_focused = LAST_FOCUSED_STATE.write();
+            last_focused.window_position = window_metrics.position;
+            last_focused.window_size = window_metrics.size;
+        }
         persisted.save();
 
         // Close child windows

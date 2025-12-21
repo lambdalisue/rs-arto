@@ -1,7 +1,9 @@
-use super::persistence::LAST_FOCUSED_STATE;
-use crate::theme::ThemePreference;
+use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
 use dioxus::prelude::*;
 use std::path::PathBuf;
+
+use super::persistence::LAST_FOCUSED_STATE;
+use crate::theme::ThemePreference;
 
 mod sidebar;
 mod tabs;
@@ -38,6 +40,8 @@ pub struct AppState {
     pub zoom_level: Signal<f64>,
     pub directory: Signal<Option<PathBuf>>,
     pub sidebar: Signal<Sidebar>,
+    pub position: Signal<LogicalPosition<i32>>,
+    pub size: Signal<LogicalSize<u32>>,
 }
 
 impl Default for AppState {
@@ -49,6 +53,8 @@ impl Default for AppState {
             zoom_level: Signal::new(1.0),
             directory: Signal::new(None),
             sidebar: Signal::new(Sidebar::default()),
+            position: Signal::new(Default::default()),
+            size: Signal::new(Default::default()),
         }
     }
 }

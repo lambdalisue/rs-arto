@@ -227,6 +227,91 @@
   color: var(--text-secondary);
 }
 
+/* Dimension Inputs */
+.dimension-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dimension-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.dimension-row .dimension-grid {
+  flex: 1;
+}
+
+.spacing-top-sm {
+  margin-top: 12px;
+}
+
+.dimension-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dimension-input {
+  display: flex;
+  gap: 8px;
+}
+
+.dimension-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-color);
+  font-size: 14px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.dimension-input input::-webkit-outer-spin-button,
+.dimension-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.dimension-input input:focus,
+.dimension-input select:focus {
+  outline: none;
+  border-color: var(--accent-bg);
+}
+
+.dimension-input select {
+  width: 64px;
+  padding: 10px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.dimension-unit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* Icon button (for browse, etc.) */
 .directory-input .icon-button {
   display: flex;

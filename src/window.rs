@@ -1,3 +1,4 @@
+use dioxus::desktop::tao::dpi::LogicalPosition;
 use dioxus::desktop::tao::window::WindowId;
 use dioxus::desktop::{window, Config, WeakDesktopContext, WindowBuilder};
 use dioxus::prelude::*;
@@ -9,9 +10,12 @@ use std::path::PathBuf;
 use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
 use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
+use crate::config::{WindowPositionOffset, CONFIG};
+use crate::state::LAST_FOCUSED_STATE;
 use crate::theme::{resolve_theme, ThemePreference};
 
 pub mod helpers;
+mod types;
 pub use helpers::*;
 
 struct ChildWindowEntry {
@@ -145,6 +149,13 @@ pub async fn create_new_main_window_async(
     // Get sidebar settings from config and state
     let sidebar_value = get_sidebar_value(is_first_window);
 
+    // Get window settings from config and state
+    let resolved = get_window_value(is_first_window);
+    let position_offset = CONFIG.read().window_position.position_offset;
+    let occupied = existing_main_window_bounds();
+    let resolved_position =
+        shift_position_if_needed(resolved.position, resolved.size, position_offset, &occupied);
+
     // This cause ERROR but it seems we can ignore it safely
     // https://github.com/DioxusLabs/dioxus/issues/3872
     let dom = VirtualDom::new_with_props(
@@ -158,14 +169,13 @@ pub async fn create_new_main_window_async(
             show_welcome,
         },
     );
-    // Set None for child window menu to avoid panic when closing windows.
-    // The menu from the main window will be used instead.
     let config = Config::new()
         .with_menu(None) // To avoid child window taking over the main window's menu
         .with_window(
             WindowBuilder::new()
                 .with_title("Arto")
-                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+                .with_inner_size(resolved.size)
+                .with_position(resolved_position),
         )
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.
@@ -198,6 +208,86 @@ pub fn build_custom_index(theme_preference: ThemePreference) -> String {
 
 pub fn update_last_focused_window(window_id: WindowId) {
     LAST_FOCUSED_WINDOW.with(|last| *last.borrow_mut() = Some(window_id));
+    if let Some(metrics) = find_window_metrics(window_id) {
+        let mut last_focused = LAST_FOCUSED_STATE.write();
+        last_focused.window_position = metrics.position;
+        last_focused.window_size = metrics.size;
+    }
+}
+
+fn find_window_metrics(window_id: WindowId) -> Option<types::WindowMetrics> {
+    MAIN_WINDOWS.with(|windows| {
+        windows
+            .borrow()
+            .iter()
+            .filter_map(|w| w.upgrade())
+            .find(|ctx| ctx.window.id() == window_id)
+            .map(|ctx| capture_window_metrics(&ctx.window))
+    })
+}
+
+struct WindowBounds {
+    position: LogicalPosition<f64>,
+    size: dioxus::desktop::tao::dpi::LogicalSize<f64>,
+}
+
+fn existing_main_window_bounds() -> Vec<WindowBounds> {
+    MAIN_WINDOWS.with(|windows| {
+        windows
+            .borrow()
+            .iter()
+            .filter_map(|w| w.upgrade())
+            .filter_map(|ctx| {
+                let scale = ctx.window.scale_factor();
+                let position = ctx
+                    .window
+                    .outer_position()
+                    .ok()
+                    .map(|pos| pos.to_logical::<f64>(scale))?;
+                let size = ctx.window.outer_size().to_logical::<f64>(scale);
+                Some(WindowBounds { position, size })
+            })
+            .collect()
+    })
+}
+
+fn bounds_overlap(
+    a_pos: LogicalPosition<f64>,
+    a_size: dioxus::desktop::tao::dpi::LogicalSize<f64>,
+    b_pos: LogicalPosition<f64>,
+    b_size: dioxus::desktop::tao::dpi::LogicalSize<f64>,
+) -> bool {
+    let a_right = a_pos.x + a_size.width;
+    let a_bottom = a_pos.y + a_size.height;
+    let b_right = b_pos.x + b_size.width;
+    let b_bottom = b_pos.y + b_size.height;
+    a_pos.x < b_right && a_right > b_pos.x && a_pos.y < b_bottom && a_bottom > b_pos.y
+}
+
+fn shift_position_if_needed(
+    base: LogicalPosition<f64>,
+    window_size: dioxus::desktop::tao::dpi::LogicalSize<f64>,
+    offset: WindowPositionOffset,
+    occupied: &[WindowBounds],
+) -> LogicalPosition<f64> {
+    if offset.x == 0 && offset.y == 0 {
+        return base;
+    }
+    let mut position = base;
+    for _ in 0..20 {
+        if !occupied
+            .iter()
+            .any(|existing| bounds_overlap(position, window_size, existing.position, existing.size))
+        {
+            break;
+        }
+        let shifted = offset.apply(LogicalPosition::new(
+            position.x.round() as i32,
+            position.y.round() as i32,
+        ));
+        position = LogicalPosition::new(shifted.x as f64, shifted.y as f64);
+    }
+    position
 }
 
 fn get_last_focused_window() -> Option<WindowId> {

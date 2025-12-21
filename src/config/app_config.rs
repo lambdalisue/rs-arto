@@ -4,11 +4,19 @@ mod behavior;
 mod directory_config;
 mod sidebar_config;
 mod theme_config;
+mod window_dimension;
+mod window_position_config;
+mod window_size_config;
 
 pub use behavior::{NewWindowBehavior, StartupBehavior};
 pub use directory_config::DirectoryConfig;
 pub use sidebar_config::SidebarConfig;
 pub use theme_config::ThemeConfig;
+pub use window_dimension::{WindowDimension, WindowDimensionUnit};
+pub use window_position_config::{
+    WindowPosition, WindowPositionConfig, WindowPositionMode, WindowPositionOffset,
+};
+pub use window_size_config::{WindowSize, WindowSizeConfig};
 
 /// Global application configuration
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -17,10 +25,13 @@ pub struct Config {
     pub directory: DirectoryConfig,
     pub theme: ThemeConfig,
     pub sidebar: SidebarConfig,
+    pub window_position: WindowPositionConfig,
+    pub window_size: WindowSizeConfig,
 }
 
 #[cfg(test)]
 mod tests {
+    use super::window_position_config::WindowPositionOffset;
     use super::*;
     use crate::theme::ThemePreference;
     use std::path::PathBuf;
@@ -45,6 +56,43 @@ mod tests {
         assert!(!config.sidebar.default_show_all_files);
         assert_eq!(config.sidebar.on_startup, StartupBehavior::Default);
         assert_eq!(config.sidebar.on_new_window, NewWindowBehavior::Default);
+
+        // Window size defaults
+        assert_eq!(config.window_size.default_size.width.value, 1000.0);
+        assert_eq!(
+            config.window_size.default_size.width.unit,
+            WindowDimensionUnit::Pixels
+        );
+        assert_eq!(config.window_size.default_size.height.value, 800.0);
+        assert_eq!(
+            config.window_size.default_size.height.unit,
+            WindowDimensionUnit::Pixels
+        );
+        assert_eq!(config.window_size.on_startup, StartupBehavior::Default);
+        assert_eq!(config.window_size.on_new_window, NewWindowBehavior::Default);
+
+        // Window position defaults
+        assert_eq!(
+            config.window_position.default_position_mode,
+            WindowPositionMode::Coordinates
+        );
+        assert_eq!(config.window_position.position_offset.x, 10);
+        assert_eq!(config.window_position.position_offset.y, 10);
+        assert_eq!(config.window_position.default_position.x.value, 50.0);
+        assert_eq!(
+            config.window_position.default_position.x.unit,
+            WindowDimensionUnit::Percent
+        );
+        assert_eq!(config.window_position.default_position.y.value, 50.0);
+        assert_eq!(
+            config.window_position.default_position.y.unit,
+            WindowDimensionUnit::Percent
+        );
+        assert_eq!(config.window_position.on_startup, StartupBehavior::Default);
+        assert_eq!(
+            config.window_position.on_new_window,
+            NewWindowBehavior::Default
+        );
     }
 
     #[test]
@@ -67,6 +115,36 @@ mod tests {
                 on_startup: StartupBehavior::LastClosed,
                 on_new_window: NewWindowBehavior::LastFocused,
             },
+            window_position: WindowPositionConfig {
+                default_position: WindowPosition {
+                    x: WindowDimension {
+                        value: 10.0,
+                        unit: WindowDimensionUnit::Percent,
+                    },
+                    y: WindowDimension {
+                        value: 15.0,
+                        unit: WindowDimensionUnit::Percent,
+                    },
+                },
+                default_position_mode: WindowPositionMode::Mouse,
+                position_offset: WindowPositionOffset { x: 24, y: 12 },
+                on_startup: StartupBehavior::LastClosed,
+                on_new_window: NewWindowBehavior::LastFocused,
+            },
+            window_size: WindowSizeConfig {
+                default_size: WindowSize {
+                    width: WindowDimension {
+                        value: 1200.0,
+                        unit: WindowDimensionUnit::Pixels,
+                    },
+                    height: WindowDimension {
+                        value: 85.0,
+                        unit: WindowDimensionUnit::Percent,
+                    },
+                },
+                on_startup: StartupBehavior::LastClosed,
+                on_new_window: NewWindowBehavior::LastFocused,
+            },
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -80,5 +158,20 @@ mod tests {
         );
         assert!(!parsed.sidebar.default_open);
         assert_eq!(parsed.sidebar.default_width, 320.0);
+        assert_eq!(parsed.window_position.default_position.x.value, 10.0);
+        assert_eq!(
+            parsed.window_position.default_position.x.unit,
+            WindowDimensionUnit::Percent
+        );
+        assert_eq!(
+            parsed.window_position.default_position_mode,
+            WindowPositionMode::Mouse
+        );
+        assert_eq!(parsed.window_position.position_offset.x, 24);
+        assert_eq!(parsed.window_size.default_size.width.value, 1200.0);
+        assert_eq!(
+            parsed.window_size.default_size.width.unit,
+            WindowDimensionUnit::Pixels
+        );
     }
 }
