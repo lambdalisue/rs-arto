@@ -67,6 +67,7 @@ pub fn focus_last_focused_main_window() -> bool {
                 .filter_map(|w| w.upgrade())
                 .find(|ctx| ctx.window.id() == main_window_id)
                 .map(|ctx| {
+                    ctx.window.set_visible(true);
                     ctx.window.set_focus();
                     true
                 })
