@@ -23,7 +23,7 @@ export function setTheme(theme: Theme): void {
 }
 
 export async function renderDiagrams(container: Element): Promise<void> {
-  const mermaidBlocks = container.querySelectorAll("pre.preprocessed-mermaid:not([data-rendered])");
+  const mermaidBlocks = collectMermaidBlocks(container);
 
   if (mermaidBlocks.length === 0) {
     return;
@@ -32,7 +32,7 @@ export async function renderDiagrams(container: Element): Promise<void> {
   console.debug(`Rendering ${mermaidBlocks.length} mermaid diagrams in parallel`);
 
   // Render all diagrams in parallel for better performance
-  const renderPromises = Array.from(mermaidBlocks).map((block) =>
+  const renderPromises = mermaidBlocks.map((block) =>
     renderDiagram(block as HTMLElement).catch((error) => {
       console.error("Failed to render mermaid diagram:", error);
       // Don't let one failure stop others
@@ -52,7 +52,7 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
   // Get the mermaid source code from the element data attribute
   // This data attribute is embedded during markdown parsing phase
   // in Rust code.
-  const mermaidSource = element.dataset.originalContent || "";
+  const mermaidSource = element.dataset.originalContent || element.textContent || "";
   if (!mermaidSource) {
     element.dataset.rendered = "true"; // Mark as processed to skip in future
     return;
@@ -98,4 +98,32 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
     </div>`;
     element.dataset.rendered = "true"; // Mark as processed even on error
   }
+}
+
+function collectMermaidBlocks(container: Element): HTMLElement[] {
+  const blocks = new Map<HTMLElement, string>();
+
+  const preprocessed = container.querySelectorAll("pre.preprocessed-mermaid:not([data-rendered])");
+  preprocessed.forEach((block) => {
+    const element = block as HTMLElement;
+    blocks.set(element, element.dataset.originalContent || element.textContent || "");
+  });
+
+  const codeBlocks = container.querySelectorAll("pre code.language-mermaid:not([data-rendered])");
+  codeBlocks.forEach((code) => {
+    const pre = code.closest("pre");
+    if (!pre) {
+      return;
+    }
+    const element = pre as HTMLElement;
+    if (blocks.has(element)) {
+      return;
+    }
+    const source = code.textContent || "";
+    element.classList.add("preprocessed-mermaid");
+    element.dataset.originalContent = source;
+    blocks.set(element, source);
+  });
+
+  return Array.from(blocks.keys());
 }

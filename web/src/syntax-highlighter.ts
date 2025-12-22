@@ -31,9 +31,7 @@ export function setTheme(theme: Theme): void {
 }
 
 export function highlightCodeBlocks(container: Element): void {
-  const codeBlocks = container.querySelectorAll(
-    "pre code[class*='language-']:not([data-highlighted])"
-  );
+  const codeBlocks = container.querySelectorAll("pre code:not([data-highlighted])");
 
   if (codeBlocks.length === 0) {
     return;
@@ -53,9 +51,14 @@ function highlightCodeBlock(element: HTMLElement): void {
   }
 
   // Extract language from class name (e.g., "language-rust" -> "rust")
-  const langMatch = element.className.match(/language-(\w+)/);
+  const langMatch = element.className.match(/language-([\w-]+)/);
   if (langMatch) {
     const lang = langMatch[1];
+
+    if (lang === "mermaid" || lang === "math") {
+      element.dataset.highlighted = "yes";
+      return;
+    }
 
     // Only highlight if the language is registered
     if (hljs.getLanguage(lang)) {
@@ -71,5 +74,15 @@ function highlightCodeBlock(element: HTMLElement): void {
       console.debug(`Language not registered: ${lang}`);
       element.dataset.highlighted = "yes";
     }
+    return;
+  }
+
+  try {
+    hljs.highlightElement(element);
+    console.debug("Highlighted code block with auto-detection");
+  } catch (error) {
+    console.warn("Failed to highlight code block (auto):", error);
+  } finally {
+    element.dataset.highlighted = "yes";
   }
 }

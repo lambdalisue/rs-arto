@@ -25,17 +25,13 @@ class RenderCoordinator {
       }
     });
 
-    const markdownViewer = document.querySelector(".markdown-viewer");
-    if (markdownViewer) {
-      observer.observe(markdownViewer, {
-        subtree: true,
-        childList: true,
-        attributes: true,
-      });
-      console.debug("RenderCoordinator: MutationObserver set up");
-    } else {
-      console.warn("RenderCoordinator: Could not find .markdown-viewer element");
-    }
+    const root = document.body;
+    observer.observe(root, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+    });
+    console.debug("RenderCoordinator: MutationObserver set up on document.body");
 
     // Schedule an initial render
     this.scheduleRender();
@@ -52,9 +48,12 @@ class RenderCoordinator {
   }
 
   forceRenderMermaid(): void {
-    const markdownBody = document.querySelector(".markdown-body");
-    if (markdownBody) {
-      // Clear only Mermaid diagram flags
+    const markdownBodies = document.querySelectorAll(".markdown-body");
+    if (markdownBodies.length === 0) {
+      return;
+    }
+
+    markdownBodies.forEach((markdownBody) => {
       markdownBody.querySelectorAll("pre.preprocessed-mermaid[data-rendered]").forEach((el) => {
         const element = el as HTMLElement;
 
@@ -63,10 +62,10 @@ class RenderCoordinator {
         element.removeAttribute("data-rendered");
         element.removeAttribute("data-copy-button-added");
       });
+    });
 
-      // Schedule only Mermaid rendering
-      this.#scheduleMermaidRender();
-    }
+    // Schedule only Mermaid rendering
+    this.#scheduleMermaidRender();
   }
 
   #scheduleMermaidRender(): void {
@@ -77,19 +76,25 @@ class RenderCoordinator {
     this.#rafId = requestAnimationFrame(async () => {
       this.#rafId = null;
 
-      const markdownBody = document.querySelector(".markdown-body");
-      if (markdownBody) {
-        this.#isRendering = true;
-        try {
-          await mermaidRenderer.renderDiagrams(markdownBody);
-          // Re-add copy buttons after Mermaid re-render
-          codeCopy.addCopyButtons(markdownBody);
-          console.debug("RenderCoordinator: Mermaid re-render completed");
-        } catch (error) {
-          console.error("RenderCoordinator: Error during Mermaid re-render:", error);
-        } finally {
-          this.#isRendering = false;
-        }
+      const markdownBodies = document.querySelectorAll(".markdown-body");
+      if (markdownBodies.length === 0) {
+        return;
+      }
+
+      this.#isRendering = true;
+      try {
+        await Promise.all(
+          Array.from(markdownBodies).map(async (markdownBody) => {
+            await mermaidRenderer.renderDiagrams(markdownBody);
+            // Re-add copy buttons after Mermaid re-render
+            codeCopy.addCopyButtons(markdownBody);
+          })
+        );
+        console.debug("RenderCoordinator: Mermaid re-render completed");
+      } catch (error) {
+        console.error("RenderCoordinator: Error during Mermaid re-render:", error);
+      } finally {
+        this.#isRendering = false;
       }
     });
   }
@@ -97,17 +102,21 @@ class RenderCoordinator {
   async #executeBatchRender(): Promise<void> {
     this.#isRendering = true;
 
-    const markdownBody = document.querySelector(".markdown-body");
-    if (!markdownBody) {
+    const markdownBodies = document.querySelectorAll(".markdown-body");
+    if (markdownBodies.length === 0) {
       this.#isRendering = false;
       return;
     }
 
     try {
-      mathRenderer.renderMath(markdownBody);
-      syntaxHighlighter.highlightCodeBlocks(markdownBody);
-      await mermaidRenderer.renderDiagrams(markdownBody);
-      codeCopy.addCopyButtons(markdownBody);
+      await Promise.all(
+        Array.from(markdownBodies).map(async (markdownBody) => {
+          mathRenderer.renderMath(markdownBody);
+          syntaxHighlighter.highlightCodeBlocks(markdownBody);
+          await mermaidRenderer.renderDiagrams(markdownBody);
+          codeCopy.addCopyButtons(markdownBody);
+        })
+      );
       console.debug("RenderCoordinator: Batch render completed");
     } catch (error) {
       console.error("RenderCoordinator: Error during batch render:", error);

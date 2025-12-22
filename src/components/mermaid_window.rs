@@ -99,8 +99,12 @@ fn use_viewer_script_loader(source: String, diagram_id: String) {
 
             let eval_result = document::eval(&indoc::formatdoc! {r#"
                 (async () => {{
-                    const {{ initMermaidWindow }} = await import("{MAIN_SCRIPT}");
-                    await initMermaidWindow(`{escaped_source}`, '{diagram_id}');
+                    try {{
+                        const {{ initMermaidWindow }} = await import("{MAIN_SCRIPT}");
+                        await initMermaidWindow(`{escaped_source}`, '{diagram_id}');
+                    }} catch (error) {{
+                        console.error("Failed to load mermaid window module:", error);
+                    }}
                 }})();
             "#});
 
