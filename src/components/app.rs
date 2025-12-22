@@ -1,9 +1,12 @@
+use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
+use dioxus::desktop::tao::event::{Event as TaoEvent, WindowEvent};
+use dioxus::desktop::{use_muda_event_handler, use_wry_event_handler, window};
 use dioxus::document;
 use dioxus::html::HasFileData;
 use dioxus::prelude::*;
 use dioxus_core::use_drop;
-use dioxus_desktop::{use_muda_event_handler, window};
 use std::path::PathBuf;
+use std::time::Duration;
 
 use super::content::Content;
 use super::header::Header;
@@ -14,6 +17,33 @@ use crate::assets::MAIN_SCRIPT;
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::menu;
 use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
+
+const WINDOW_METRICS_DEBOUNCE_MS: u64 = 200;
+
+struct DebouncedMetricsUpdater {
+    pending: Signal<(LogicalPosition<i32>, LogicalSize<u32>)>,
+    token: Signal<u64>,
+}
+
+impl DebouncedMetricsUpdater {
+    fn schedule(&mut self, position: LogicalPosition<i32>, size: LogicalSize<u32>) {
+        self.pending.set((position, size));
+        let token = self.token.read().wrapping_add(1);
+        self.token.set(token);
+        let pending = self.pending;
+        let token_signal = self.token;
+        spawn(async move {
+            tokio::time::sleep(Duration::from_millis(WINDOW_METRICS_DEBOUNCE_MS)).await;
+            if *token_signal.read() != token {
+                return;
+            }
+            let (position, size) = *pending.read();
+            let mut last_focused = LAST_FOCUSED_STATE.write();
+            last_focused.window_position = position.into();
+            last_focused.window_size = size.into();
+        });
+    }
+}
 
 #[component]
 pub fn App(
@@ -50,9 +80,18 @@ pub fn App(
             state.sidebar_width = sidebar_width;
             state.sidebar_show_all_files = sidebar_show_all_files;
         }
+        let metrics = crate::window::metrics::capture_window_metrics(&window().window);
+        *app_state.position.write() = LogicalPosition::new(metrics.position.x, metrics.position.y);
+        *app_state.size.write() = LogicalSize::new(metrics.size.width, metrics.size.height);
         app_state
     });
-
+    let mut debounced_metrics = {
+        let position = *state.position.read();
+        let size = *state.size.read();
+        let pending = use_signal(|| (position, size));
+        let token = use_signal(|| 0_u64);
+        DebouncedMetricsUpdater { pending, token }
+    };
     // Track drag-and-drop hover state
     let mut is_dragging = use_signal(|| false);
 
@@ -75,6 +114,41 @@ pub fn App(
         menu::handle_menu_event_with_state(event, &mut state);
     });
 
+    // Handle window events
+    use_wry_event_handler(move |event, _| match event {
+        TaoEvent::WindowEvent {
+            event: WindowEvent::Resized(size),
+            window_id,
+            ..
+        } => {
+            let window = window();
+            if window_id == &window.id() {
+                sync_window_metrics(
+                    state,
+                    None,
+                    Some(size.to_logical::<u32>(window.scale_factor())),
+                    &mut debounced_metrics,
+                );
+            }
+        }
+        TaoEvent::WindowEvent {
+            event: WindowEvent::Moved(position),
+            window_id,
+            ..
+        } => {
+            let window = window();
+            if window_id == &window.id() {
+                sync_window_metrics(
+                    state,
+                    Some(position.to_logical::<i32>(window.scale_factor())),
+                    None,
+                    &mut debounced_metrics,
+                );
+            }
+        }
+        _ => {}
+    });
+
     // Listen for file open broadcasts from background process
     setup_file_open_listener(state);
 
@@ -86,7 +160,15 @@ pub fn App(
         // Save last used state from this window
         // Read directly from state signals instead of global statics
         // to ensure we get the current window's values, not the global last-modified values
-        let persisted = PersistedState::from(&state);
+        let mut persisted = PersistedState::from(&state);
+        let window_metrics = crate::window::metrics::capture_window_metrics(&window().window);
+        persisted.window_position = window_metrics.position;
+        persisted.window_size = window_metrics.size;
+        {
+            let mut last_focused = LAST_FOCUSED_STATE.write();
+            last_focused.window_position = window_metrics.position;
+            last_focused.window_size = window_metrics.size;
+        }
         persisted.save();
 
         // Close child windows
@@ -172,6 +254,25 @@ async fn handle_dropped_files(evt: Event<DragData>, mut state: AppState) {
             tracing::info!("Opening dropped file: {:?}", resolved_path);
             state.open_file(resolved_path);
         }
+    }
+}
+
+fn sync_window_metrics(
+    mut state: AppState,
+    position: Option<LogicalPosition<i32>>,
+    size: Option<LogicalSize<u32>>,
+    debounced_metrics: &mut DebouncedMetricsUpdater,
+) {
+    if let Some(position) = position {
+        *state.position.write() = position;
+    }
+    if let Some(size) = size {
+        *state.size.write() = size;
+    }
+    if position.is_some() || size.is_some() {
+        let latest_position = *state.position.read();
+        let latest_size = *state.size.read();
+        debounced_metrics.schedule(latest_position, latest_size);
     }
 }
 

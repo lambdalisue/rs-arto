@@ -1,5 +1,4 @@
-use crate::state::AppState;
-use crate::theme::ThemePreference;
+use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
 use dioxus::prelude::*;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -7,18 +6,55 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
+use crate::state::AppState;
+use crate::theme::ThemePreference;
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl From<LogicalPosition<i32>> for Position {
+    fn from(from: LogicalPosition<i32>) -> Self {
+        Self {
+            x: from.x,
+            y: from.y,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Size {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl From<LogicalSize<u32>> for Size {
+    fn from(from: LogicalSize<u32>) -> Self {
+        Self {
+            width: from.width,
+            height: from.height,
+        }
+    }
+}
+
 /// Persisted state from the last closed window
 ///
 /// This is a subset of AppState that gets saved to session.json
 /// when a window closes and loaded on app startup.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct PersistedState {
     pub directory: Option<PathBuf>,
     pub theme: ThemePreference,
     pub sidebar_open: bool,
     pub sidebar_width: f64,
     pub sidebar_show_all_files: bool,
+    pub window_position: Position,
+    pub window_size: Size,
 }
 
 impl Default for PersistedState {
@@ -29,6 +65,8 @@ impl Default for PersistedState {
             sidebar_open: false,
             sidebar_width: 280.0,
             sidebar_show_all_files: false,
+            window_position: Position::default(),
+            window_size: Size::default(),
         }
     }
 }
@@ -42,6 +80,8 @@ impl From<&AppState> for PersistedState {
             sidebar_open: sidebar.open,
             sidebar_width: sidebar.width,
             sidebar_show_all_files: sidebar.show_all_files,
+            window_position: (*state.position.read()).into(),
+            window_size: (*state.size.read()).into(),
         }
     }
 }
