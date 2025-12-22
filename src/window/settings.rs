@@ -9,7 +9,7 @@ use crate::config::{
 };
 use crate::state::{Position, Size, LAST_FOCUSED_STATE};
 use crate::theme::ThemePreference;
-use crate::utils::screen::{get_current_display_size, get_cursor_display, get_primary_display};
+use crate::utils::screen::{get_current_display_bounds, get_cursor_display, get_primary_display};
 
 const MIN_WINDOW_DIMENSION: f64 = 100.0;
 
@@ -79,6 +79,7 @@ fn resolve_window_size(config: WindowSize, max_size: LogicalSize<u32>) -> Logica
 
 fn resolve_window_position(
     config: WindowPosition,
+    screen_origin: LogicalPosition<i32>,
     screen_size: LogicalSize<u32>,
     window_size: LogicalSize<u32>,
 ) -> LogicalPosition<i32> {
@@ -86,7 +87,7 @@ fn resolve_window_position(
     let available_height = screen_size.height.saturating_sub(window_size.height) as i32;
     let available_size = LogicalSize::new(available_width, available_height);
     let position = config.to_logical_position(available_size);
-    LogicalPosition::new(position.x, position.y)
+    LogicalPosition::new(screen_origin.x + position.x, screen_origin.y + position.y)
 }
 
 fn resolve_window_position_from_cursor(
@@ -245,11 +246,12 @@ pub fn get_sidebar_value(is_first_window: bool) -> SidebarValue {
 
 pub fn get_window_value(is_first_window: bool) -> ResolvedWindowValue {
     let (position, position_mode, size) = resolve_window_settings(is_first_window);
-    let screen_size = get_current_display_size().unwrap_or_else(|| LogicalSize::new(1000, 800));
+    let (screen_origin, screen_size) = get_current_display_bounds()
+        .unwrap_or_else(|| (LogicalPosition::new(0, 0), LogicalSize::new(1000, 800)));
     let resolved_size = resolve_window_size(size, screen_size);
     let resolved_position = match position_mode {
         WindowPositionMode::Coordinates => {
-            resolve_window_position(position, screen_size, resolved_size)
+            resolve_window_position(position, screen_origin, screen_size, resolved_size)
         }
         WindowPositionMode::Mouse => resolve_window_position_from_cursor(resolved_size)
             .unwrap_or_else(|| LogicalPosition::new(0, 0)),
@@ -372,11 +374,32 @@ mod tests {
                 unit: WindowDimensionUnit::Percent,
             },
         };
+        let screen_origin = LogicalPosition::new(0, 0);
         let screen_size = LogicalSize::new(1000, 800);
         let window_size = LogicalSize::new(200, 100);
-        let resolved = resolve_window_position(position, screen_size, window_size);
+        let resolved = resolve_window_position(position, screen_origin, screen_size, window_size);
         assert_eq!(resolved.x, 400);
         assert_eq!(resolved.y, 175);
+    }
+
+    #[test]
+    fn test_resolve_window_position_with_negative_origin() {
+        let position = WindowPosition {
+            x: WindowDimension {
+                value: 10.0,
+                unit: WindowDimensionUnit::Pixels,
+            },
+            y: WindowDimension {
+                value: 20.0,
+                unit: WindowDimensionUnit::Pixels,
+            },
+        };
+        let screen_origin = LogicalPosition::new(-300, -200);
+        let screen_size = LogicalSize::new(800, 600);
+        let window_size = LogicalSize::new(200, 100);
+        let resolved = resolve_window_position(position, screen_origin, screen_size, window_size);
+        assert_eq!(resolved.x, -290);
+        assert_eq!(resolved.y, -180);
     }
 
     #[test]

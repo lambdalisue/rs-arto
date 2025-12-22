@@ -10,7 +10,7 @@ use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
 use crate::config::{WindowPositionOffset, CONFIG};
 use crate::state::LAST_FOCUSED_STATE;
-use crate::utils::screen::get_current_display_size;
+use crate::utils::screen::get_current_display_bounds;
 
 use super::child;
 use super::index::build_custom_index;
@@ -120,12 +120,14 @@ pub async fn create_new_main_window_async(
     // Get window settings from config and state
     let resolved = settings::get_window_value(is_first_window);
     let position_offset = CONFIG.read().window_position.position_offset;
-    let screen_size = get_current_display_size().unwrap_or_else(|| LogicalSize::new(1000, 800));
+    let (screen_origin, screen_size) = get_current_display_bounds()
+        .unwrap_or_else(|| (LogicalPosition::new(0, 0), LogicalSize::new(1000, 800)));
     let occupied = existing_main_window_positions();
     let shifted_position = shift_position_if_needed(
         resolved.position,
         resolved.size,
         position_offset,
+        screen_origin,
         screen_size,
         &occupied,
     );
@@ -211,16 +213,18 @@ fn shift_position_if_needed(
     base: LogicalPosition<i32>,
     window_size: LogicalSize<u32>,
     offset: WindowPositionOffset,
+    screen_origin: LogicalPosition<i32>,
     screen_size: LogicalSize<u32>,
     occupied: &[LogicalPosition<i32>],
 ) -> LogicalPosition<i32> {
     if offset.x == 0 && offset.y == 0 {
         return base;
     }
-    let min_x = 0;
-    let min_y = 0;
-    let max_x = (screen_size.width as i32 - window_size.width as i32).max(min_x);
-    let max_y = (screen_size.height as i32 - window_size.height as i32).max(min_y);
+    let min_x = screen_origin.x;
+    let min_y = screen_origin.y;
+    let max_x = (screen_origin.x + screen_size.width as i32 - window_size.width as i32).max(min_x);
+    let max_y =
+        (screen_origin.y + screen_size.height as i32 - window_size.height as i32).max(min_y);
     let mut position = LogicalPosition::new(base.x.clamp(min_x, max_x), base.y.clamp(min_y, max_y));
     let mut offset_x = offset.x;
     let mut offset_y = offset.y;
@@ -264,6 +268,7 @@ mod tests {
             base,
             LogicalSize::new(100, 100),
             WindowPositionOffset { x: 0, y: 0 },
+            LogicalPosition::new(0, 0),
             LogicalSize::new(500, 500),
             &[],
         );
@@ -277,6 +282,7 @@ mod tests {
             base,
             LogicalSize::new(50, 50),
             WindowPositionOffset { x: 20, y: 20 },
+            LogicalPosition::new(0, 0),
             LogicalSize::new(200, 200),
             &[base],
         );
@@ -290,6 +296,7 @@ mod tests {
             base,
             LogicalSize::new(50, 50),
             WindowPositionOffset { x: 20, y: 20 },
+            LogicalPosition::new(0, 0),
             LogicalSize::new(100, 100),
             &[base],
         );
@@ -303,6 +310,7 @@ mod tests {
             base,
             LogicalSize::new(500, 50),
             WindowPositionOffset { x: 20, y: 20 },
+            LogicalPosition::new(0, 0),
             LogicalSize::new(100, 100),
             &[base],
         );
@@ -316,9 +324,24 @@ mod tests {
             base,
             LogicalSize::new(500, 500),
             WindowPositionOffset { x: 20, y: 20 },
+            LogicalPosition::new(0, 0),
             LogicalSize::new(100, 100),
             &[base],
         );
         assert_eq!(result, LogicalPosition::new(0, 0));
+    }
+
+    #[test]
+    fn test_shift_position_if_needed_with_negative_origin() {
+        let base = LogicalPosition::new(-240, 20);
+        let result = shift_position_if_needed(
+            base,
+            LogicalSize::new(100, 100),
+            WindowPositionOffset { x: 20, y: 20 },
+            LogicalPosition::new(-300, -200),
+            LogicalSize::new(200, 200),
+            &[base],
+        );
+        assert_eq!(result, LogicalPosition::new(-240, -100));
     }
 }

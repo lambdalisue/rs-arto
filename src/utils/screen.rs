@@ -1,4 +1,4 @@
-use dioxus::desktop::tao::dpi::LogicalSize;
+use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
 use display_info::DisplayInfo;
 use mouse_position::mouse_position::Mouse;
 
@@ -53,10 +53,15 @@ fn flip_y<T: DisplayLike>(y: i32, display: &T) -> i32 {
     display.y() + display.height() as i32 - y
 }
 
-pub fn get_current_display_size() -> Option<LogicalSize<u32>> {
-    get_cursor_display()
-        .or_else(get_primary_display)
-        .map(to_logical_size)
+pub fn get_current_display_bounds() -> Option<(LogicalPosition<i32>, LogicalSize<u32>)> {
+    let display = get_cursor_display().or_else(get_primary_display)?;
+    let scale = display.scale_factor as f64;
+    if scale <= 0.0 {
+        return None;
+    }
+    let origin = to_logical_position_from_parts(display.x, display.y, scale);
+    let size = to_logical_size_from_parts(display.width, display.height, scale);
+    Some((origin, size))
 }
 
 pub fn get_primary_display() -> Option<DisplayInfo> {
@@ -98,8 +103,10 @@ fn to_logical_size_from_parts(width: u32, height: u32, scale: f64) -> LogicalSiz
     LogicalSize::new(width, height)
 }
 
-fn to_logical_size(di: DisplayInfo) -> LogicalSize<u32> {
-    to_logical_size_from_parts(di.width, di.height, di.scale_factor as f64)
+fn to_logical_position_from_parts(x: i32, y: i32, scale: f64) -> LogicalPosition<i32> {
+    let x = (x as f64 / scale).round() as i32;
+    let y = (y as f64 / scale).round() as i32;
+    LogicalPosition::new(x, y)
 }
 
 #[cfg(test)]
@@ -215,5 +222,12 @@ mod tests {
         let size = to_logical_size_from_parts(0, 0, 2.0);
         assert_eq!(size.width, 1);
         assert_eq!(size.height, 1);
+    }
+
+    #[test]
+    fn test_to_logical_position_from_parts_scales() {
+        let position = to_logical_position_from_parts(-40, 20, 2.0);
+        assert_eq!(position.x, -20);
+        assert_eq!(position.y, 10);
     }
 }
