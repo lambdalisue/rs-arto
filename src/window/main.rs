@@ -217,9 +217,14 @@ fn shift_position_if_needed(
     if offset.x == 0 && offset.y == 0 {
         return base;
     }
-    let max_x = screen_size.width as i32 - window_size.width as i32;
-    let max_y = screen_size.height as i32 - window_size.height as i32;
-    let mut position = base;
+    let min_x = 0;
+    let min_y = 0;
+    let max_x = (screen_size.width as i32 - window_size.width as i32).max(min_x);
+    let max_y = (screen_size.height as i32 - window_size.height as i32).max(min_y);
+    let mut position = LogicalPosition::new(
+        base.x.clamp(min_x, max_x),
+        base.y.clamp(min_y, max_y),
+    );
     let mut offset_x = offset.x;
     let mut offset_y = offset.y;
     for _ in 0..MAX_POSITION_SHIFT_ATTEMPTS {
@@ -237,15 +242,18 @@ fn shift_position_if_needed(
         }
         let mut next_x = position.x + offset_x;
         let mut next_y = position.y + offset_y;
-        if next_x < 0 || next_x > max_x {
+        if next_x < min_x || next_x > max_x {
             offset_x = -offset_x;
             next_x = position.x + offset_x;
         }
-        if next_y < 0 || next_y > max_y {
+        if next_y < min_y || next_y > max_y {
             offset_y = -offset_y;
             next_y = position.y + offset_y;
         }
-        position = LogicalPosition::new(next_x, next_y);
+        position = LogicalPosition::new(
+            next_x.clamp(min_x, max_x),
+            next_y.clamp(min_y, max_y),
+        );
     }
     position
 }
@@ -292,5 +300,31 @@ mod tests {
             &[base],
         );
         assert_eq!(result, LogicalPosition::new(30, 30));
+    }
+
+    #[test]
+    fn test_shift_position_if_needed_with_oversized_window_width() {
+        let base = LogicalPosition::new(10, 10);
+        let result = shift_position_if_needed(
+            base,
+            LogicalSize::new(500, 50),
+            WindowPositionOffset { x: 20, y: 20 },
+            LogicalSize::new(100, 100),
+            &[base],
+        );
+        assert_eq!(result, LogicalPosition::new(0, 30));
+    }
+
+    #[test]
+    fn test_shift_position_if_needed_with_oversized_window() {
+        let base = LogicalPosition::new(10, 10);
+        let result = shift_position_if_needed(
+            base,
+            LogicalSize::new(500, 500),
+            WindowPositionOffset { x: 20, y: 20 },
+            LogicalSize::new(100, 100),
+            &[base],
+        );
+        assert_eq!(result, LogicalPosition::new(0, 0));
     }
 }
