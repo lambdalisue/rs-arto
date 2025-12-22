@@ -85,6 +85,7 @@ pub fn App(
         *app_state.size.write() = LogicalSize::new(metrics.size.width, metrics.size.height);
         app_state
     });
+
     let mut debounced_metrics = {
         let position = *state.position.read();
         let size = *state.size.read();
@@ -100,8 +101,14 @@ pub fn App(
         spawn(async move {
             let _ = document::eval(&format!(
                 r#"
-                const {{ init }} = await import("{MAIN_SCRIPT}");
-                init();
+                (async () => {{
+                    try {{
+                        const {{ init }} = await import("{MAIN_SCRIPT}");
+                        init();
+                    }} catch (error) {{
+                        console.error("Failed to load main module:", error);
+                    }}
+                }})();
                 "#
             ))
             .await;
