@@ -1,6 +1,7 @@
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::window as window_manager;
-use crate::window::helpers;
+use crate::window::metrics::update_outer_to_inner_metrics;
+use crate::window::settings;
 use dioxus::core::spawn_forever;
 use dioxus::desktop::use_muda_event_handler;
 use dioxus::desktop::{window, WindowCloseBehaviour};
@@ -80,6 +81,9 @@ pub fn MainApp() -> Element {
         // This is critical for has_any_main_windows() to work correctly
         let weak_handle = std::rc::Rc::downgrade(&window());
         window_manager::register_main_window(weak_handle);
+
+        // Dioxus inner_size doesn't update after resize; cache outer->inner deltas once.
+        update_outer_to_inner_metrics(&window().window);
     });
 
     // Set up global menu event handling
@@ -115,8 +119,8 @@ pub fn MainApp() -> Element {
 
     // Get initial configuration values (using existing sync functions)
     let is_first_window = true;
-    let directory_value = helpers::get_directory_value(is_first_window, file.as_ref(), directory);
-    let sidebar_value = helpers::get_sidebar_value(is_first_window);
+    let directory_value = settings::get_directory_value(is_first_window, file.as_ref(), directory);
+    let sidebar_value = settings::get_sidebar_value(is_first_window);
 
     // Set up system event handler (for subsequent events)
     use_hook(|| {

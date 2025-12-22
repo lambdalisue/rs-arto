@@ -32,7 +32,7 @@ fn main() {
     init_tracing();
 
     // Create config with theme value and event sender
-    let theme_value = window::helpers::get_theme_value(true);
+    let theme_value = window::settings::get_theme_value(true);
     let config = create_config(theme_value);
 
     // Launch MainApp (first window only)
@@ -73,7 +73,7 @@ fn init_tracing() {
     registry.init();
 }
 
-fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
+fn create_config(theme_value: window::settings::ThemeValue) -> Config {
     // Create event channel and store receiver for MainApp
     let (tx, rx) = channel::<components::main_app::OpenEvent>(10);
     components::main_app::OPEN_EVENT_RECEIVER
@@ -82,6 +82,8 @@ fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
         .replace(rx);
 
     let menu = menu::build_menu();
+
+    let resolved = window::settings::get_window_value(true);
 
     Config::new()
         .with_custom_event_handler(move |event, _target| match event {
@@ -117,7 +119,8 @@ fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
         .with_window(
             WindowBuilder::new()
                 .with_title("Arto")
-                .with_inner_size(dioxus_desktop::tao::dpi::LogicalSize::new(1000.0, 800.0)),
+                .with_position(resolved.position)
+                .with_inner_size(resolved.size),
         )
         // Add main style in config. Otherwise the style takes time to load and
         // the window appears unstyled for a brief moment.
@@ -125,5 +128,5 @@ fn create_config(theme_value: window::helpers::ThemeValue) -> Config {
             indoc::formatdoc! {r#"<link rel="stylesheet" href="{}">"#, assets::MAIN_STYLE},
         )
         // Use a custom index to set the initial theme correctly
-        .with_custom_index(window::build_custom_index(theme_value.theme))
+        .with_custom_index(window::index::build_custom_index(theme_value.theme))
 }

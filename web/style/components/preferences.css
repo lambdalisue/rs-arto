@@ -227,6 +227,99 @@
   color: var(--text-secondary);
 }
 
+/* Dimension Inputs */
+.dimension-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dimension-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.dimension-row .dimension-grid {
+  flex: 1;
+}
+
+.spacing-top-sm {
+  margin-top: 12px;
+}
+
+.dimension-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dimension-input {
+  display: flex;
+  gap: 8px;
+}
+
+.dimension-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-color);
+  font-size: 14px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.dimension-input input::-webkit-outer-spin-button,
+.dimension-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.dimension-input input:focus,
+.dimension-input select:focus {
+  outline: none;
+  border-color: var(--accent-bg);
+}
+
+.dimension-input .dimension-select {
+  width: 70px;
+  padding: 10px 26px 10px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px 6px;
+}
+
+.dimension-unit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* Icon button (for browse, etc.) */
 .directory-input .icon-button {
   display: flex;

@@ -1,5 +1,6 @@
 use super::tabs::{
     about_tab::AboutTab, directory_tab::DirectoryTab, sidebar_tab::SidebarTab, theme_tab::ThemeTab,
+    window_position_tab::WindowPositionTab, window_size_tab::WindowSizeTab,
 };
 use crate::components::icon::{Icon, IconName};
 use crate::config::{Config, CONFIG};
@@ -11,6 +12,8 @@ use std::sync::{LazyLock, Mutex};
 pub enum PreferencesTab {
     #[default]
     Theme,
+    WindowPosition,
+    WindowSize,
     Sidebar,
     Directory,
     About,
@@ -91,6 +94,24 @@ pub fn PreferencesView() -> Element {
                         span { "Theme" }
                     }
                     button {
+                        class: if current_tab == PreferencesTab::WindowPosition { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| {
+                            active_tab.set(PreferencesTab::WindowPosition);
+                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::WindowPosition;
+                        },
+                        Icon { name: IconName::ArrowsMove, size: 18 }
+                        span { "Window Position" }
+                    }
+                    button {
+                        class: if current_tab == PreferencesTab::WindowSize { "nav-tab active" } else { "nav-tab" },
+                        onclick: move |_| {
+                            active_tab.set(PreferencesTab::WindowSize);
+                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::WindowSize;
+                        },
+                        Icon { name: IconName::ArrowsDiagonal, size: 18 }
+                        span { "Window Size" }
+                    }
+                    button {
                         class: if current_tab == PreferencesTab::Sidebar { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::Sidebar);
@@ -155,6 +176,18 @@ pub fn PreferencesView() -> Element {
                     match current_tab {
                         PreferencesTab::Theme => rsx! {
                             ThemeTab {
+                                config,
+                                has_changes,
+                            }
+                        },
+                        PreferencesTab::WindowPosition => rsx! {
+                            WindowPositionTab {
+                                config,
+                                has_changes,
+                            }
+                        },
+                        PreferencesTab::WindowSize => rsx! {
+                            WindowSizeTab {
                                 config,
                                 has_changes,
                             }
