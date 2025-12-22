@@ -54,6 +54,7 @@ pub fn DimensionInput(
                 oninput: handle_value_change,
             }
             select {
+                class: "dimension-select",
                 value: match current_unit {
                     WindowDimensionUnit::Pixels => "pixels",
                     WindowDimensionUnit::Percent => "percent",
