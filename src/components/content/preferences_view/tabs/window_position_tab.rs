@@ -12,7 +12,8 @@ pub fn WindowPositionTab(config: Signal<Config>, has_changes: Signal<bool>) -> E
     let window_config = config.read().window_position.clone();
     let use_current_position = move |_| {
         let metrics = crate::window::metrics::capture_window_metrics(&window().window);
-        config.write().window_position.default_position = WindowPosition {
+        let mut cfg = config.write();
+        cfg.window_position.default_position = WindowPosition {
             x: WindowDimension {
                 value: metrics.position.x as f64,
                 unit: WindowDimensionUnit::Pixels,
@@ -22,7 +23,7 @@ pub fn WindowPositionTab(config: Signal<Config>, has_changes: Signal<bool>) -> E
                 unit: WindowDimensionUnit::Pixels,
             },
         };
-        config.write().window_position.default_position_mode = WindowPositionMode::Coordinates;
+        cfg.window_position.default_position_mode = WindowPositionMode::Coordinates;
         has_changes.set(true);
     };
 
@@ -187,7 +188,8 @@ pub fn WindowPositionTab(config: Signal<Config>, has_changes: Signal<bool>) -> E
                                 step: "1",
                                 value: "{window_config.position_offset.x}",
                                 oninput: move |evt| {
-                                    let value = evt.value().parse::<i32>().unwrap_or(window_config.position_offset.x);
+                                    let fallback = config.read().window_position.position_offset.x;
+                                    let value = evt.value().parse::<i32>().unwrap_or(fallback);
                                     config.write().window_position.position_offset.x = value.max(0);
                                     has_changes.set(true);
                                 },
@@ -207,7 +209,8 @@ pub fn WindowPositionTab(config: Signal<Config>, has_changes: Signal<bool>) -> E
                                 step: "1",
                                 value: "{window_config.position_offset.y}",
                                 oninput: move |evt| {
-                                    let value = evt.value().parse::<i32>().unwrap_or(window_config.position_offset.y);
+                                    let fallback = config.read().window_position.position_offset.y;
+                                    let value = evt.value().parse::<i32>().unwrap_or(fallback);
                                     config.write().window_position.position_offset.y = value.max(0);
                                     has_changes.set(true);
                                 },

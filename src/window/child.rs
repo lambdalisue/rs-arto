@@ -45,8 +45,13 @@ impl ChildWindowEntry {
     }
 }
 
+enum ChildWindowState {
+    Pending { parent_id: WindowId },
+    Created(ChildWindowEntry),
+}
+
 thread_local! {
-    static CHILD_WINDOWS: RefCell<HashMap<String, ChildWindowEntry>> = RefCell::new(HashMap::new());
+    static CHILD_WINDOWS: RefCell<HashMap<String, ChildWindowState>> = RefCell::new(HashMap::new());
 }
 
 pub(crate) fn resolve_to_parent_window(window_id: WindowId) -> WindowId {
@@ -54,20 +59,29 @@ pub(crate) fn resolve_to_parent_window(window_id: WindowId) -> WindowId {
         windows
             .borrow()
             .values()
-            .find(|e| e.is_window(window_id))
-            .map(|e| e.parent_id)
+            .find_map(|state| match state {
+                ChildWindowState::Created(entry) if entry.is_window(window_id) => {
+                    Some(entry.parent_id)
+                }
+                _ => None,
+            })
             .unwrap_or(window_id)
     })
 }
 
 pub fn close_child_windows_for_parent(parent_id: WindowId) {
     CHILD_WINDOWS.with(|windows| {
-        windows.borrow_mut().retain(|_, e| {
-            if e.is_child_of(parent_id) {
-                e.close();
-                false
-            } else {
-                e.is_alive()
+        windows.borrow_mut().retain(|_, state| match state {
+            ChildWindowState::Pending {
+                parent_id: pending_parent,
+            } => *pending_parent != parent_id,
+            ChildWindowState::Created(entry) => {
+                if entry.is_child_of(parent_id) {
+                    entry.close();
+                    false
+                } else {
+                    entry.is_alive()
+                }
             }
         });
     });
@@ -87,9 +101,19 @@ pub fn open_or_focus_mermaid_window(source: String, theme: ThemePreference) {
     // Check if window already exists and can be focused
     let needs_creation = CHILD_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
-        windows.retain(|_, e| e.is_alive());
+        windows.retain(|_, state| match state {
+            ChildWindowState::Pending { .. } => true,
+            ChildWindowState::Created(entry) => entry.is_alive(),
+        });
 
-        !windows.get(&diagram_id).is_some_and(|e| e.focus())
+        match windows.get(&diagram_id) {
+            Some(ChildWindowState::Created(entry)) => !entry.focus(),
+            Some(ChildWindowState::Pending { .. }) => false,
+            None => {
+                windows.insert(diagram_id.clone(), ChildWindowState::Pending { parent_id });
+                true
+            }
+        }
     });
 
     if needs_creation {
@@ -128,11 +152,11 @@ async fn create_and_register_mermaid_window(
     CHILD_WINDOWS.with(|windows| {
         windows.borrow_mut().insert(
             diagram_id,
-            ChildWindowEntry {
+            ChildWindowState::Created(ChildWindowEntry {
                 handle: weak_handle,
                 window_id,
                 parent_id,
-            },
+            }),
         );
     });
 }

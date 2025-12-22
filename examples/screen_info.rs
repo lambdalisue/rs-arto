@@ -28,6 +28,7 @@ fn format_mouse_position() -> String {
 }
 
 fn main() {
+    // Press Ctrl+C to exit.
     loop {
         let primary = get_primary_display();
         let cursor = get_cursor_display();

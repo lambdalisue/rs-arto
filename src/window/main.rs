@@ -49,7 +49,7 @@ pub fn has_any_main_windows() -> bool {
         // Check if any remaining windows are actually visible
         windows.iter().any(|w| {
             w.upgrade()
-                .and_then(|ctx| ctx.window.is_visible().then_some(true))
+                .map(|ctx| ctx.window.is_visible())
                 .unwrap_or(false)
         })
     })
@@ -221,10 +221,7 @@ fn shift_position_if_needed(
     let min_y = 0;
     let max_x = (screen_size.width as i32 - window_size.width as i32).max(min_x);
     let max_y = (screen_size.height as i32 - window_size.height as i32).max(min_y);
-    let mut position = LogicalPosition::new(
-        base.x.clamp(min_x, max_x),
-        base.y.clamp(min_y, max_y),
-    );
+    let mut position = LogicalPosition::new(base.x.clamp(min_x, max_x), base.y.clamp(min_y, max_y));
     let mut offset_x = offset.x;
     let mut offset_y = offset.y;
     for _ in 0..MAX_POSITION_SHIFT_ATTEMPTS {
@@ -250,10 +247,7 @@ fn shift_position_if_needed(
             offset_y = -offset_y;
             next_y = position.y + offset_y;
         }
-        position = LogicalPosition::new(
-            next_x.clamp(min_x, max_x),
-            next_y.clamp(min_y, max_y),
-        );
+        position = LogicalPosition::new(next_x.clamp(min_x, max_x), next_y.clamp(min_y, max_y));
     }
     position
 }
