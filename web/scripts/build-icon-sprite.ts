@@ -24,6 +24,8 @@ const icons = [
   "eye-off",
   "alert-triangle",
   "alert-circle",
+  "arrows-diagonal",
+  "arrows-move",
   "refresh",
   "login",
   "server",
