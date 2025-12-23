@@ -53,7 +53,11 @@ pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
                         const handler = (e) => {
                             const selector = e.target.closest('.theme-selector');
                             if (!selector) {
+                                // Outside click, resolve to close expanded.
                                 resolve();
+                            } else {
+                                // Inside click, re-listen mousedown event.
+                                document.addEventListener('mousedown', handler, { once: true });
                             }
                         };
                         document.addEventListener('mousedown', handler, { once: true });
