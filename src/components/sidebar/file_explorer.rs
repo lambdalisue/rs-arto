@@ -52,7 +52,7 @@ pub fn FileExplorer() -> Element {
 
             if let Some(root) = root_directory {
                 ParentNavigation { current_dir: root.clone(), refresh_counter }
-                DirectoryTree { path: root }
+                DirectoryTree { path: root, refresh_counter }
             } else {
                 div {
                     class: "file-explorer-empty",
@@ -176,21 +176,22 @@ fn ParentNavigation(current_dir: PathBuf, mut refresh_counter: Signal<u32>) -> E
 }
 
 #[component]
-fn DirectoryTree(path: PathBuf) -> Element {
+fn DirectoryTree(path: PathBuf, refresh_counter: Signal<u32>) -> Element {
     let entries = read_sorted_entries(&path);
 
     rsx! {
         div {
             class: "directory-tree",
+            key: "{refresh_counter}",
             for entry in entries {
-                FileTreeNode { path: entry, depth: 0 }
+                FileTreeNode { path: entry, depth: 0, refresh_counter }
             }
         }
     }
 }
 
 #[component]
-fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
+fn FileTreeNode(path: PathBuf, depth: usize, refresh_counter: Signal<u32>) -> Element {
     let mut state = use_context::<AppState>();
 
     let is_dir = path.is_dir();
@@ -321,8 +322,11 @@ fn FileTreeNode(path: PathBuf, depth: usize) -> Element {
                 {
                     let children = read_sorted_entries(&path);
                     rsx! {
-                        for child in children {
-                            FileTreeNode { path: child, depth: depth + 1 }
+                        div {
+                            key: "{refresh_counter}",
+                            for child in children {
+                                FileTreeNode { path: child, depth: depth + 1, refresh_counter }
+                            }
                         }
                     }
                 }
