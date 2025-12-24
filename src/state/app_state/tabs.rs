@@ -68,6 +68,14 @@ impl Tab {
 }
 
 impl AppState {
+    /// Get a tab by index (returns a clone)
+    ///
+    /// Used in Prepare phase of Two-Phase Commit.
+    /// Note: Clone cost is low (~2-10 KB for typical tabs with history).
+    pub fn get_tab(&self, index: usize) -> Option<Tab> {
+        self.tabs.read().get(index).cloned()
+    }
+
     /// Get a read-only copy of the current active tab
     pub fn current_tab(&self) -> Option<Tab> {
         let tabs = self.tabs.read();

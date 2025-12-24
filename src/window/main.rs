@@ -102,6 +102,21 @@ fn list_visible_main_window_contexts() -> Vec<std::rc::Rc<dioxus::desktop::Deskt
         .collect()
 }
 
+/// List all visible main windows with their IDs and titles
+///
+/// Returns a vector of (WindowId, title) tuples for all visible main windows.
+/// This is useful for populating context menus that show available windows.
+pub fn list_main_window_ids() -> Vec<(WindowId, String)> {
+    list_visible_main_window_contexts()
+        .iter()
+        .map(|ctx| {
+            let id = ctx.window.id();
+            let title = ctx.window.title();
+            (id, title)
+        })
+        .collect()
+}
+
 pub fn register_main_window(handle: WeakDesktopContext) {
     MAIN_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
