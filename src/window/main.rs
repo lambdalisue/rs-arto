@@ -25,6 +25,25 @@ thread_local! {
     static LAST_FOCUSED_WINDOW: RefCell<Option<WindowId>> = const { RefCell::new(None) };
 }
 
+/// List all active (upgraded) main window contexts
+fn list_main_window_contexts() -> Vec<std::rc::Rc<dioxus::desktop::DesktopService>> {
+    MAIN_WINDOWS.with(|windows| {
+        windows
+            .borrow()
+            .iter()
+            .filter_map(|w| w.upgrade())
+            .collect()
+    })
+}
+
+/// List all visible main window contexts
+fn list_visible_main_window_contexts() -> Vec<std::rc::Rc<dioxus::desktop::DesktopService>> {
+    list_main_window_contexts()
+        .into_iter()
+        .filter(|ctx| ctx.window.is_visible())
+        .collect()
+}
+
 pub fn register_main_window(handle: WeakDesktopContext) {
     MAIN_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
@@ -42,17 +61,11 @@ pub fn register_main_window(handle: WeakDesktopContext) {
 /// avoid sending events (e.g., FILE_OPEN_BROADCAST) to hidden windows, which would
 /// be invisible to users.
 pub fn has_any_main_windows() -> bool {
+    // Clean up dead windows first
     MAIN_WINDOWS.with(|windows| {
-        let mut windows = windows.borrow_mut();
-        // Remove destroyed windows
-        windows.retain(|w| w.upgrade().is_some());
-        // Check if any remaining windows are actually visible
-        windows.iter().any(|w| {
-            w.upgrade()
-                .map(|ctx| ctx.window.is_visible())
-                .unwrap_or(false)
-        })
-    })
+        windows.borrow_mut().retain(|w| w.upgrade().is_some());
+    });
+    !list_visible_main_window_contexts().is_empty()
 }
 
 pub fn focus_last_focused_main_window() -> bool {
@@ -60,32 +73,22 @@ pub fn focus_last_focused_main_window() -> bool {
         // Resolve to parent window if the last focused was a child window
         let main_window_id = child::resolve_to_parent_window(window_id);
 
-        MAIN_WINDOWS.with(|windows| {
-            windows
-                .borrow()
-                .iter()
-                .filter_map(|w| w.upgrade())
-                .find(|ctx| ctx.window.id() == main_window_id)
-                .map(|ctx| {
-                    ctx.window.set_visible(true);
-                    ctx.window.set_focus();
-                    true
-                })
-                .unwrap_or(false)
-        })
+        list_main_window_contexts()
+            .into_iter()
+            .find(|ctx| ctx.window.id() == main_window_id)
+            .map(|ctx| {
+                ctx.window.set_visible(true);
+                ctx.window.set_focus();
+                true
+            })
+            .unwrap_or(false)
     } else {
         false
     }
 }
 
 pub fn close_all_main_windows() {
-    let windows = MAIN_WINDOWS.with(|w| {
-        w.borrow()
-            .iter()
-            .filter_map(|w| w.upgrade())
-            .collect::<Vec<_>>()
-    });
-
+    let windows = list_main_window_contexts();
     windows.iter().for_each(|w| w.close());
     MAIN_WINDOWS.with(|w| w.borrow_mut().clear());
 }
@@ -123,7 +126,7 @@ pub async fn create_new_main_window_async(
     let position_offset = CONFIG.read().window_position.position_offset;
     let (screen_origin, screen_size) = get_current_display_bounds()
         .unwrap_or_else(|| (LogicalPosition::new(0, 0), LogicalSize::new(1000, 800)));
-    let occupied = existing_main_window_positions();
+    let occupied = list_main_window_positions();
     let shifted_position = shift_position_if_needed(
         resolved.position,
         resolved.size,
@@ -186,28 +189,20 @@ pub(crate) fn get_last_focused_window() -> Option<WindowId> {
 }
 
 fn find_window_metrics(window_id: WindowId) -> Option<WindowMetrics> {
-    MAIN_WINDOWS.with(|windows| {
-        windows
-            .borrow()
-            .iter()
-            .filter_map(|w| w.upgrade())
-            .find(|ctx| ctx.window.id() == window_id)
-            .map(|ctx| capture_window_metrics(&ctx.window))
-    })
+    list_main_window_contexts()
+        .into_iter()
+        .find(|ctx| ctx.window.id() == window_id)
+        .map(|ctx| capture_window_metrics(&ctx.window))
 }
 
-fn existing_main_window_positions() -> Vec<LogicalPosition<i32>> {
-    MAIN_WINDOWS.with(|windows| {
-        windows
-            .borrow()
-            .iter()
-            .filter_map(|w| w.upgrade())
-            .map(|ctx| {
-                let metrics = capture_window_metrics(&ctx.window);
-                LogicalPosition::new(metrics.position.x, metrics.position.y)
-            })
-            .collect()
-    })
+fn list_main_window_positions() -> Vec<LogicalPosition<i32>> {
+    list_main_window_contexts()
+        .iter()
+        .map(|ctx| {
+            let metrics = capture_window_metrics(&ctx.window);
+            LogicalPosition::new(metrics.position.x, metrics.position.y)
+        })
+        .collect()
 }
 
 fn shift_position_if_needed(
