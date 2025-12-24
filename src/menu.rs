@@ -1,4 +1,4 @@
-use dioxus::prelude::{ReadableExt, WritableExt};
+use dioxus::prelude::{spawn, ReadableExt, WritableExt};
 use dioxus_desktop::muda::accelerator::{Accelerator, Code, Modifiers};
 use dioxus_desktop::muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use dioxus_desktop::window;
@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::components::content::set_preferences_tab_to_about;
 use crate::state::AppState;
-use crate::window;
+use crate::window::{self, CreateMainWindowConfigParams};
 
 /// Menu identifier enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -274,11 +274,19 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
 
     match id {
         MenuId::NewWindow => {
-            window::create_new_main_window(None, None, false);
+            spawn(async move {
+                window::create_new_main_window_with_empty(CreateMainWindowConfigParams::default())
+                    .await;
+            });
         }
         MenuId::NewTab => {
             if !window::has_any_main_windows() {
-                window::create_new_main_window(None, None, false);
+                spawn(async move {
+                    window::create_new_main_window_with_empty(
+                        CreateMainWindowConfigParams::default(),
+                    )
+                    .await;
+                });
                 return true;
             }
             return false;

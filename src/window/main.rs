@@ -9,7 +9,8 @@ use std::path::PathBuf;
 use crate::assets::MAIN_STYLE;
 use crate::components::app::{App, AppProps};
 use crate::config::{WindowPositionOffset, CONFIG};
-use crate::state::LAST_FOCUSED_STATE;
+use crate::state::{Tab, LAST_FOCUSED_STATE};
+use crate::theme::Theme;
 use crate::utils::screen::get_current_display_bounds;
 
 use super::child;
@@ -19,6 +20,63 @@ use super::settings;
 use super::types::WindowMetrics;
 
 const MAX_POSITION_SHIFT_ATTEMPTS: usize = 20;
+
+/// Create base window config from parameters
+/// This config can be further customized with .with_menu(), .with_custom_event_handler(), etc.
+pub fn create_main_window_config(params: &CreateMainWindowConfigParams) -> Config {
+    Config::new()
+        .with_window(
+            WindowBuilder::new()
+                .with_title("Arto")
+                .with_position(params.position)
+                .with_inner_size(params.size),
+        )
+        // Add main style in config. Otherwise the style takes time to load and
+        // the window appears unstyled for a brief moment.
+        .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
+        // Use a custom index to set the initial theme correctly
+        .with_custom_index(build_custom_index(params.theme))
+}
+
+/// Parameters for creating a new main window
+pub struct CreateMainWindowConfigParams {
+    pub directory: Option<PathBuf>, // Auto-detect from tab/file if None
+    pub theme: Theme,               // The enum: Auto/Light/Dark
+    pub sidebar_open: bool,
+    pub sidebar_width: f64,
+    pub sidebar_show_all_files: bool,
+    pub size: LogicalSize<u32>,
+    pub position: LogicalPosition<i32>,
+}
+
+impl CreateMainWindowConfigParams {
+    /// Get default params from preferences
+    /// Note: directory may be None (user hasn't set default_directory)
+    pub fn from_preferences(is_first_window: bool) -> Self {
+        let directory_pref = settings::get_directory_preference(is_first_window);
+        let theme_pref = settings::get_theme_preference(is_first_window);
+        let sidebar_pref = settings::get_sidebar_preference(is_first_window);
+        let size_pref = settings::get_window_size_preference(is_first_window);
+        let position_pref = settings::get_window_position_preference(is_first_window);
+
+        Self {
+            directory: directory_pref.directory,
+            theme: theme_pref.theme,
+            sidebar_open: sidebar_pref.open,
+            sidebar_width: sidebar_pref.width,
+            sidebar_show_all_files: sidebar_pref.show_all_files,
+            size: size_pref.size,
+            position: position_pref.position,
+        }
+    }
+}
+
+impl Default for CreateMainWindowConfigParams {
+    fn default() -> Self {
+        let is_first_window = !has_any_main_windows();
+        Self::from_preferences(is_first_window)
+    }
+}
 
 thread_local! {
     static MAIN_WINDOWS: RefCell<Vec<WeakDesktopContext>> = const { RefCell::new(Vec::new()) };
@@ -93,43 +151,34 @@ pub fn close_all_main_windows() {
     MAIN_WINDOWS.with(|w| w.borrow_mut().clear());
 }
 
-pub fn create_new_main_window(
-    file: Option<PathBuf>,
-    directory: Option<PathBuf>,
-    show_welcome: bool,
-) {
-    dioxus_core::spawn(async move {
-        create_new_main_window_async(file, directory, show_welcome).await;
-    });
-}
+/// Core function: Create new main window with a tab
+/// Returns the WindowId of the created window (async)
+///
+/// Directory resolution priority:
+/// 1. params.directory (from config or user)
+/// 2. tab.file().parent() (auto-detect from tab content)
+/// 3. dirs::home_dir() (fallback)
+/// 4. "/" (final fallback - always succeeds)
+pub(crate) async fn create_new_main_window(
+    tab: Tab,
+    mut params: CreateMainWindowConfigParams,
+) -> WindowId {
+    // Resolve directory: params → tab parent → home dir → root (guaranteed to succeed)
+    let directory = params
+        .directory
+        .take()
+        .or_else(|| tab.file().and_then(|p| p.parent().map(|p| p.to_path_buf())))
+        .or_else(dirs::home_dir)
+        .unwrap_or_else(|| PathBuf::from("/"));
 
-pub async fn create_new_main_window_async(
-    file: Option<PathBuf>,
-    directory: Option<PathBuf>,
-    show_welcome: bool,
-) {
-    // Check if this is the first window (0 -> 1 transition)
-    // Use "On Startup" (Last Closed) for first window, "On New Window" (Last Focused) for additional
-    let is_first_window = !has_any_main_windows();
-
-    // Get theme from config and state
-    let theme_value = settings::get_theme_value(is_first_window);
-
-    // Get directory from config and state
-    let directory_value = settings::get_directory_value(is_first_window, file.as_ref(), directory);
-
-    // Get sidebar settings from config and state
-    let sidebar_value = settings::get_sidebar_value(is_first_window);
-
-    // Get window settings from config and state
-    let resolved = settings::get_window_value(is_first_window);
+    // Apply position shift based on existing windows
     let position_offset = CONFIG.read().window_position.position_offset;
     let (screen_origin, screen_size) = get_current_display_bounds()
         .unwrap_or_else(|| (LogicalPosition::new(0, 0), LogicalSize::new(1000, 800)));
     let occupied = list_main_window_positions();
     let shifted_position = shift_position_if_needed(
-        resolved.position,
-        resolved.size,
+        params.position,
+        params.size,
         position_offset,
         screen_origin,
         screen_size,
@@ -138,41 +187,52 @@ pub async fn create_new_main_window_async(
     tracing::debug!(
         screen_size=?screen_size,
         position_offset=?position_offset,
-        resolved_position=?resolved.position,
+        resolved_position=?params.position,
         shifted_position=?shifted_position,
         "Shifted position is calculated"
     );
 
-    // This cause ERROR but it seems we can ignore it safely
-    // https://github.com/DioxusLabs/dioxus/issues/3872
+    // Create VirtualDom with the provided tab and params
     let dom = VirtualDom::new_with_props(
         App,
         AppProps {
-            file,
-            directory: directory_value.directory,
-            sidebar_open: sidebar_value.open,
-            sidebar_width: sidebar_value.width,
-            sidebar_show_all_files: sidebar_value.show_all_files,
-            show_welcome,
+            tab,
+            directory,
+            theme: params.theme,
+            sidebar_open: params.sidebar_open,
+            sidebar_width: params.sidebar_width,
+            sidebar_show_all_files: params.sidebar_show_all_files,
         },
     );
-    let config = Config::new()
-        .with_menu(None) // To avoid child window taking over the main window's menu
-        .with_window(
-            WindowBuilder::new()
-                .with_title("Arto")
-                .with_position(shifted_position)
-                .with_inner_size(resolved.size),
-        )
-        // Add main style in config. Otherwise the style takes time to load and
-        // the window appears unstyled for a brief moment.
-        .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
-        // Use a custom index to set the initial theme correctly
-        .with_custom_index(build_custom_index(theme_value.theme));
+
+    // Override position with shifted position
+    let params_with_shift = CreateMainWindowConfigParams {
+        position: shifted_position,
+        ..params
+    };
+
+    let config = create_main_window_config(&params_with_shift).with_menu(None); // To avoid child window taking over the main window's menu
 
     let pending = window().new_window(dom, config);
     let handle = pending.await;
+    let window_id = handle.window.id();
     register_main_window(std::rc::Rc::downgrade(&handle));
+
+    window_id
+}
+
+/// Convenience: Create window with file
+pub async fn create_new_main_window_with_file(
+    file: impl Into<PathBuf>,
+    params: CreateMainWindowConfigParams,
+) -> WindowId {
+    let file = file.into();
+    create_new_main_window(Tab::new(file), params).await
+}
+
+/// Convenience: Create window with empty tab
+pub async fn create_new_main_window_with_empty(params: CreateMainWindowConfigParams) -> WindowId {
+    create_new_main_window(Tab::default(), params).await
 }
 
 pub fn update_last_focused_window(window_id: WindowId) {

@@ -1,8 +1,7 @@
 use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
 use mouse_position::mouse_position::Mouse;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use super::types::ResolvedWindowValue;
 use crate::config::{
     NewWindowBehavior, StartupBehavior, WindowDimension, WindowDimensionUnit, WindowPosition,
     WindowPositionMode, WindowSize, CONFIG,
@@ -14,32 +13,34 @@ use crate::utils::screen::{get_current_display_bounds, get_cursor_display, get_p
 const MIN_WINDOW_DIMENSION: f64 = 100.0;
 
 // ============================================================================
-// Value Types
+// Preference Types
 // ============================================================================
 
-pub struct ThemeValue {
+pub struct ThemePreference {
     pub theme: Theme,
 }
 
-pub struct DirectoryValue {
-    pub directory: PathBuf,
+pub struct DirectoryPreference {
+    pub directory: Option<PathBuf>,
 }
 
-pub struct SidebarValue {
+pub struct SidebarPreference {
     pub open: bool,
     pub width: f64,
     pub show_all_files: bool,
 }
 
+pub struct WindowSizePreference {
+    pub size: LogicalSize<u32>,
+}
+
+pub struct WindowPositionPreference {
+    pub position: LogicalPosition<i32>,
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/// Resolve directory with fallback: provided path -> home directory -> root
-fn resolve_directory(dir: Option<PathBuf>) -> PathBuf {
-    dir.or_else(dirs::home_dir)
-        .unwrap_or_else(|| PathBuf::from("/"))
-}
 
 fn choose_by_behavior<T>(
     is_first_window: bool,
@@ -178,7 +179,7 @@ fn resolve_window_settings(
 // Public API
 // ============================================================================
 
-pub fn get_theme_value(is_first_window: bool) -> ThemeValue {
+pub fn get_theme_preference(is_first_window: bool) -> ThemePreference {
     let cfg = CONFIG.read();
     let theme = choose_by_behavior(
         is_first_window,
@@ -187,55 +188,41 @@ pub fn get_theme_value(is_first_window: bool) -> ThemeValue {
         || cfg.theme.default_theme,
         || LAST_FOCUSED_STATE.read().theme,
     );
-    ThemeValue { theme }
+    ThemePreference { theme }
 }
 
-pub fn get_directory_value(
-    is_first_window: bool,
-    file: Option<impl AsRef<Path>>,
-    directory: Option<impl AsRef<Path>>,
-) -> DirectoryValue {
-    let directory = if let Some(directory) = directory.map(|v| v.as_ref().to_owned()) {
-        // Use the specified directory
-        directory
-    } else if let Some(directory) = file.and_then(|v| v.as_ref().parent().map(ToOwned::to_owned)) {
-        // Use parent directory of the specified file
-        directory
-    } else {
-        // Use default or last directory
-        let cfg = CONFIG.read();
-        let directory: Option<PathBuf> = choose_by_behavior(
-            is_first_window,
-            cfg.directory.on_startup,
-            cfg.directory.on_new_window,
-            || cfg.directory.default_directory.clone(),
-            || {
-                LAST_FOCUSED_STATE
-                    .read()
-                    .directory
-                    .clone()
-                    .or_else(|| cfg.directory.default_directory.clone())
-            },
-        );
-        resolve_directory(directory)
-    };
-    DirectoryValue { directory }
+pub fn get_directory_preference(is_first_window: bool) -> DirectoryPreference {
+    let cfg = CONFIG.read();
+    let directory: Option<PathBuf> = choose_by_behavior(
+        is_first_window,
+        cfg.directory.on_startup,
+        cfg.directory.on_new_window,
+        || cfg.directory.default_directory.clone(),
+        || {
+            LAST_FOCUSED_STATE
+                .read()
+                .directory
+                .clone()
+                .or_else(|| cfg.directory.default_directory.clone())
+        },
+    );
+    DirectoryPreference { directory }
 }
 
-pub fn get_sidebar_value(is_first_window: bool) -> SidebarValue {
+pub fn get_sidebar_preference(is_first_window: bool) -> SidebarPreference {
     let cfg = CONFIG.read();
     choose_by_behavior(
         is_first_window,
         cfg.sidebar.on_startup,
         cfg.sidebar.on_new_window,
-        || SidebarValue {
+        || SidebarPreference {
             open: cfg.sidebar.default_open,
             width: cfg.sidebar.default_width,
             show_all_files: cfg.sidebar.default_show_all_files,
         },
         || {
             let state = LAST_FOCUSED_STATE.read();
-            SidebarValue {
+            SidebarPreference {
                 open: state.sidebar_open,
                 width: state.sidebar_width,
                 show_all_files: state.sidebar_show_all_files,
@@ -244,7 +231,17 @@ pub fn get_sidebar_value(is_first_window: bool) -> SidebarValue {
     )
 }
 
-pub fn get_window_value(is_first_window: bool) -> ResolvedWindowValue {
+pub fn get_window_size_preference(is_first_window: bool) -> WindowSizePreference {
+    let (_, _, size) = resolve_window_settings(is_first_window);
+    let (_, screen_size) = get_current_display_bounds()
+        .unwrap_or_else(|| (LogicalPosition::new(0, 0), LogicalSize::new(1000, 800)));
+    let resolved_size = resolve_window_size(size, screen_size);
+    WindowSizePreference {
+        size: resolved_size,
+    }
+}
+
+pub fn get_window_position_preference(is_first_window: bool) -> WindowPositionPreference {
     let (position, position_mode, size) = resolve_window_settings(is_first_window);
     let (screen_origin, screen_size) = get_current_display_bounds()
         .unwrap_or_else(|| (LogicalPosition::new(0, 0), LogicalSize::new(1000, 800)));
@@ -256,9 +253,8 @@ pub fn get_window_value(is_first_window: bool) -> ResolvedWindowValue {
         WindowPositionMode::Mouse => resolve_window_position_from_cursor(resolved_size)
             .unwrap_or_else(|| LogicalPosition::new(0, 0)),
     };
-    ResolvedWindowValue {
+    WindowPositionPreference {
         position: resolved_position,
-        size: resolved_size,
     }
 }
 
@@ -267,26 +263,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_resolve_directory_with_some() {
-        let path = PathBuf::from("/custom/path");
-        let result = resolve_directory(Some(path.clone()));
-        assert_eq!(result, path);
-    }
-
-    #[test]
-    fn test_resolve_directory_with_none() {
-        let result = resolve_directory(None);
-        // Should return home directory or root
-        assert!(
-            result == dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
-                || result.as_path() == std::path::Path::new("/")
-        );
-    }
-
-    #[test]
-    fn test_get_theme_value_first_window() {
-        let result = get_theme_value(true);
-        // Should return a ThemeValue
+    fn test_get_theme_preference_first_window() {
+        let result = get_theme_preference(true);
+        // Should return a ThemePreference
         assert!(matches!(
             result.theme,
             Theme::Auto | Theme::Light | Theme::Dark
@@ -294,9 +273,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_theme_value_new_window() {
-        let result = get_theme_value(false);
-        // Should return a ThemeValue
+    fn test_get_theme_preference_new_window() {
+        let result = get_theme_preference(false);
+        // Should return a ThemePreference
         assert!(matches!(
             result.theme,
             Theme::Auto | Theme::Light | Theme::Dark
@@ -304,45 +283,63 @@ mod tests {
     }
 
     #[test]
-    fn test_get_directory_value_first_window() {
-        let result = get_directory_value(true, None::<PathBuf>, None::<PathBuf>);
-        // Should return a DirectoryValue with a non-empty path
-        assert!(!result.directory.as_os_str().is_empty());
+    fn test_get_directory_preference_first_window() {
+        let result = get_directory_preference(true);
+        // Should return a DirectoryPreference (directory may be None)
+        // We only check that it returns successfully
+        let _ = result.directory;
     }
 
     #[test]
-    fn test_get_directory_value_new_window() {
-        let result = get_directory_value(false, None::<PathBuf>, None::<PathBuf>);
-        // Should return a DirectoryValue with a non-empty path
-        assert!(!result.directory.as_os_str().is_empty());
+    fn test_get_directory_preference_new_window() {
+        let result = get_directory_preference(false);
+        // Should return a DirectoryPreference (directory may be None)
+        // We only check that it returns successfully
+        let _ = result.directory;
     }
 
     #[test]
-    fn test_get_sidebar_value_first_window() {
-        let result = get_sidebar_value(true);
-        // Should return a SidebarValue
+    fn test_get_sidebar_preference_first_window() {
+        let result = get_sidebar_preference(true);
+        // Should return a SidebarPreference
         assert!(result.width > 0.0);
     }
 
     #[test]
-    fn test_get_sidebar_value_new_window() {
-        let result = get_sidebar_value(false);
-        // Should return a SidebarValue
+    fn test_get_sidebar_preference_new_window() {
+        let result = get_sidebar_preference(false);
+        // Should return a SidebarPreference
         assert!(result.width > 0.0);
     }
 
     #[test]
-    fn test_get_window_value_first_window() {
-        let result = get_window_value(true);
+    fn test_get_window_size_preference_first_window() {
+        let result = get_window_size_preference(true);
         assert!(result.size.width > 0);
         assert!(result.size.height > 0);
     }
 
     #[test]
-    fn test_get_window_value_new_window() {
-        let result = get_window_value(false);
+    fn test_get_window_size_preference_new_window() {
+        let result = get_window_size_preference(false);
         assert!(result.size.width > 0);
         assert!(result.size.height > 0);
+    }
+
+    #[test]
+    fn test_get_window_position_preference_first_window() {
+        let result = get_window_position_preference(true);
+        // Position can be any value including negative
+        // We only check that it returns successfully
+        let _ = result.position;
+    }
+
+    #[test]
+    fn test_get_window_position_preference_new_window() {
+        let result = get_window_position_preference(false);
+        // Position can be any value including negative
+        // We only check that it returns successfully
+        let _ = result.position;
     }
 
     #[test]

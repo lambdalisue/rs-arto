@@ -1,7 +1,8 @@
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
+use crate::state::Tab;
 use crate::window as window_manager;
 use crate::window::metrics::update_outer_to_inner_metrics;
-use crate::window::settings;
+use crate::window::{settings, CreateMainWindowConfigParams};
 use dioxus::core::spawn_forever;
 use dioxus::desktop::use_muda_event_handler;
 use dioxus::desktop::{window, WindowCloseBehaviour};
@@ -43,19 +44,36 @@ fn handle_open_event(event: OpenEvent) {
             if window_manager::has_any_main_windows() {
                 let _ = FILE_OPEN_BROADCAST.send(file);
             } else {
-                window_manager::create_new_main_window(Some(file), None, false);
+                spawn(async move {
+                    window_manager::create_new_main_window_with_file(
+                        file,
+                        CreateMainWindowConfigParams::default(),
+                    )
+                    .await;
+                });
             }
         }
         OpenEvent::Directory(dir) => {
             if window_manager::has_any_main_windows() {
                 let _ = DIRECTORY_OPEN_BROADCAST.send(dir);
             } else {
-                window_manager::create_new_main_window(None, Some(dir), false);
+                spawn(async move {
+                    let params = CreateMainWindowConfigParams {
+                        directory: Some(dir),
+                        ..Default::default()
+                    };
+                    window_manager::create_new_main_window_with_empty(params).await;
+                });
             }
         }
         OpenEvent::Reopen => {
             if !window_manager::focus_last_focused_main_window() {
-                window_manager::create_new_main_window(None, None, false);
+                spawn(async move {
+                    window_manager::create_new_main_window_with_empty(
+                        CreateMainWindowConfigParams::default(),
+                    )
+                    .await;
+                });
             }
         }
     }
@@ -107,20 +125,28 @@ pub fn MainApp() -> Element {
         None
     };
 
-    // Extract initial file/directory if present
-    let file = match &first_event {
-        Some(OpenEvent::File(path)) => Some(path.clone()),
-        _ => None,
-    };
-    let directory = match &first_event {
-        Some(OpenEvent::Directory(path)) => Some(path.clone()),
-        _ => None,
+    // Resolve initial tab and directory from event
+    let is_first_window = true;
+    let (tab, directory_override) = match &first_event {
+        Some(OpenEvent::File(path)) => (Tab::new(path.clone()), None),
+        Some(OpenEvent::Directory(path)) => (Tab::default(), Some(path.clone())),
+        _ => {
+            let welcome_content = crate::assets::get_default_markdown_content();
+            (Tab::with_inline_content(welcome_content), None)
+        }
     };
 
-    // Get initial configuration values (using existing sync functions)
-    let is_first_window = true;
-    let directory_value = settings::get_directory_value(is_first_window, file.as_ref(), directory);
-    let sidebar_value = settings::get_sidebar_value(is_first_window);
+    // Get initial configuration values
+    let directory_pref = settings::get_directory_preference(is_first_window);
+    let theme_pref = settings::get_theme_preference(is_first_window);
+    let sidebar_pref = settings::get_sidebar_preference(is_first_window);
+
+    // Directory resolution: override (from event) → config → tab parent → home → root
+    let directory = directory_override
+        .or(directory_pref.directory)
+        .or_else(|| tab.file().and_then(|p| p.parent().map(|p| p.to_path_buf())))
+        .or_else(dirs::home_dir)
+        .unwrap_or_else(|| PathBuf::from("/"));
 
     // Set up system event handler (for subsequent events)
     use_hook(|| {
@@ -134,12 +160,12 @@ pub fn MainApp() -> Element {
     // Render App component with initial state
     rsx! {
         crate::components::app::App {
-            file: file,
-            directory: directory_value.directory,
-            sidebar_open: sidebar_value.open,
-            sidebar_width: sidebar_value.width,
-            sidebar_show_all_files: sidebar_value.show_all_files,
-            show_welcome: first_event.is_none(),
+            tab: tab,
+            directory: directory,
+            theme: theme_pref.theme,
+            sidebar_open: sidebar_pref.open,
+            sidebar_width: sidebar_pref.width,
+            sidebar_show_all_files: sidebar_pref.show_all_files,
         }
     }
 }

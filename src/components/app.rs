@@ -17,6 +17,7 @@ use crate::assets::MAIN_SCRIPT;
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::menu;
 use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
+use crate::theme::Theme;
 
 const WINDOW_METRICS_DEBOUNCE_MS: u64 = 200;
 
@@ -47,28 +48,29 @@ impl DebouncedMetricsUpdater {
 
 #[component]
 pub fn App(
-    file: Option<PathBuf>,
-    directory: PathBuf,
+    tab: Tab,           // Initial tab (always provided, preserves history)
+    directory: PathBuf, // Directory (resolved in create_new_main_window)
+    theme: Theme,       // The enum: Auto/Light/Dark
     sidebar_open: bool,
     sidebar_width: f64,
     sidebar_show_all_files: bool,
-    show_welcome: bool,
 ) -> Element {
-    // Initialize application state with optional initial file or welcome screen
+    // Initialize application state with the provided tab
     let mut state = use_context_provider(|| {
         let mut app_state = AppState::default();
-        if let Some(path) = file.clone() {
-            app_state.tabs.write()[0] = Tab::new(path);
-        } else if show_welcome {
-            // Show welcome screen with embedded markdown content
-            let welcome_content = crate::assets::get_default_markdown_content();
-            app_state.tabs.write()[0] = Tab::with_inline_content(welcome_content);
-        }
-        // Apply initial directory from config (for startup/new window behavior)
+
+        // Initialize with provided tab (preserves history)
+        app_state.tabs.write()[0] = tab;
+
+        // Apply initial directory from params (resolved in create_new_main_window)
         *app_state.directory.write() = Some(directory.clone());
         // Update last focused state for "Last Focused" behavior
         LAST_FOCUSED_STATE.write().directory = Some(directory);
-        // Apply initial sidebar settings from config
+
+        // Set initial theme
+        LAST_FOCUSED_STATE.write().theme = theme;
+
+        // Apply initial sidebar settings from params
         {
             let mut sidebar = app_state.sidebar.write();
             sidebar.open = sidebar_open;
