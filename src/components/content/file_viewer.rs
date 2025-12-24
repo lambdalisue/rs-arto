@@ -189,7 +189,7 @@ fn handle_link_click(click_data: LinkClickData, base_dir: &Path, state: &mut App
     match button {
         MIDDLE_CLICK => {
             // Open in new tab (always create a new tab for middle-click)
-            state.add_tab(canonical_path, true);
+            state.add_file_tab(canonical_path, true);
         }
         LEFT_CLICK => {
             // Navigate in current tab (in-tab navigation, no existing tab check)

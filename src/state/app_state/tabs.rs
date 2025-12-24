@@ -88,53 +88,68 @@ impl AppState {
         }
     }
 
-    /// Add a new tab and optionally switch to it
-    pub fn add_tab(&mut self, file: impl Into<PathBuf>, switch_to: bool) {
-        let mut tabs = self.tabs.write();
-        tabs.push(Tab::new(file));
-
-        if switch_to {
-            let new_tab_index = tabs.len() - 1;
-            self.active_tab.set(new_tab_index);
-        }
-    }
-
-    /// Add a new tab and optionally switch to it
-    pub fn add_empty_tab(&mut self, switch_to: bool) {
-        let mut tabs = self.tabs.write();
-        tabs.push(Tab::default());
-
-        if switch_to {
-            let new_tab_index = tabs.len() - 1;
-            self.active_tab.set(new_tab_index);
-        }
-    }
-
-    /// Close a tab by index, handling edge cases
-    pub fn close_tab(&mut self, index: usize) {
+    /// Close a tab at index
+    /// If all tabs are removed, automatically adds an empty tab to keep window open
+    /// Returns true if tab was closed, false if index was invalid
+    pub fn close_tab(&mut self, index: usize) -> bool {
         let mut tabs = self.tabs.write();
 
-        // Keep at least one tab (clear it instead of removing)
-        if tabs.len() <= 1 {
-            if let Some(tab) = tabs.first_mut() {
-                *tab = Tab::default();
-            }
-            return;
+        if index >= tabs.len() {
+            return false;
         }
 
         tabs.remove(index);
 
-        // Update active tab index if necessary
+        // Update active tab index
         let current_active = *self.active_tab.read();
         let new_active = match current_active.cmp(&index) {
             std::cmp::Ordering::Greater => current_active - 1,
-            std::cmp::Ordering::Equal if current_active >= tabs.len() => tabs.len() - 1,
+            std::cmp::Ordering::Equal if current_active >= tabs.len() => {
+                tabs.len().saturating_sub(1)
+            }
             _ => current_active,
         };
 
-        if new_active != current_active {
+        if new_active != current_active && !tabs.is_empty() {
             self.active_tab.set(new_active);
         }
+
+        // If all tabs removed, add empty tab (keep window open)
+        if tabs.is_empty() {
+            tabs.push(Tab::default());
+            self.active_tab.set(0);
+        }
+
+        true
+    }
+
+    /// Insert tab at specified position
+    /// Returns the index where the tab was inserted
+    pub fn insert_tab(&mut self, tab: Tab, index: usize) -> usize {
+        let mut tabs = self.tabs.write();
+        let insert_index = index.min(tabs.len()); // Clamp to valid range
+        tabs.insert(insert_index, tab);
+        insert_index
+    }
+
+    /// Add a tab and optionally switch to it
+    pub fn add_tab(&mut self, tab: Tab, switch_to: bool) -> usize {
+        let tabs_len = self.tabs.read().len();
+        let index = self.insert_tab(tab, tabs_len);
+        if switch_to {
+            self.switch_to_tab(index);
+        }
+        index
+    }
+
+    /// Add a file tab and optionally switch to it
+    pub fn add_file_tab(&mut self, file: impl Into<PathBuf>, switch_to: bool) -> usize {
+        self.add_tab(Tab::new(file.into()), switch_to)
+    }
+
+    /// Add an empty tab and optionally switch to it
+    pub fn add_empty_tab(&mut self, switch_to: bool) -> usize {
+        self.add_tab(Tab::default(), switch_to)
     }
 
     /// Switch to a specific tab by index
@@ -176,7 +191,7 @@ impl AppState {
             });
         } else {
             // Otherwise, create a new tab
-            self.add_tab(file, true);
+            self.add_file_tab(file, true);
         }
     }
 
