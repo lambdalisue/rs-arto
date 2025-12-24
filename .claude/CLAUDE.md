@@ -9,6 +9,24 @@
 - **Module System**: Use Rust 2018+ (no `mod.rs`)
 - **Icon Management**: Use `add-icon` skill
 - **UI/UX Design**: See `.claude/rules/ui-design.md`
+- **Quality Check**: Run `just fmt check test` before reporting completion
+
+## Development Workflow
+
+### Quality Assurance
+
+**CRITICAL: Before reporting task completion, ALWAYS run:**
+
+```bash
+just fmt check test
+```
+
+This command runs:
+- `cargo fmt` - Code formatting
+- `cargo clippy` - Linting and best practices
+- `cargo test` - All tests
+
+**Do NOT report completion if any of these fail.** Fix all issues first.
 
 ## Content Source
 
