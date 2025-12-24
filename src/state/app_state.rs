@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use std::path::PathBuf;
 
 use super::persistence::LAST_FOCUSED_STATE;
-use crate::theme::ThemePreference;
+use crate::theme::Theme;
 
 mod sidebar;
 mod tabs;
@@ -36,7 +36,7 @@ pub use tabs::{Tab, TabContent};
 pub struct AppState {
     pub tabs: Signal<Vec<Tab>>,
     pub active_tab: Signal<usize>,
-    pub current_theme: Signal<ThemePreference>,
+    pub current_theme: Signal<Theme>,
     pub zoom_level: Signal<f64>,
     pub directory: Signal<Option<PathBuf>>,
     pub sidebar: Signal<Sidebar>,

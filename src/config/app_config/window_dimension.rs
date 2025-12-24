@@ -28,8 +28,11 @@ impl WindowDimension {
 
     pub fn resolve(&self, max: f64) -> f64 {
         match self.unit {
-            WindowDimensionUnit::Pixels => self.value,
-            WindowDimensionUnit::Percent => (self.value / 100.0) * max,
+            WindowDimensionUnit::Pixels => self.value.max(0.0),
+            WindowDimensionUnit::Percent => {
+                let clamped_percent = self.value.clamp(0.0, 100.0);
+                (clamped_percent / 100.0) * max
+            }
         }
     }
 }

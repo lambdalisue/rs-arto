@@ -5,6 +5,7 @@
 @import url("./components/sidebar.css");
 @import url("./components/header.css");
 @import url("./components/tab-bar.css");
+@import url("./components/tab-context-menu.css");
 @import url("./components/content.css");
 @import url("./components/content/code-copy.css");
 @import url("./components/mermaid-window.css");

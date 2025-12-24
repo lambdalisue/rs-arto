@@ -1,7 +1,7 @@
-use crate::theme::{resolve_theme, ThemePreference};
+use crate::theme::{resolve_theme, Theme};
 
-pub fn build_custom_index(theme_preference: ThemePreference) -> String {
-    let theme = resolve_theme(theme_preference);
+pub fn build_custom_index(theme: Theme) -> String {
+    let resolved = resolve_theme(theme);
     indoc::formatdoc! {r#"
     <!DOCTYPE html>
     <html>
@@ -10,7 +10,7 @@ pub fn build_custom_index(theme_preference: ThemePreference) -> String {
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <!-- CUSTOM HEAD -->
         </head>
-        <body data-theme="{theme}">
+        <body data-theme="{resolved}">
             <div id="main"></div>
             <!-- MODULE LOADER -->
         </body>
@@ -18,8 +18,8 @@ pub fn build_custom_index(theme_preference: ThemePreference) -> String {
     "#}
 }
 
-pub(crate) fn build_mermaid_window_index(theme: ThemePreference) -> String {
-    let resolved_theme = resolve_theme(theme);
+pub(crate) fn build_mermaid_window_index(theme: Theme) -> String {
+    let resolved = resolve_theme(theme);
     indoc::formatdoc! {r#"
     <!DOCTYPE html>
     <html>
@@ -28,7 +28,7 @@ pub(crate) fn build_mermaid_window_index(theme: ThemePreference) -> String {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <!-- CUSTOM HEAD -->
         </head>
-        <body data-theme="{resolved_theme}" class="mermaid-window-body">
+        <body data-theme="{resolved}" class="mermaid-window-body">
             <div id="main"></div>
             <!-- MODULE LOADER -->
         </body>

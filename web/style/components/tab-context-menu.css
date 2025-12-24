@@ -1,0 +1,67 @@
+/* Context menu backdrop (closes menu on outside click) */
+.context-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10001;
+}
+
+/* Context menu container */
+.context-menu {
+  position: fixed;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 10002;
+  padding: 4px;
+}
+
+/* Menu items */
+.context-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.context-menu-item:hover {
+  background: color-mix(in srgb, var(--accent-bg) 8%, transparent);
+}
+
+.context-menu-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.context-menu-item.disabled:hover {
+  background: transparent;
+}
+
+/* Submenu */
+.context-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 4px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  padding: 4px;
+  z-index: 10003;
+}
+
+.submenu-arrow {
+  margin-left: auto;
+  padding-left: 12px;
+  opacity: 0.5;
+}

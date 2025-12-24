@@ -53,6 +53,15 @@ fn flip_y<T: DisplayLike>(y: i32, display: &T) -> i32 {
     display.y() + display.height() as i32 - y
 }
 
+/// Get the current display bounds (origin and size) in logical pixels.
+///
+/// Returns the bounds of the display where the cursor is currently located,
+/// falling back to the primary display if cursor position cannot be determined.
+///
+/// # Returns
+///
+/// - `Some((origin, size))` - Tuple of logical position and logical size
+/// - `None` - If no displays are available or scale factor is invalid
 pub fn get_current_display_bounds() -> Option<(LogicalPosition<i32>, LogicalSize<u32>)> {
     let display = get_cursor_display().or_else(get_primary_display)?;
     let scale = display.scale_factor as f64;
@@ -64,6 +73,14 @@ pub fn get_current_display_bounds() -> Option<(LogicalPosition<i32>, LogicalSize
     Some((origin, size))
 }
 
+/// Get the primary display information.
+///
+/// Returns the display marked as primary, or the first display if no primary is set.
+///
+/// # Returns
+///
+/// - `Some(DisplayInfo)` - Primary display info
+/// - `None` - If display enumeration fails or no displays are available
 pub fn get_primary_display() -> Option<DisplayInfo> {
     let displays = DisplayInfo::all().ok()?;
     displays
@@ -73,6 +90,12 @@ pub fn get_primary_display() -> Option<DisplayInfo> {
         .or_else(|| displays.first().cloned())
 }
 
+/// Get the display where the cursor is currently located.
+///
+/// # Returns
+///
+/// - `Some(DisplayInfo)` - Display containing the cursor
+/// - `None` - If cursor position cannot be determined
 pub fn get_cursor_display() -> Option<DisplayInfo> {
     let (x, y) = match Mouse::get_mouse_position() {
         Mouse::Position { x, y } => (x, y),
@@ -98,14 +121,18 @@ pub fn get_cursor_display() -> Option<DisplayInfo> {
 }
 
 fn to_logical_size_from_parts(width: u32, height: u32, scale: f64) -> LogicalSize<u32> {
-    let width = (width as f64 / scale).round().max(1.0) as u32;
-    let height = (height as f64 / scale).round().max(1.0) as u32;
+    // Use safe minimum scale factor to prevent division by zero
+    let safe_scale = if scale <= 0.0 { 1.0 } else { scale };
+    let width = (width as f64 / safe_scale).round().max(1.0) as u32;
+    let height = (height as f64 / safe_scale).round().max(1.0) as u32;
     LogicalSize::new(width, height)
 }
 
 fn to_logical_position_from_parts(x: i32, y: i32, scale: f64) -> LogicalPosition<i32> {
-    let x = (x as f64 / scale).round() as i32;
-    let y = (y as f64 / scale).round() as i32;
+    // Use safe minimum scale factor to prevent division by zero
+    let safe_scale = if scale <= 0.0 { 1.0 } else { scale };
+    let x = (x as f64 / safe_scale).round() as i32;
+    let y = (y as f64 / safe_scale).round() as i32;
     LogicalPosition::new(x, y)
 }
 

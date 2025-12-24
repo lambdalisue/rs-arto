@@ -12,8 +12,6 @@ mod watcher;
 mod window;
 
 use dioxus::desktop::tao::event::{Event, WindowEvent};
-use dioxus::desktop::Config;
-use dioxus::desktop::WindowBuilder;
 use tokio::sync::mpsc::channel;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::prelude::*;
@@ -31,9 +29,49 @@ fn main() {
     }
     init_tracing();
 
-    // Create config with theme value and event sender
-    let theme_value = window::settings::get_theme_value(true);
-    let config = create_config(theme_value);
+    // Create event channel and store receiver for MainApp
+    let (tx, rx) = channel::<components::main_app::OpenEvent>(10);
+    components::main_app::OPEN_EVENT_RECEIVER
+        .lock()
+        .expect("Failed to lock OPEN_EVENT_RECEIVER")
+        .replace(rx);
+
+    let menu = menu::build_menu();
+
+    // Get window parameters for first window from preferences
+    let params = window::CreateMainWindowConfigParams::from_preferences(true);
+
+    let config = window::create_main_window_config(&params)
+        .with_custom_event_handler(move |event, _target| match event {
+            Event::Opened { urls, .. } => {
+                for url in urls {
+                    if let Ok(path) = url.to_file_path() {
+                        let open_event = if path.is_dir() {
+                            components::main_app::OpenEvent::Directory(path)
+                        } else if path.is_file() {
+                            components::main_app::OpenEvent::File(path)
+                        } else {
+                            // Skip invalid paths
+                            continue;
+                        };
+                        tx.try_send(open_event).expect("Failed to send open event");
+                    }
+                }
+            }
+            Event::Reopen { .. } => {
+                // Send reopen event through channel to handle it safely in component context
+                tx.try_send(components::main_app::OpenEvent::Reopen).ok();
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Focused(true),
+                window_id,
+                ..
+            } => {
+                window::update_last_focused_window(*window_id);
+            }
+            _ => {}
+        })
+        .with_menu(menu);
 
     // Launch MainApp (first window only)
     // Initial event will be consumed inside MainApp after Dioxus starts
@@ -71,62 +109,4 @@ fn init_tracing() {
     );
 
     registry.init();
-}
-
-fn create_config(theme_value: window::settings::ThemeValue) -> Config {
-    // Create event channel and store receiver for MainApp
-    let (tx, rx) = channel::<components::main_app::OpenEvent>(10);
-    components::main_app::OPEN_EVENT_RECEIVER
-        .lock()
-        .expect("Failed to lock OPEN_EVENT_RECEIVER")
-        .replace(rx);
-
-    let menu = menu::build_menu();
-
-    let resolved = window::settings::get_window_value(true);
-
-    Config::new()
-        .with_custom_event_handler(move |event, _target| match event {
-            Event::Opened { urls, .. } => {
-                for url in urls {
-                    if let Ok(path) = url.to_file_path() {
-                        let open_event = if path.is_dir() {
-                            components::main_app::OpenEvent::Directory(path)
-                        } else if path.is_file() {
-                            components::main_app::OpenEvent::File(path)
-                        } else {
-                            // Skip invalid paths
-                            continue;
-                        };
-                        tx.try_send(open_event).expect("Failed to send open event");
-                    }
-                }
-            }
-            Event::Reopen { .. } => {
-                // Send reopen event through channel to handle it safely in component context
-                tx.try_send(components::main_app::OpenEvent::Reopen).ok();
-            }
-            Event::WindowEvent {
-                event: WindowEvent::Focused(true),
-                window_id,
-                ..
-            } => {
-                window::update_last_focused_window(*window_id);
-            }
-            _ => {}
-        })
-        .with_menu(menu)
-        .with_window(
-            WindowBuilder::new()
-                .with_title("Arto")
-                .with_position(resolved.position)
-                .with_inner_size(resolved.size),
-        )
-        // Add main style in config. Otherwise the style takes time to load and
-        // the window appears unstyled for a brief moment.
-        .with_custom_head(
-            indoc::formatdoc! {r#"<link rel="stylesheet" href="{}">"#, assets::MAIN_STYLE},
-        )
-        // Use a custom index to set the initial theme correctly
-        .with_custom_index(window::index::build_custom_index(theme_value.theme))
 }

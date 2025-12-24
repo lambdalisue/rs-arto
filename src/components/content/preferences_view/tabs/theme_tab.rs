@@ -1,7 +1,7 @@
 use super::super::form_controls::{OptionCardItem, OptionCards};
 use crate::components::icon::IconName;
 use crate::config::{Config, NewWindowBehavior, StartupBehavior};
-use crate::theme::ThemePreference;
+use crate::theme::Theme;
 use dioxus::prelude::*;
 
 #[component]
@@ -25,19 +25,19 @@ pub fn ThemeTab(config: Signal<Config>, has_changes: Signal<bool>) -> Element {
                     name: "theme-default".to_string(),
                     options: vec![
                         OptionCardItem {
-                            value: ThemePreference::Auto,
+                            value: Theme::Auto,
                             icon: Some(IconName::SunMoon),
                             title: "Auto".to_string(),
                             description: None,
                         },
                         OptionCardItem {
-                            value: ThemePreference::Light,
+                            value: Theme::Light,
                             icon: Some(IconName::Sun),
                             title: "Light".to_string(),
                             description: None,
                         },
                         OptionCardItem {
-                            value: ThemePreference::Dark,
+                            value: Theme::Dark,
                             icon: Some(IconName::Moon),
                             title: "Dark".to_string(),
                             description: None,

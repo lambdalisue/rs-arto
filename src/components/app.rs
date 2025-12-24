@@ -17,6 +17,7 @@ use crate::assets::MAIN_SCRIPT;
 use crate::events::{DIRECTORY_OPEN_BROADCAST, FILE_OPEN_BROADCAST};
 use crate::menu;
 use crate::state::{AppState, PersistedState, Tab, LAST_FOCUSED_STATE};
+use crate::theme::Theme;
 
 const WINDOW_METRICS_DEBOUNCE_MS: u64 = 200;
 
@@ -47,28 +48,29 @@ impl DebouncedMetricsUpdater {
 
 #[component]
 pub fn App(
-    file: Option<PathBuf>,
-    directory: PathBuf,
+    tab: Tab,           // Initial tab (always provided, preserves history)
+    directory: PathBuf, // Directory (resolved in create_new_main_window)
+    theme: Theme,       // The enum: Auto/Light/Dark
     sidebar_open: bool,
     sidebar_width: f64,
     sidebar_show_all_files: bool,
-    show_welcome: bool,
 ) -> Element {
-    // Initialize application state with optional initial file or welcome screen
+    // Initialize application state with the provided tab
     let mut state = use_context_provider(|| {
         let mut app_state = AppState::default();
-        if let Some(path) = file.clone() {
-            app_state.tabs.write()[0] = Tab::new(path);
-        } else if show_welcome {
-            // Show welcome screen with embedded markdown content
-            let welcome_content = crate::assets::get_default_markdown_content();
-            app_state.tabs.write()[0] = Tab::with_inline_content(welcome_content);
-        }
-        // Apply initial directory from config (for startup/new window behavior)
+
+        // Initialize with provided tab (preserves history)
+        app_state.tabs.write()[0] = tab;
+
+        // Apply initial directory from params (resolved in create_new_main_window)
         *app_state.directory.write() = Some(directory.clone());
         // Update last focused state for "Last Focused" behavior
         LAST_FOCUSED_STATE.write().directory = Some(directory);
-        // Apply initial sidebar settings from config
+
+        // Set initial theme
+        LAST_FOCUSED_STATE.write().theme = theme;
+
+        // Apply initial sidebar settings from params
         {
             let mut sidebar = app_state.sidebar.write();
             sidebar.open = sidebar_open;
@@ -161,6 +163,75 @@ pub fn App(
 
     // Listen for directory open broadcasts from background process
     setup_directory_open_listener(state);
+
+    // Update window title when active tab changes
+    use_effect(move || {
+        let active_index = *state.active_tab.read();
+        let tabs = state.tabs.read();
+
+        if let Some(tab) = tabs.get(active_index) {
+            let title = crate::utils::window_title::generate_window_title(&tab.content);
+            window().set_title(&title);
+        }
+    });
+
+    // Listen for tab transfer requests (target-side handler)
+    use_hook(|| {
+        spawn(async move {
+            let mut rx = crate::events::TAB_TRANSFER_REQUEST.subscribe();
+            let current_window_id = window().id();
+
+            while let Ok(request) = rx.recv().await {
+                // Only process requests targeted to this window
+                if request.target_window_id != current_window_id {
+                    continue;
+                }
+
+                tracing::debug!(?request, "Received tab transfer request");
+
+                // Phase 1: Prepare - validate request
+                let can_accept = {
+                    // Check if window still exists and is visible
+                    // Could add more checks here:
+                    // - Max tab limit
+                    // - Duplicate tab check
+                    // - etc.
+
+                    window().is_visible()
+                };
+
+                if can_accept {
+                    // Phase 2a: Commit - insert tab and send Ack
+                    let tabs_len = state.tabs.read().len();
+                    let insert_index = state.insert_tab(request.tab.clone(), tabs_len);
+                    state.switch_to_tab(insert_index);
+
+                    // Focus this window after receiving the tab
+                    window().set_focus();
+
+                    crate::events::TAB_TRANSFER_RESPONSE
+                        .send(crate::events::TabTransferResponse::Ack {
+                            request_id: request.request_id,
+                            source_window_id: request.source_window_id,
+                        })
+                        .ok();
+
+                    tracing::info!("Tab transfer accepted and committed");
+                } else {
+                    // Phase 2b: Rollback - send Nack
+                    crate::events::TAB_TRANSFER_RESPONSE
+                        .send(crate::events::TabTransferResponse::Nack {
+                            request_id: request.request_id,
+                            source_window_id: request.source_window_id,
+                            reason: "Window is not ready to accept tabs".to_string(),
+                        })
+                        .ok();
+
+                    tracing::warn!("Tab transfer rejected");
+                }
+            }
+        });
+    });
 
     // Save state and close child windows when this window closes
     use_drop(move || {

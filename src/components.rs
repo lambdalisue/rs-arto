@@ -6,4 +6,5 @@ pub mod main_app;
 pub mod mermaid_window;
 pub mod sidebar;
 pub mod tab_bar;
+pub mod tab_context_menu;
 pub mod theme_selector;
