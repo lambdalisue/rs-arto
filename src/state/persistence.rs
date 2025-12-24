@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use crate::state::AppState;
-use crate::theme::ThemePreference;
+use crate::theme::Theme;
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -49,7 +49,7 @@ impl From<LogicalSize<u32>> for Size {
 #[serde(rename_all = "camelCase", default)]
 pub struct PersistedState {
     pub directory: Option<PathBuf>,
-    pub theme: ThemePreference,
+    pub theme: Theme,
     pub sidebar_open: bool,
     pub sidebar_width: f64,
     pub sidebar_show_all_files: bool,
@@ -61,7 +61,7 @@ impl Default for PersistedState {
     fn default() -> Self {
         Self {
             directory: None,
-            theme: ThemePreference::default(),
+            theme: Theme::default(),
             sidebar_open: false,
             sidebar_width: 280.0,
             sidebar_show_all_files: false,

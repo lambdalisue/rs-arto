@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::assets::MAIN_STYLE;
 use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
-use crate::theme::ThemePreference;
+use crate::theme::Theme;
 
 use super::index::build_mermaid_window_index;
 use super::main::get_last_focused_window;
@@ -94,7 +94,7 @@ pub fn close_child_windows_for_last_focused() {
     }
 }
 
-pub fn open_or_focus_mermaid_window(source: String, theme: ThemePreference) {
+pub fn open_or_focus_mermaid_window(source: String, theme: Theme) {
     let diagram_id = generate_diagram_id(&source);
     let parent_id = window().id();
 
@@ -126,7 +126,7 @@ pub fn open_or_focus_mermaid_window(source: String, theme: ThemePreference) {
 async fn create_and_register_mermaid_window(
     source: String,
     diagram_id: String,
-    theme: ThemePreference,
+    theme: Theme,
     parent_id: WindowId,
 ) {
     let dom = VirtualDom::new_with_props(

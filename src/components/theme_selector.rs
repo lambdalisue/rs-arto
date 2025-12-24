@@ -4,23 +4,23 @@ use dioxus_sdk_window::theme::use_system_theme;
 
 use crate::components::icon::{Icon, IconName};
 use crate::state::LAST_FOCUSED_STATE;
-use crate::theme::{Theme, ThemePreference};
+use crate::theme::{DioxusTheme, Theme};
 
 #[component]
-pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
+pub fn ThemeSelector(current_theme: Signal<Theme>) -> Element {
     let system_theme = use_system_theme();
     let resolved_theme = use_memo(move || match current_theme() {
-        ThemePreference::Auto => system_theme().unwrap_or(Theme::Light),
-        ThemePreference::Light => Theme::Light,
-        ThemePreference::Dark => Theme::Dark,
+        Theme::Auto => system_theme().unwrap_or(DioxusTheme::Light),
+        Theme::Light => DioxusTheme::Light,
+        Theme::Dark => DioxusTheme::Dark,
     });
 
     // Dispatch custom event when resolved theme changes
     use_effect(move || {
         let theme = resolved_theme();
         let theme_str = match theme {
-            Theme::Light => "light",
-            Theme::Dark => "dark",
+            DioxusTheme::Light => "light",
+            DioxusTheme::Dark => "dark",
         };
         tracing::info!("Theme changed to: {}", theme_str);
         let theme_str_owned = theme_str.to_string();
@@ -76,32 +76,32 @@ pub fn ThemeSelector(current_theme: Signal<ThemePreference>) -> Element {
 
     // Get current theme icon and title
     let (current_icon, current_title) = match current_theme() {
-        ThemePreference::Light => (IconName::Sun, "Light theme"),
-        ThemePreference::Dark => (IconName::Moon, "Dark theme"),
-        ThemePreference::Auto => (IconName::SunMoon, "Auto theme (follows system)"),
+        Theme::Light => (IconName::Sun, "Light theme"),
+        Theme::Dark => (IconName::Moon, "Dark theme"),
+        Theme::Auto => (IconName::SunMoon, "Auto theme (follows system)"),
     };
 
     // Get other theme options (remaining 2 themes)
     let other_themes = match current_theme() {
-        ThemePreference::Light => [
-            (ThemePreference::Dark, IconName::Moon, "Dark theme"),
+        Theme::Light => [
+            (Theme::Dark, IconName::Moon, "Dark theme"),
             (
-                ThemePreference::Auto,
+                Theme::Auto,
                 IconName::SunMoon,
                 "Auto theme (follows system)",
             ),
         ],
-        ThemePreference::Dark => [
-            (ThemePreference::Light, IconName::Sun, "Light theme"),
+        Theme::Dark => [
+            (Theme::Light, IconName::Sun, "Light theme"),
             (
-                ThemePreference::Auto,
+                Theme::Auto,
                 IconName::SunMoon,
                 "Auto theme (follows system)",
             ),
         ],
-        ThemePreference::Auto => [
-            (ThemePreference::Light, IconName::Sun, "Light theme"),
-            (ThemePreference::Dark, IconName::Moon, "Dark theme"),
+        Theme::Auto => [
+            (Theme::Light, IconName::Sun, "Light theme"),
+            (Theme::Dark, IconName::Moon, "Dark theme"),
         ],
     };
 

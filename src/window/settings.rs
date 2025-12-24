@@ -8,7 +8,7 @@ use crate::config::{
     WindowPositionMode, WindowSize, CONFIG,
 };
 use crate::state::{Position, Size, LAST_FOCUSED_STATE};
-use crate::theme::ThemePreference;
+use crate::theme::Theme;
 use crate::utils::screen::{get_current_display_bounds, get_cursor_display, get_primary_display};
 
 const MIN_WINDOW_DIMENSION: f64 = 100.0;
@@ -18,7 +18,7 @@ const MIN_WINDOW_DIMENSION: f64 = 100.0;
 // ============================================================================
 
 pub struct ThemeValue {
-    pub theme: ThemePreference,
+    pub theme: Theme,
 }
 
 pub struct DirectoryValue {
@@ -289,7 +289,7 @@ mod tests {
         // Should return a ThemeValue
         assert!(matches!(
             result.theme,
-            ThemePreference::Auto | ThemePreference::Light | ThemePreference::Dark
+            Theme::Auto | Theme::Light | Theme::Dark
         ));
     }
 
@@ -299,7 +299,7 @@ mod tests {
         // Should return a ThemeValue
         assert!(matches!(
             result.theme,
-            ThemePreference::Auto | ThemePreference::Light | ThemePreference::Dark
+            Theme::Auto | Theme::Light | Theme::Dark
         ));
     }
 

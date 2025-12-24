@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 
 use crate::assets::MAIN_SCRIPT;
 use crate::components::theme_selector::ThemeSelector;
-use crate::theme::ThemePreference;
+use crate::theme::Theme;
 
 /// Props for MermaidWindow component
 #[derive(Props, Clone, PartialEq)]
@@ -13,7 +13,7 @@ pub struct MermaidWindowProps {
     /// Unique diagram identifier (hash)
     pub diagram_id: String,
     /// Initial theme
-    pub theme: ThemePreference,
+    pub theme: Theme,
 }
 
 /// Generate unique ID from Mermaid source

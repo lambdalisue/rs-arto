@@ -33,7 +33,7 @@ pub struct Config {
 mod tests {
     use super::window_position_config::WindowPositionOffset;
     use super::*;
-    use crate::theme::ThemePreference;
+    use crate::theme::Theme;
     use std::path::PathBuf;
 
     #[test]
@@ -41,7 +41,7 @@ mod tests {
         let config = Config::default();
 
         // Theme defaults
-        assert_eq!(config.theme.default_theme, ThemePreference::Auto);
+        assert_eq!(config.theme.default_theme, Theme::Auto);
         assert_eq!(config.theme.on_startup, StartupBehavior::Default);
         assert_eq!(config.theme.on_new_window, NewWindowBehavior::Default);
 
@@ -99,7 +99,7 @@ mod tests {
     fn test_config_serialization_roundtrip() {
         let config = Config {
             theme: ThemeConfig {
-                default_theme: ThemePreference::Dark,
+                default_theme: Theme::Dark,
                 on_startup: StartupBehavior::LastClosed,
                 on_new_window: NewWindowBehavior::LastFocused,
             },
@@ -150,7 +150,7 @@ mod tests {
         let json = serde_json::to_string_pretty(&config).unwrap();
         let parsed: Config = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(parsed.theme.default_theme, ThemePreference::Dark);
+        assert_eq!(parsed.theme.default_theme, Theme::Dark);
         assert_eq!(parsed.theme.on_startup, StartupBehavior::LastClosed);
         assert_eq!(
             parsed.directory.default_directory,
