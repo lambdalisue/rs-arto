@@ -164,6 +164,17 @@ pub fn App(
     // Listen for directory open broadcasts from background process
     setup_directory_open_listener(state);
 
+    // Update window title when active tab changes
+    use_effect(move || {
+        let active_index = *state.active_tab.read();
+        let tabs = state.tabs.read();
+
+        if let Some(tab) = tabs.get(active_index) {
+            let title = crate::utils::window_title::generate_window_title(&tab.content);
+            window().set_title(&title);
+        }
+    });
+
     // Save state and close child windows when this window closes
     use_drop(move || {
         // Save last used state from this window
