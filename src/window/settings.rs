@@ -84,11 +84,24 @@ fn resolve_window_position(
     screen_size: LogicalSize<u32>,
     window_size: LogicalSize<u32>,
 ) -> LogicalPosition<i32> {
-    let available_width = screen_size.width.saturating_sub(window_size.width) as i32;
-    let available_height = screen_size.height.saturating_sub(window_size.height) as i32;
+    // Clamp to i32::MAX to prevent overflow when casting from u32
+    let available_width_u32 = screen_size.width.saturating_sub(window_size.width);
+    let available_height_u32 = screen_size.height.saturating_sub(window_size.height);
+    let available_width = available_width_u32.min(i32::MAX as u32) as i32;
+    let available_height = available_height_u32.min(i32::MAX as u32) as i32;
     let available_size = LogicalSize::new(available_width, available_height);
     let position = config.to_logical_position(available_size);
-    LogicalPosition::new(screen_origin.x + position.x, screen_origin.y + position.y)
+    let absolute_position =
+        LogicalPosition::new(screen_origin.x + position.x, screen_origin.y + position.y);
+
+    // Clamp position to ensure window stays on screen
+    // This prevents off-screen windows when monitors are removed or repositioned
+    let max_x = screen_origin.x + available_width;
+    let max_y = screen_origin.y + available_height;
+    let clamped_x = absolute_position.x.clamp(screen_origin.x, max_x);
+    let clamped_y = absolute_position.y.clamp(screen_origin.y, max_y);
+
+    LogicalPosition::new(clamped_x, clamped_y)
 }
 
 fn resolve_window_position_from_cursor(

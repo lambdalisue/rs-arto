@@ -299,7 +299,7 @@ fn shift_position_if_needed(
     let mut position = LogicalPosition::new(base.x.clamp(min_x, max_x), base.y.clamp(min_y, max_y));
     let mut offset_x = offset.x;
     let mut offset_y = offset.y;
-    for _ in 0..MAX_POSITION_SHIFT_ATTEMPTS {
+    for attempt in 0..MAX_POSITION_SHIFT_ATTEMPTS {
         // Heuristic: avoid identical/nearby top-left positions rather than full rect overlap.
         let x_half = offset_x.abs().max(1) / 2;
         let y_half = offset_y.abs().max(1) / 2;
@@ -323,6 +323,14 @@ fn shift_position_if_needed(
             next_y = position.y + offset_y;
         }
         position = LogicalPosition::new(next_x.clamp(min_x, max_x), next_y.clamp(min_y, max_y));
+
+        // Log warning if we've reached the limit
+        if attempt == MAX_POSITION_SHIFT_ATTEMPTS - 1 {
+            tracing::warn!(
+                "Window position shift reached maximum attempts ({}), windows may overlap",
+                MAX_POSITION_SHIFT_ATTEMPTS
+            );
+        }
     }
     position
 }

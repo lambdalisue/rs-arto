@@ -152,8 +152,11 @@ pub enum TabTransferResponse {
 /// 1. Source window sends TabTransferRequest
 /// 2. Target window receives and validates
 /// 3. Target responds via TAB_TRANSFER_RESPONSE
+///
+/// Capacity of 10 is sufficient for desktop use (most users won't have 10+ windows).
+/// Smaller buffer makes lag issues more obvious during development.
 pub static TAB_TRANSFER_REQUEST: std::sync::LazyLock<broadcast::Sender<TabTransferRequest>> =
-    std::sync::LazyLock::new(|| broadcast::channel(100).0);
+    std::sync::LazyLock::new(|| broadcast::channel(10).0);
 
 /// Global broadcast sender for tab transfer responses.
 ///
@@ -161,5 +164,8 @@ pub static TAB_TRANSFER_REQUEST: std::sync::LazyLock<broadcast::Sender<TabTransf
 /// 1. Target window sends Ack/Nack
 /// 2. Source window receives response
 /// 3. Source commits (close tab) or aborts (keep tab)
+///
+/// Capacity of 10 is sufficient for desktop use (most users won't have 10+ windows).
+/// Smaller buffer makes lag issues more obvious during development.
 pub static TAB_TRANSFER_RESPONSE: std::sync::LazyLock<broadcast::Sender<TabTransferResponse>> =
-    std::sync::LazyLock::new(|| broadcast::channel(100).0);
+    std::sync::LazyLock::new(|| broadcast::channel(10).0);
