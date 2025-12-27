@@ -34,10 +34,11 @@
 
             nativeBuildInputs = [
               pkgs.nodejs-slim
-              pkgs.pnpm_9.configHook
+              pkgs.pnpm_9
+              pkgs.pnpmConfigHook
             ];
 
-            pnpmDeps = pkgs.pnpm_9.fetchDeps {
+            pnpmDeps = pkgs.fetchPnpmDeps {
               inherit (finalAttrs) pname version src;
               hash = "sha256-c7xJrit853qMnaY54t32kGzVDC79NPtzdiurvJ/cmJI=";
               fetcherVersion = 2;
@@ -63,6 +64,8 @@
               root = ./desktop;
               fileset = lib.fileset.unions [
                 (craneLib.fileset.commonCargoSources root)
+                (root + /assets)
+                (root + /Dioxus.toml)
               ];
             };
             strictDeps = true;
@@ -105,23 +108,42 @@
             fi
           '';
 
+          # Wrapper for xattr that always succeeds without doing anything.
+          # In Nix sandbox, xattr operations on .app bundles may fail due to
+          # permission restrictions. Since we're building in a clean environment,
+          # there are no quarantine attributes to remove anyway.
+          xattrWrapper = pkgs.writeShellScriptBin "xattr" ''
+            # Always succeed without doing anything
+            # dioxus-cli calls 'xattr -cr <path>' to remove quarantine attributes
+            # but in Nix sandbox this is both unnecessary and may fail
+            exit 0
+          '';
+
           arto = craneLib.buildPackage (
             commonArgs
             // {
               inherit cargoArtifacts;
 
-              nativeBuildInputs = [
-                pkgs.dioxus-cli
-              ]
-              ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-                codesignWrapper
-                pkgs.darwin.autoSignDarwinBinariesHook
-                pkgs.darwin.xattr
-              ];
+              nativeBuildInputs =
+                # Wrappers must come first to override system commands in PATH
+                lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+                  codesignWrapper
+                  xattrWrapper
+                ]
+                ++ [
+                  pkgs.dioxus-cli
+                ]
+                ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+                  pkgs.darwin.autoSignDarwinBinariesHook
+                ];
 
               postPatch = ''
                 mkdir -p assets/dist
                 cp -r ${renderer-assets}/* assets/dist/
+
+                # Copy extras and LICENSE from project root
+                cp -r ${./extras} ../extras
+                cp ${./LICENSE} ../LICENSE
               '';
 
               # Use buildPhaseCargoCommand instead of cargoBuildCommand because crane's
