@@ -35,7 +35,7 @@ Understanding the relationship between Config, Session, and State modules.
 
 ## Module Responsibilities
 
-### 1. Config Module (`src/config/`)
+### 1. Config Module (`desktop/src/config/`)
 
 **Purpose:** User preferences and default values
 
@@ -70,7 +70,7 @@ Understanding the relationship between Config, Session, and State modules.
 - When user opens Preferences and saves changes
 - As fallback when state.json doesn't exist
 
-### 2. State Persistence (`src/state/persistence.rs`)
+### 2. State Persistence (`desktop/src/state/persistence.rs`)
 
 **Purpose:** Remember the last closed window's state for restoration
 
@@ -94,7 +94,7 @@ Understanding the relationship between Config, Session, and State modules.
 - Saved: When any window closes (`use_drop()` in App component)
 - Loaded: On app startup (if user configured `on_startup: "last_closed"`)
 
-### 3. State Module (`src/state.rs`)
+### 3. State Module (`desktop/src/state.rs`)
 
 **Purpose:** Current UI state for each window instance
 

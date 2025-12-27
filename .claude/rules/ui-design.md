@@ -1,5 +1,5 @@
 ---
-paths: "renderer/style/**/*.css, src/components/**/*.rs"
+paths: "renderer/style/**/*.css, desktop/src/components/**/*.rs"
 ---
 
 # UI/UX Design Patterns

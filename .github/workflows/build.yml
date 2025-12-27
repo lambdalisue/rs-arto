@@ -91,14 +91,14 @@ jobs:
       - name: Apply version
         if: ${{ github.event_name == 'release' }}
         run: |
-          sed -i '' "s/^version = \"0.0.0\"/version = \"${{ github.event.release.tag_name }}\"/" Cargo.toml
-          sed -i '' "s/^version = \"v\(.*\)\"/version = \"\1\"/" Cargo.toml
+          sed -i '' "s/^version = \"0.0.0\"/version = \"${{ github.event.release.tag_name }}\"/" desktop/Cargo.toml
+          sed -i '' "s/^version = \"v\(.*\)\"/version = \"\1\"/" desktop/Cargo.toml
       - run: just build
       - uses: actions/upload-artifact@v4
         with:
           name: arto-${{ runner.os }}
           path: |
-            ./target/dx/arto/bundle/macos/bundle/dmg
+            ./desktop/target/dx/arto/bundle/macos/bundle/dmg
           if-no-files-found: error
     timeout-minutes: 30
 

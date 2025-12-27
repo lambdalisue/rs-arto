@@ -45,27 +45,25 @@
 
             buildPhase = ''
               runHook preBuild
+              # Override output directory for Nix build
+              export VITE_OUT_DIR=$out
               pnpm run build
               runHook postBuild
             '';
 
             installPhase = ''
               runHook preInstall
-              mkdir -p ../assets/dist
-              cp -r ../assets/dist $out
+              # Vite outputs directly to $out when VITE_OUT_DIR is set
               runHook postInstall
             '';
           });
 
           commonArgs = {
             src = lib.fileset.toSource rec {
-              root = ./.;
-              fileset = lib.fileset.difference (lib.fileset.unions [
+              root = ./desktop;
+              fileset = lib.fileset.unions [
                 (craneLib.fileset.commonCargoSources root)
-                ./assets
-                ./extras
-                ./Dioxus.toml
-              ]) ./build.rs;
+              ];
             };
             strictDeps = true;
           };

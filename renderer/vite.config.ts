@@ -41,7 +41,7 @@ export default defineConfig({
   root: ".",
   plugins: [iconSpritePlugin()],
   build: {
-    outDir: path.resolve(__dirname, "../assets/dist"),
+    outDir: process.env.VITE_OUT_DIR || path.resolve(__dirname, "../desktop/assets/dist"),
     emptyOutDir: true,
     cssCodeSplit: false,
     lib: {
