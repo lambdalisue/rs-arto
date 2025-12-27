@@ -9,7 +9,7 @@ This skill guides you through adding a new icon from Tabler Icons to the project
 
 ## Process
 
-**Icons are managed via a build script, not by direct file editing.**
+**Icons are managed via `icons.json` and automatically built by Vite plugin.**
 
 ### Steps
 
@@ -17,16 +17,13 @@ This skill guides you through adding a new icon from Tabler Icons to the project
    - Browse available icons: https://tabler.io/icons
    - Note the icon name (e.g., `folder-open`, `info-circle`)
 
-2. **Add to Build Script**
-   - Edit `web/scripts/build-icon-sprite.ts`
-   - Add the icon name to the `icons` array
+2. **Add to icons.json**
+   - Edit `web/icons.json`
+   - Add the icon name to the JSON array (in alphabetical order)
 
-3. **Build Icon Sprite**
-   ```bash
-   cd web
-   pnpm run build:icons
-   pnpm run build
-   ```
+3. **Build Icon Sprite (Automatic)**
+   - Icon sprite is automatically generated when Vite builds
+   - Just run `just dev` or `cargo build`
 
 4. **Add Rust Enum Variant**
    - Edit `src/components/icon.rs`
@@ -35,32 +32,29 @@ This skill guides you through adding a new icon from Tabler Icons to the project
 
 ### Example
 
-**web/scripts/build-icon-sprite.ts:**
-```typescript
-const icons = [
-  'folder',
-  'folder-open',  // ← Add this
-  'file',
-  // ...
-];
+**web/icons.json:**
+```json
+[
+  "folder",
+  "folder-open",
+  "file"
+]
 ```
 
 **src/components/icon.rs:**
 ```rust
 pub enum IconName {
     Folder,
-    FolderOpen,  // ← Add this
+    FolderOpen,
     File,
-    // ...
 }
 
 impl std::fmt::Display for IconName {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             IconName::Folder => write!(f, "folder"),
-            IconName::FolderOpen => write!(f, "folder-open"),  // ← Add this
+            IconName::FolderOpen => write!(f, "folder-open"),
             IconName::File => write!(f, "file"),
-            // ...
         }
     }
 }
@@ -70,13 +64,31 @@ impl std::fmt::Display for IconName {
 
 | File | Purpose | Git Tracked |
 |------|---------|-------------|
-| `web/scripts/build-icon-sprite.ts` | Icon list and build script | ✅ Yes |
+| `web/icons.json` | Icon list configuration | ✅ Yes |
+| `web/vite.config.ts` | Icon sprite plugin | ✅ Yes |
 | `web/public/icons/tabler-sprite.svg` | Generated sprite (Vite source) | ❌ No |
 | `assets/dist/icons/tabler-sprite.svg` | Build output (Dioxus asset) | ❌ No |
 
 ### Important
 
-- **NEVER** edit `assets/dist/icons/tabler-sprite.svg` directly
+- **NEVER** edit generated SVG files directly
 - The `assets/dist/` directory is `.gitignore`d as build output
+- Icon sprite generation is automatic via Vite plugin (`buildStart` hook)
 - Rust code references icons via `asset!("/assets/dist/icons/tabler-sprite.svg")`
 - Icons come from `@tabler/icons` npm package (outline style only)
+
+### Build Process
+
+```
+icons.json
+    ↓
+Vite plugin (buildStart hook)
+    ↓
+web/public/icons/tabler-sprite.svg
+    ↓
+Vite build
+    ↓
+assets/dist/icons/tabler-sprite.svg
+    ↓
+Rust asset!() macro
+```

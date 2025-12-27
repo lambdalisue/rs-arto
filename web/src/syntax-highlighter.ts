@@ -4,8 +4,8 @@ import hljsDarkTheme from "highlight.js/styles/github-dark.css?inline";
 import { createThemeStyle, type Theme } from "./theme";
 
 // Remove some languages that other libraries handle better
-hljs.getLanguage("mermaid") && hljs.unregisterLanguage("mermaid");
-hljs.getLanguage("math") && hljs.unregisterLanguage("math");
+if (hljs.getLanguage("mermaid")) hljs.unregisterLanguage("mermaid");
+if (hljs.getLanguage("math")) hljs.unregisterLanguage("math");
 
 const lightThemeStyle = createThemeStyle(hljsLightTheme, { enabled: true });
 const darkThemeStyle = createThemeStyle(hljsDarkTheme);

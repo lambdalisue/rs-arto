@@ -16,7 +16,7 @@ class RenderCoordinator {
 
       // Check if there's an actual content change
       const hasContentChange = mutations.some(
-        (m) => m.type === "childList" || m.type === "attributes"
+        (m) => m.type === "childList" || m.type === "attributes",
       );
 
       if (hasContentChange) {
@@ -88,7 +88,7 @@ class RenderCoordinator {
             await mermaidRenderer.renderDiagrams(markdownBody);
             // Re-add copy buttons after Mermaid re-render
             codeCopy.addCopyButtons(markdownBody);
-          })
+          }),
         );
         console.debug("RenderCoordinator: Mermaid re-render completed");
       } catch (error) {
@@ -115,7 +115,7 @@ class RenderCoordinator {
           syntaxHighlighter.highlightCodeBlocks(markdownBody);
           await mermaidRenderer.renderDiagrams(markdownBody);
           codeCopy.addCopyButtons(markdownBody);
-        })
+        }),
       );
       console.debug("RenderCoordinator: Batch render completed");
     } catch (error) {

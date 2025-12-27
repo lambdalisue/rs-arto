@@ -22,8 +22,8 @@ just fmt check test
 ```
 
 This command runs:
-- `cargo fmt` - Code formatting
-- `cargo clippy` - Linting and best practices
+- `cargo fmt` + `oxfmt` - Code formatting (Rust + TypeScript/CSS)
+- `cargo clippy` + `oxlint` - Linting and best practices
 - `cargo test` - All tests
 
 **Do NOT report completion if any of these fail.** Fix all issues first.

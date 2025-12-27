@@ -9,7 +9,7 @@ export function renderMath(container: Element): void {
 function renderInlineMath(container: Element): void {
   // Process inline math: <span class="math math-inline">...</span>
   const inlineMathElements: NodeListOf<HTMLElement> = container.querySelectorAll(
-    "span.preprocessed-math-inline:not([data-katex-rendered])"
+    "span.preprocessed-math-inline:not([data-katex-rendered])",
   );
 
   // Batch: Collect all elements to render (read phase)
@@ -49,7 +49,7 @@ function renderInlineMath(container: Element): void {
 function renderDisplayMath(container: Element): void {
   // Process display math: <span class="math math-display">...</span>
   const displayMathElements: NodeListOf<HTMLElement> = container.querySelectorAll(
-    "div.preprocessed-math-display:not([data-katex-rendered])"
+    "div.preprocessed-math-display:not([data-katex-rendered])",
   );
 
   // Batch: Collect all elements to render (read phase)
@@ -88,7 +88,7 @@ function renderDisplayMath(container: Element): void {
 
 function renderBlockMath(container: Element): void {
   const mathBlocks: NodeListOf<HTMLElement> = container.querySelectorAll(
-    "pre.preprocessed-math:not([data-rendered])"
+    "pre.preprocessed-math:not([data-rendered])",
   );
 
   // Batch: Collect all elements to render (read phase)

@@ -178,7 +178,7 @@ function getSvgDimensions(svg: SVGElement): { width: number; height: number } {
 
 function createCanvasFromSvg(
   svg: SVGElement,
-  dimensions: { width: number; height: number }
+  dimensions: { width: number; height: number },
 ): HTMLCanvasElement {
   const scale = 2; // High resolution
   const canvas = document.createElement("canvas");
@@ -199,7 +199,7 @@ function createCanvasFromSvg(
 
 function convertSvgToDataUrl(
   svg: SVGElement,
-  dimensions: { width: number; height: number }
+  dimensions: { width: number; height: number },
 ): string {
   const svgClone = svg.cloneNode(true) as SVGElement;
   svgClone.setAttribute("width", String(dimensions.width));
