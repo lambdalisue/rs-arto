@@ -6,16 +6,19 @@ default:
 setup:
   @cd renderer && pnpm install
 
+assets:
+  @cd renderer && pnpm run build
+
 fmt: setup
   @cd desktop && cargo fmt --all
   @cd renderer && pnpm run fmt
 
-check: setup
+check: setup assets
   @cd renderer && pnpm run check
   @cd desktop && cargo check --all-targets --all-features
   @cd desktop && cargo clippy --all-targets --all-features -- -D warnings
 
-test: setup
+test: setup assets
   @cd desktop && cargo test --all-features --all-targets
 
 verify: fmt check test
@@ -27,8 +30,7 @@ clean:
 dev: setup
   @bash -c ./scripts/dev.sh
 
-build: setup
-  @cd renderer && pnpm run build
+build: setup assets
   @cd desktop && dx bundle --release --macos
 
 open:
