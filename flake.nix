@@ -27,11 +27,19 @@
           inherit (pkgs) lib;
           craneLib = crane.mkLib pkgs;
 
-          # Package metadata - single source of truth for version
+          # Package metadata - single source of truth for version and paths
           packageMeta = {
             pname = "arto";
             version = "0.0.0";
           };
+
+          # Platform detection
+          isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
+
+          # App bundle paths (used in build and apps)
+          appBundleName = "Arto.app";
+          appExecutableName = "arto"; # lowercase executable name
+          dxBundlePath = "target/dx/${packageMeta.pname}/bundle/macos/bundle/macos";
 
           renderer-assets = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
             pname = "${packageMeta.pname}-renderer-assets";
@@ -105,14 +113,14 @@
 
               nativeBuildInputs =
                 # Wrappers must come first to override system commands in PATH
-                lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+                lib.optionals isDarwin [
                   codesignWrapper
                   xattrWrapper
                 ]
                 ++ [
                   pkgs.dioxus-cli
                 ]
-                ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+                ++ lib.optionals isDarwin [
                   pkgs.darwin.autoSignDarwinBinariesHook
                 ];
 
@@ -138,14 +146,14 @@
               # https://crane.dev/API.html#cranelibinstallfromcargobuildloghook
               doNotPostBuildInstallCargoBinaries = true;
 
-              installPhaseCommand = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+              installPhaseCommand = lib.optionalString isDarwin ''
                 # Find .app bundle (path may change with dioxus-cli versions)
-                app_path="target/dx/arto/bundle/macos/bundle/macos/Arto.app"
+                app_path="${dxBundlePath}/${appBundleName}"
 
                 if [[ ! -d "$app_path" ]]; then
                   echo "Error: Expected .app bundle not found at $app_path"
-                  echo "Searching for Arto.app in target/dx..."
-                  find target/dx -name "Arto.app" -type d || true
+                  echo "Searching for ${appBundleName} in target/dx..."
+                  find target/dx -name "${appBundleName}" -type d || true
                   exit 1
                 fi
 
@@ -161,12 +169,21 @@
         }
       );
 
-      apps = eachSystem (system: {
-        default = {
-          type = "app";
-          program = "${self.packages.${system}.arto}/Applications/Arto.app/Contents/MacOS/arto";
-        };
-      });
+      apps = eachSystem (
+        system:
+        let
+          # Access packageMeta from packages let-binding
+          inherit (self.packages.${system}) arto;
+          appBundleName = "Arto.app";
+          appExecutableName = "arto";
+        in
+        {
+          default = {
+            type = "app";
+            program = "${arto}/Applications/${appBundleName}/Contents/MacOS/${appExecutableName}";
+          };
+        }
+      );
 
       devShells = eachSystem (system: {
         default =
@@ -177,12 +194,9 @@
           craneLib.devShell {
             inputsFrom = with self.packages.${system}; [ renderer-assets ];
             packages = [
-              # Rust development tools (desktop/)
-              pkgs.cargo
-              pkgs.rustc
-              pkgs.rustfmt
-              pkgs.clippy
-              pkgs.rust-analyzer
+              # Rust tools (craneLib.devShell provides: cargo, rustc, rustfmt, clippy, cargo-nextest)
+              # We only add additional tools not included by default:
+              pkgs.rust-analyzer # IDE support
 
               # Dioxus desktop development
               pkgs.dioxus-cli
