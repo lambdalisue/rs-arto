@@ -165,7 +165,21 @@
           craneLib.devShell {
             inputsFrom = with self.packages.${system}; [ renderer-assets ];
             packages = [
+              # Rust development tools (desktop/)
+              pkgs.cargo
+              pkgs.rustc
+              pkgs.rustfmt
+              pkgs.clippy
+              pkgs.rust-analyzer
+
+              # Dioxus desktop development
               pkgs.dioxus-cli
+
+              # TypeScript/renderer development (renderer/)
+              pkgs.nodejs-slim
+              pkgs.pnpm_9
+
+              # Build automation
               pkgs.just
             ];
 
@@ -173,6 +187,17 @@
             # https://github.com/NixOS/nixpkgs/issues/355486
             shellHook = ''
               unset DEVELOPER_DIR
+              echo "🦀 Rust development environment"
+              echo "  - cargo: $(cargo --version)"
+              echo "  - rustc: $(rustc --version)"
+              echo "  - dioxus-cli: $(dx --version)"
+              echo ""
+              echo "📦 TypeScript development environment"
+              echo "  - node: $(node --version)"
+              echo "  - pnpm: $(pnpm --version)"
+              echo ""
+              echo "🔧 Build tools"
+              echo "  - just: $(just --version)"
             '';
           };
       });
