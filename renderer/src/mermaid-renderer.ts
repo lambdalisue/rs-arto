@@ -36,7 +36,7 @@ export async function renderDiagrams(container: Element): Promise<void> {
     renderDiagram(block as HTMLElement).catch((error) => {
       console.error("Failed to render mermaid diagram:", error);
       // Don't let one failure stop others
-    })
+    }),
   );
 
   await Promise.all(renderPromises);

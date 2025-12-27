@@ -1,4 +1,6 @@
 .DS_Store
-/target
-/dist
+target/
+dist/
 /result
+node_modules/
+.direnv/

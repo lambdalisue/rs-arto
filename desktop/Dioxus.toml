@@ -2,30 +2,10 @@
 name = "Arto"
 default_platform = "desktop"
 
-[web.app]
-
-# HTML title tag content
-title = "Arto"
-
-# include `assets` in web platform
-[web.resource]
-
-# Additional CSS style files
-style = []
-
-# Additional JavaScript files
-script = []
-
-[web.resource.dev]
-
-# Javascript code file
-# serve: [dev-server] only
-script = []
-
 [bundle]
 identifier = "com.lambdalisue.Arto"
 publisher = "lambdalisue"
-icon = ["extras/mac/arto-app.icns"]
+icon = ["../extras/mac/arto-app.icns"]
 copyright = "Copyright 2025 lambdalisue"
 category = "Utility"
 short_description = "A GitHub Markdown viewer"
@@ -34,9 +14,9 @@ Arto is a GitHub Markdown viewer built with Dioxus.
 """
 
 [bundle.macos]
-license = "LICENSE"
+license = "../LICENSE"
 provider_short_name = "Alisue"
-info_plist_path = "extras/mac/Info.plist"
+info_plist_path = "../extras/mac/Info.plist"
 files = {}
 hardened_runtime = false # because we don't have a proper Apple Developer ID
 signing_identity = "-" # use ad-hoc signing for ARM64 compatibility

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./extras/arto-header.png" alt="Arto" />
+  <img src="./extras/arto-header-readme.png" alt="Arto" />
 </p>
 
 **Arto — the Art of Reading Markdown.**
@@ -38,37 +38,38 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 
 ## Usage
 
-Use [Homebrew] tap to install. Note that the application is not signed or notarized with an Apple Developer ID so we need `--no-quarantine` here.
-See [homebrew-arto] for more information.
+Use [Homebrew] tap to install. Since the application is not signed or notarized with an Apple Developer ID, you'll need to remove the quarantine attribute after installation.
+See [homebrew-tap] for more information.
 
 ```
-brew install --cask --no-quarantine lambdalisue/arto/arto
+brew install --cask arto-app/tap/arto
+xattr -dr com.apple.quarantine /Applications/Arto.app
 ```
 
 Alternatively, [Nix] is also supported.
 To try it without a permanent installation:
 
 ```
-nix run github:lambdalisue/rs-arto
+nix run github:arto-app/Arto
 ```
 
 For a permanent installation, use [nix-darwin] or [home-manager].
 Add the following to your flake inputs:
 
 ```nix
-rs-arto.url = "github:lambdalisue/rs-arto";
+arto.url = "github:arto-app/Arto";
 ```
 
 Then add it to `environment.systemPackages` (nix-darwin) or `home.packages` (home-manager):
 
 ```nix
-environment.systemPackages = [ inputs.rs-arto.packages.${system}.default ];
+environment.systemPackages = [ inputs.arto.packages.${system}.default ];
 ```
 
 Launch the application to see the welcome screen with keyboard shortcuts and usage instructions.
 
 [Homebrew]: https://brew.sh/
-[homebrew-arto]: https://github.com/lambdalisue/homebrew-arto
+[homebrew-tap]: https://github.com/arto-app/homebrew-tap
 [Nix]: https://nixos.org/
 [nix-darwin]: https://github.com/nix-darwin/nix-darwin
 [home-manager]: https://github.com/nix-community/home-manager
@@ -86,8 +87,8 @@ Launch the application to see the welcome screen with keyboard shortcuts and usa
 - [dioxus-cli](https://crates.io/crates/dioxus-cli)
 
 ```bash
-git clone https://github.com/lambdalisue/rs-arto.git
-cd rs-arto
+git clone https://github.com/arto-app/Arto.git
+cd Arto
 just setup  # or `nix develop` if you have Nix installed
 
 # For development

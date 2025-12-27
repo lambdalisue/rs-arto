@@ -27,104 +27,111 @@
           inherit (pkgs) lib;
           craneLib = crane.mkLib pkgs;
 
-          web-assets = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
-            pname = "${arto.pname}-web-assets";
-            inherit (arto) version;
-            src = ./web;
+          # Package metadata - single source of truth for version and paths
+          packageMeta = {
+            pname = "arto";
+            version = "0.0.0";
+          };
+
+          # Platform detection
+          isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
+
+          # App bundle paths (used in build and apps)
+          appBundleName = "Arto.app";
+          appExecutableName = "arto"; # lowercase executable name
+          dxBundlePath = "target/dx/${packageMeta.pname}/bundle/macos/bundle/macos";
+
+          renderer-assets = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
+            pname = "${packageMeta.pname}-renderer-assets";
+            inherit (packageMeta) version;
+            src = ./renderer;
 
             nativeBuildInputs = [
               pkgs.nodejs-slim
-              pkgs.pnpm_9.configHook
+              pkgs.pnpm_9
+              pkgs.pnpmConfigHook
             ];
 
-            pnpmDeps = pkgs.pnpm_9.fetchDeps {
+            pnpmDeps = pkgs.fetchPnpmDeps {
               inherit (finalAttrs) pname version src;
-              hash = "sha256-lpJXpXz0sWIXlcVAOWkU+Zt9W6stxwvUnj3/QtNbjJs=";
+              # To update this hash when renderer dependencies change:
+              # 1. Change hash to: lib.fakeHash or ""
+              # 2. Run: nix build .#renderer-assets
+              # 3. Copy the expected hash from error message
+              # 4. Update hash value below
+              hash = "sha256-nfEWAvUo9X4aoR8F9ATSwtc0FCGsDEbIbdDxrnBgV7c=";
               fetcherVersion = 2;
             };
 
             buildPhase = ''
               runHook preBuild
-              pnpm run build:icons
+              # Override output directory for Nix build
+              export VITE_OUT_DIR=$out
               pnpm run build
               runHook postBuild
             '';
 
             installPhase = ''
               runHook preInstall
-              mkdir -p ../assets/dist
-              cp -r ../assets/dist $out
+              # Vite outputs directly to $out when VITE_OUT_DIR is set
               runHook postInstall
             '';
           });
 
           commonArgs = {
             src = lib.fileset.toSource rec {
-              root = ./.;
-              fileset = lib.fileset.difference (lib.fileset.unions [
+              root = ./desktop;
+              fileset = lib.fileset.unions [
                 (craneLib.fileset.commonCargoSources root)
-                ./assets
-                ./extras
-                ./Dioxus.toml
-              ]) ./build.rs;
+                (root + /assets)
+                (root + /Dioxus.toml)
+              ];
             };
             strictDeps = true;
           };
 
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-          # Wrapper for codesign that handles directories by recursively signing files.
-          # The sigtool codesign only accepts files, but bundlers like dioxus-cli
-          # call codesign on .app directories. This wrapper detects directory targets
-          # and recursively signs all contained files.
-          codesignWrapper = pkgs.writeShellScriptBin "codesign" ''
-            args=()
-            target=""
+          # Build-time wrappers for macOS commands
+          # See scripts/codesign-wrapper.sh and scripts/xattr-wrapper.sh for details
+          codesignWrapper = pkgs.writeShellScriptBin "codesign" (
+            builtins.replaceStrings
+              [ "@CODESIGN_BIN@" ]
+              [ "${pkgs.darwin.sigtool}/bin/codesign" ]
+              (builtins.readFile ./scripts/codesign-wrapper.sh)
+          );
 
-            # Parse arguments to find the target path (last non-option argument)
-            for arg in "$@"; do
-              if [[ "$arg" != -* ]] && [[ -e "$arg" ]]; then
-                target="$arg"
-              fi
-              args+=("$arg")
-            done
-
-            if [[ -d "$target" ]]; then
-              # For directories, recursively sign all files
-              while IFS= read -r -d $'\0' f; do
-                # Build new args with the file instead of the directory
-                file_args=()
-                for arg in "''${args[@]}"; do
-                  if [[ "$arg" == "$target" ]]; then
-                    file_args+=("$f")
-                  else
-                    file_args+=("$arg")
-                  fi
-                done
-                ${pkgs.darwin.sigtool}/bin/codesign "''${file_args[@]}" 2>/dev/null || true
-              done < <(find "$target" -type f -print0)
-            else
-              exec ${pkgs.darwin.sigtool}/bin/codesign "$@"
-            fi
-          '';
+          xattrWrapper = pkgs.writeShellScriptBin "xattr" (
+            builtins.readFile ./scripts/xattr-wrapper.sh
+          );
 
           arto = craneLib.buildPackage (
             commonArgs
             // {
+              inherit (packageMeta) pname version;
               inherit cargoArtifacts;
 
-              nativeBuildInputs = [
-                pkgs.dioxus-cli
-              ]
-              ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-                codesignWrapper
-                pkgs.darwin.autoSignDarwinBinariesHook
-                pkgs.darwin.xattr
-              ];
+              nativeBuildInputs =
+                # Wrappers must come first to override system commands in PATH
+                lib.optionals isDarwin [
+                  codesignWrapper
+                  xattrWrapper
+                ]
+                ++ [
+                  pkgs.dioxus-cli
+                ]
+                ++ lib.optionals isDarwin [
+                  pkgs.darwin.autoSignDarwinBinariesHook
+                ];
 
               postPatch = ''
                 mkdir -p assets/dist
-                cp -r ${web-assets}/* assets/dist/
+                cp -r ${renderer-assets}/* assets/dist/
+
+                # Dioxus.toml references "../extras/mac/arto-app.icns" and "../LICENSE"
+                # Copy them from project root to satisfy relative path requirements
+                cp -r ${./extras} ../extras
+                cp ${./LICENSE} ../LICENSE
               '';
 
               # Use buildPhaseCargoCommand instead of cargoBuildCommand because crane's
@@ -139,25 +146,44 @@
               # https://crane.dev/API.html#cranelibinstallfromcargobuildloghook
               doNotPostBuildInstallCargoBinaries = true;
 
-              installPhaseCommand = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+              installPhaseCommand = lib.optionalString isDarwin ''
+                # Find .app bundle (path may change with dioxus-cli versions)
+                app_path="${dxBundlePath}/${appBundleName}"
+
+                if [[ ! -d "$app_path" ]]; then
+                  echo "Error: Expected .app bundle not found at $app_path"
+                  echo "Searching for ${appBundleName} in target/dx..."
+                  find target/dx -name "${appBundleName}" -type d || true
+                  exit 1
+                fi
+
                 mkdir -p $out/Applications
-                cp -r target/dx/arto/bundle/macos/bundle/macos/Arto.app $out/Applications
+                cp -r "$app_path" $out/Applications/
               '';
             }
           );
         in
         {
           default = self.packages.${system}.arto;
-          inherit arto web-assets;
+          inherit arto renderer-assets;
         }
       );
 
-      apps = eachSystem (system: {
-        default = {
-          type = "app";
-          program = "${self.packages.${system}.arto}/Applications/Arto.app/Contents/MacOS/arto";
-        };
-      });
+      apps = eachSystem (
+        system:
+        let
+          # Access packageMeta from packages let-binding
+          inherit (self.packages.${system}) arto;
+          appBundleName = "Arto.app";
+          appExecutableName = "arto";
+        in
+        {
+          default = {
+            type = "app";
+            program = "${arto}/Applications/${appBundleName}/Contents/MacOS/${appExecutableName}";
+          };
+        }
+      );
 
       devShells = eachSystem (system: {
         default =
@@ -166,9 +192,20 @@
             craneLib = crane.mkLib pkgs;
           in
           craneLib.devShell {
-            inputsFrom = with self.packages.${system}; [ web-assets ];
+            inputsFrom = with self.packages.${system}; [ renderer-assets ];
             packages = [
+              # Rust tools (craneLib.devShell provides: cargo, rustc, rustfmt, clippy, cargo-nextest)
+              # We only add additional tools not included by default:
+              pkgs.rust-analyzer # IDE support
+
+              # Dioxus desktop development
               pkgs.dioxus-cli
+
+              # TypeScript/renderer development (renderer/)
+              pkgs.nodejs-slim
+              pkgs.pnpm_9
+
+              # Build automation
               pkgs.just
             ];
 
@@ -176,6 +213,17 @@
             # https://github.com/NixOS/nixpkgs/issues/355486
             shellHook = ''
               unset DEVELOPER_DIR
+              echo "🦀 Rust development environment"
+              echo "  - cargo: $(cargo --version)"
+              echo "  - rustc: $(rustc --version)"
+              echo "  - dioxus-cli: $(dx --version)"
+              echo ""
+              echo "📦 TypeScript development environment"
+              echo "  - node: $(node --version)"
+              echo "  - pnpm: $(pnpm --version)"
+              echo ""
+              echo "🔧 Build tools"
+              echo "  - just: $(just --version)"
             '';
           };
       });

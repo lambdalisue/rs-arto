@@ -1,13 +1,12 @@
 {
-  "name": "web",
+  "name": "arto-renderer",
   "private": true,
   "type": "module",
   "scripts": {
-    "build:icons": "tsx scripts/build-icon-sprite.ts",
-    "dev": "vite build --watch",
-    "build": "vite build",
-    "fmt": "prettier --write **/*.{ts,css}",
-    "check": "prettier --check **/*.{ts,css}"
+    "dev": "vite build --mode development --watch --minify false",
+    "build": "vite build --minify",
+    "fmt": "oxfmt --write **/*.{ts,tsx,js,jsx,css}",
+    "check": "oxlint"
   },
   "dependencies": {
     "@types/node": "^24.7.2",
@@ -17,10 +16,9 @@
     "mermaid": "^11.4.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.37.0",
     "@tabler/icons": "^3.35.0",
-    "eslint": "^9.37.0",
-    "prettier": "^3.6.2",
+    "oxfmt": "^0.20.0",
+    "oxlint": "^1.35.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.9"

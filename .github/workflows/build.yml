@@ -27,13 +27,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          cache-dependency-path: ./renderer/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
-      - run: just setup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: just check
       - run: just fmt && git diff --exit-code
     timeout-minutes: 15
@@ -54,13 +51,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          cache-dependency-path: ./renderer/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
-      - run: just setup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: just test
     timeout-minutes: 15
 
@@ -81,25 +75,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          cache-dependency-path: ./renderer/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
-      - run: just setup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Apply version
         if: ${{ github.event_name == 'release' }}
         run: |
-          sed -i '' "s/^version = \"0.0.0\"/version = \"${{ github.event.release.tag_name }}\"/" Cargo.toml
-          sed -i '' "s/^version = \"v\(.*\)\"/version = \"\1\"/" Cargo.toml
+          sed -i '' "s/^version = \"0.0.0\"/version = \"${{ github.event.release.tag_name }}\"/" desktop/Cargo.toml
+          sed -i '' "s/^version = \"v\(.*\)\"/version = \"\1\"/" desktop/Cargo.toml
       - run: just build
       - uses: actions/upload-artifact@v4
         with:
           name: arto-${{ runner.os }}
           path: |
-            ./target/dx/arto/bundle/macos/bundle/dmg
+            ./desktop/target/dx/arto/bundle/macos/bundle/dmg
           if-no-files-found: error
+    timeout-minutes: 30
+
+  build-nix:
+    needs: ["check", "test"]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: nixbuild/nix-quick-install-action@v34
+      - run: nix build
     timeout-minutes: 30
 
   release:

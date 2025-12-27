@@ -7,7 +7,7 @@ Design patterns and best practices for structuring configuration modules in Rust
 **Organize configuration and state into focused modules:**
 
 ```
-src/
+desktop/src/
 ├── config/
 │   ├── app_config.rs        # Module entry point (re-exports only)
 │   ├── app_config/          # Config type definitions and enums

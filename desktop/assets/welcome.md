@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../assets/arto-header.png" alt="Arto" />
+  <img src="../assets/arto-header-welcome.png" alt="Arto" />
 </p>
 
 **Arto — the Art of Reading Markdown.**
@@ -75,4 +75,4 @@ Arto faithfully reproduces GitHub's Markdown rendering in a local, offline envir
 
 ---
 
-_Arto is open source and available at [github.com/lambdalisue/rs-arto](https://github.com/lambdalisue/rs-arto)_
+_Arto is open source and available at [github.com/arto-app/Arto](https://github.com/arto-app/Arto)_

@@ -20,7 +20,7 @@ Practical lessons learned from developing Arto. These tips complement the archit
 
 **❌ Don't:**
 ```
-src/
+desktop/src/
   utils/
     mod.rs      # Old style
     helper.rs
@@ -28,7 +28,7 @@ src/
 
 **✅ Do:**
 ```
-src/
+desktop/src/
   utils.rs      # Module declaration
   utils/
     helper.rs   # Submodule
@@ -41,7 +41,7 @@ src/
 **When a module grows beyond ~300 lines, split it:**
 
 ```
-src/config/
+desktop/src/config/
   ├── config.rs       # Entry point (re-exports only)
   ├── types.rs        # Type definitions
   ├── persistence.rs  # File I/O
@@ -66,7 +66,7 @@ pub use getters::{get_startup_theme, get_new_window_theme};
 **❌ Don't create separate modules for closely related functionality:**
 
 ```
-src/
+desktop/src/
   session/        # Separate module for Session
     types.rs
     persistence.rs
@@ -78,7 +78,7 @@ src/
 **✅ Do group related functionality:**
 
 ```
-src/state/
+desktop/src/state/
   ├── types.rs        # AppState, Tab, etc.
   ├── globals.rs      # Global variables
   └── persistence.rs  # PersistedState (subset of AppState)
@@ -263,7 +263,7 @@ rsx! {
 
 **✅ Do:**
 ```rust
-const ICON: Asset = asset!("/extras/app-icon.png");
+const ICON: Asset = asset!("/assets/app-icon.png");
 
 rsx! {
     img { src: "{ICON}", alt: "App" }
@@ -647,7 +647,7 @@ Adding new setting?
 **Moving fields between structs requires careful tracking:**
 - When moving `root_directory` from `Sidebar` to `AppState.directory`, update ALL usage sites
 - Boolean field renames with logic inversion (`hide_non_markdown` → `show_all_files`) are especially error-prone
-- Use grep to find all occurrences: `grep -r "hide_non_markdown" src/`
+- Use grep to find all occurrences: `grep -r "hide_non_markdown" desktop/src/`
 - Critical: Inverted logic means `true` → `false` and vice versa in conditions
 
 **Simplifying field names:**
@@ -797,13 +797,13 @@ Not during window creation, which is before any user interaction.
 
 **Anti-pattern: Grouping by concept**
 ```
-src/state/globals.rs    # ← Contains event channels because "global"
+desktop/src/state/globals.rs    # ← Contains event channels because "global"
 ```
 
 **Good pattern: Grouping by usage scope**
 ```
-src/events.rs                    # ← Broadcast channels (multiple files)
-src/components/main_app.rs       # ← OpenEvent + mpsc receiver (2 files only)
+desktop/src/events.rs                    # ← Broadcast channels (multiple files)
+desktop/src/components/main_app.rs       # ← OpenEvent + mpsc receiver (2 files only)
 ```
 
 **Decision tree for placement:**
@@ -927,7 +927,7 @@ pub static FILE_OPEN_BROADCAST: LazyLock<broadcast::Sender<PathBuf>> = ...;
 
 ### JavaScript Initialization
 
-- **Problem**: `init()` in web/src/main.ts only called when opening files, not on window creation
+- **Problem**: `init()` in renderer/src/main.ts only called when opening files, not on window creation
 - **Fix**: Call `init()` in App component's `use_hook` to ensure theme listeners are registered in all windows
 - **Cleanup**: Remove redundant `init()` calls from FileViewer and InlineViewer (DRY principle)
 - **Result**: 90 lines of code removed by centralizing initialization

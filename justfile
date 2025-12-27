@@ -1,59 +1,40 @@
-mod web
-
-tmux_session := "arto-dev"
-
 [private]
 default:
   @just --list
 
 [private]
-rust-setup:
-  @rustup toolchain install stable
-  @rustup target add wasm32-unknown-unknown
+setup:
+  @cd renderer && pnpm install
 
-[private]
-rust-fmt:
-  @cargo fmt --all
+assets:
+  @cd renderer && pnpm run build
 
-[private]
-rust-check:
-  @cargo check --all-targets --all-features
-  @cargo clippy --all-targets --all-features -- -D warnings
+fmt: setup
+  @cd desktop && cargo fmt --all
+  @cd renderer && pnpm run fmt
 
-[private]
-rust-dev:
-  @dx serve
+check: setup assets
+  @cd renderer && pnpm run check
+  @cd desktop && cargo check --all-targets --all-features
+  @cd desktop && cargo clippy --all-targets --all-features -- -D warnings
 
-setup: web::setup rust-setup
+test: setup assets
+  @cd desktop && cargo test --all-features --all-targets
 
-fmt: web::fmt rust-fmt
+verify: fmt check test
 
-check: web::check rust-check
+clean:
+  @cd renderer && pnpm cache delete
+  @cd desktop && cargo clean
 
-test:
-  @cargo test --all-features --all-targets
+dev: setup
+  @bash -c ./scripts/dev.sh
 
-# Run dev servers in tmux split panes (left: web::dev, right: dx serve)
-dev:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  # Kill existing session if present
-  tmux kill-session -t "{{tmux_session}}" 2>/dev/null || true
-  # Create new session with web::dev in the first pane
-  tmux new-session -d -s "{{tmux_session}}" "just web::dev"
-  # Split horizontally and run dx serve in the right pane
-  tmux split-window -h -t "{{tmux_session}}" "just rust-dev"
-  # Attach to the session
-  tmux attach-session -t "{{tmux_session}}"
+build: setup assets
+  @cd desktop && dx bundle --release --macos
 
-attach:
-  # Attach to the session
-  tmux attach-session -t "{{tmux_session}}"
+open:
+  @./desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app/Contents/MacOS/arto
 
-build:
-  @dx bundle --platform desktop \
-    --package-types "macos" \
-    --package-types "dmg"
-
-install: build
-  @cp -af target/dx/arto/bundle/macos/bundle/macos/Arto.app /Applications/.
+install:
+  @cp -af desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app /Applications/.
