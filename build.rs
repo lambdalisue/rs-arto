@@ -1,18 +1,19 @@
 use std::process::Command;
 
 fn main() {
-    // Run Vite in web directory before building
-    println!("cargo:rerun-if-changed=web/src");
-    println!("cargo:rerun-if-changed=web/style");
-    println!("cargo:rerun-if-changed=web/scripts");
-    println!("cargo:rerun-if-changed=web/package.json");
-    println!("cargo:rerun-if-changed=web/vite.config.ts");
+    // Run Vite in renderer directory before building
+    println!("cargo:rerun-if-changed=renderer/src");
+    println!("cargo:rerun-if-changed=renderer/style");
+    println!("cargo:rerun-if-changed=renderer/scripts");
+    println!("cargo:rerun-if-changed=renderer/icons.json");
+    println!("cargo:rerun-if-changed=renderer/package.json");
+    println!("cargo:rerun-if-changed=renderer/vite.config.ts");
     println!("cargo:rerun-if-changed=assets/welcome.md");
     println!("cargo:rerun-if-changed=assets/arto-header-welcome.png");
 
     let output = Command::new("pnpm")
         .args(["run", "build"])
-        .current_dir("web")
+        .current_dir("renderer")
         .output()
         .expect("Failed to run vite (build)");
     if !output.status.success() {

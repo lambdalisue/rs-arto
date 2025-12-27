@@ -3,14 +3,14 @@ default:
   @just --list
 
 setup:
-  @cd web && pnpm install
+  @cd renderer && pnpm install
 
 fmt:
   @cargo fmt --all
-  @cd web && pnpm run fmt
+  @cd renderer && pnpm run fmt
 
 check:
-  @cd web && pnpm run check
+  @cd renderer && pnpm run check
   @cargo check --all-targets --all-features
   @cargo clippy --all-targets --all-features -- -D warnings
 

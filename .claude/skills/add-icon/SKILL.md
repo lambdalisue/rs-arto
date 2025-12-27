@@ -18,7 +18,7 @@ This skill guides you through adding a new icon from Tabler Icons to the project
    - Note the icon name (e.g., `folder-open`, `info-circle`)
 
 2. **Add to icons.json**
-   - Edit `web/icons.json`
+   - Edit `renderer/icons.json`
    - Add the icon name to the JSON array (in alphabetical order)
 
 3. **Build Icon Sprite (Automatic)**
@@ -32,7 +32,7 @@ This skill guides you through adding a new icon from Tabler Icons to the project
 
 ### Example
 
-**web/icons.json:**
+**renderer/icons.json:**
 ```json
 [
   "folder",
@@ -64,9 +64,9 @@ impl std::fmt::Display for IconName {
 
 | File | Purpose | Git Tracked |
 |------|---------|-------------|
-| `web/icons.json` | Icon list configuration | ✅ Yes |
-| `web/vite.config.ts` | Icon sprite plugin | ✅ Yes |
-| `web/public/icons/tabler-sprite.svg` | Generated sprite (Vite source) | ❌ No |
+| `renderer/icons.json` | Icon list configuration | ✅ Yes |
+| `renderer/vite.config.ts` | Icon sprite plugin | ✅ Yes |
+| `renderer/public/icons/tabler-sprite.svg` | Generated sprite (Vite source) | ❌ No |
 | `assets/dist/icons/tabler-sprite.svg` | Build output (Dioxus asset) | ❌ No |
 
 ### Important
@@ -84,7 +84,7 @@ icons.json
     ↓
 Vite plugin (buildStart hook)
     ↓
-web/public/icons/tabler-sprite.svg
+renderer/public/icons/tabler-sprite.svg
     ↓
 Vite build
     ↓

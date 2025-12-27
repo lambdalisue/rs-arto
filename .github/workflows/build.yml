@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          cache-dependency-path: ./renderer/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          cache-dependency-path: ./renderer/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: "pnpm"
-          cache-dependency-path: ./web/pnpm-lock.yaml
+          cache-dependency-path: ./renderer/pnpm-lock.yaml
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7

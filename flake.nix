@@ -27,10 +27,10 @@
           inherit (pkgs) lib;
           craneLib = crane.mkLib pkgs;
 
-          web-assets = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
-            pname = "${arto.pname}-web-assets";
+          renderer-assets = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
+            pname = "${arto.pname}-renderer-assets";
             inherit (arto) version;
-            src = ./web;
+            src = ./renderer;
 
             nativeBuildInputs = [
               pkgs.nodejs-slim
@@ -39,13 +39,12 @@
 
             pnpmDeps = pkgs.pnpm_9.fetchDeps {
               inherit (finalAttrs) pname version src;
-              hash = "sha256-lpJXpXz0sWIXlcVAOWkU+Zt9W6stxwvUnj3/QtNbjJs=";
+              hash = "sha256-c7xJrit853qMnaY54t32kGzVDC79NPtzdiurvJ/cmJI=";
               fetcherVersion = 2;
             };
 
             buildPhase = ''
               runHook preBuild
-              pnpm run build:icons
               pnpm run build
               runHook postBuild
             '';
@@ -124,7 +123,7 @@
 
               postPatch = ''
                 mkdir -p assets/dist
-                cp -r ${web-assets}/* assets/dist/
+                cp -r ${renderer-assets}/* assets/dist/
               '';
 
               # Use buildPhaseCargoCommand instead of cargoBuildCommand because crane's
@@ -148,7 +147,7 @@
         in
         {
           default = self.packages.${system}.arto;
-          inherit arto web-assets;
+          inherit arto renderer-assets;
         }
       );
 
@@ -166,7 +165,7 @@
             craneLib = crane.mkLib pkgs;
           in
           craneLib.devShell {
-            inputsFrom = with self.packages.${system}; [ web-assets ];
+            inputsFrom = with self.packages.${system}; [ renderer-assets ];
             packages = [
               pkgs.dioxus-cli
               pkgs.just

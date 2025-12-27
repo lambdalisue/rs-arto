@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "arto-renderer",
   "private": true,
   "type": "module",
   "scripts": {
