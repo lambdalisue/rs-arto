@@ -302,7 +302,7 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
             window::close_all_main_windows();
         }
         MenuId::GoToHomepage => {
-            let _ = open::that("https://github.com/lambdalisue/rs-arto");
+            let _ = open::that("https://github.com/arto-app/Arto");
         }
         _ => return false,
     }

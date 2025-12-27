@@ -41,7 +41,7 @@ pub fn AboutTab() -> Element {
                 div {
                     class: "about-links",
                     a {
-                        href: "https://github.com/lambdalisue/rs-arto",
+                        href: "https://github.com/arto-app/Arto",
                         target: "_blank",
                         rel: "noopener noreferrer",
                         class: "about-link",
@@ -49,7 +49,7 @@ pub fn AboutTab() -> Element {
                         span { class: "about-link-text", "View on GitHub" }
                     }
                     a {
-                        href: "https://github.com/lambdalisue/rs-arto/issues",
+                        href: "https://github.com/arto-app/Arto/issues",
                         target: "_blank",
                         rel: "noopener noreferrer",
                         class: "about-link",
