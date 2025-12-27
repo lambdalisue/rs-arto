@@ -20,14 +20,19 @@ test: setup
 
 verify: fmt check test
 
-# Run development server (dx serve handles everything via build.rs)
+clean:
+  @cd renderer && pnpm cache delete
+  @cd desktop && cargo clean
+
 dev: setup
-  @cd desktop && dx serve
+  @bash -c ./scripts/dev.sh
 
 build: setup
-  @cd desktop && dx bundle --platform desktop \
-    --package-types "macos" \
-    --package-types "dmg"
+  @cd renderer && pnpm run build
+  @cd desktop && dx bundle --release --macos
 
-install: build
+open:
+  @./desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app/Contents/MacOS/arto
+
+install:
   @cp -af desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app /Applications/.
