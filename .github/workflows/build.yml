@@ -93,6 +93,15 @@ jobs:
           if-no-files-found: error
     timeout-minutes: 30
 
+  build-nix:
+    needs: ["check", "test"]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: nixbuild/nix-quick-install-action@v34
+      - run: nix build
+    timeout-minutes: 30
+
   release:
     if: ${{ github.event_name == 'release' }}
     needs: [build]
