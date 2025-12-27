@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./extras/arto-header.png" alt="Arto" />
+  <img src="./extras/arto-header-readme.png" alt="Arto" />
 </p>
 
 **Arto — the Art of Reading Markdown.**

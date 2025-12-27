@@ -1,7 +1,7 @@
 use crate::components::icon::{Icon, IconName};
 use dioxus::prelude::*;
 
-const ARTO_ICON: Asset = asset!("/extras/arto-app.png");
+const ARTO_ICON: Asset = asset!("/assets/arto-app.png");
 
 #[component]
 pub fn AboutTab() -> Element {

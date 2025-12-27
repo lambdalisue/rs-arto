@@ -8,7 +8,7 @@ fn main() {
     println!("cargo:rerun-if-changed=web/package.json");
     println!("cargo:rerun-if-changed=web/vite.config.ts");
     println!("cargo:rerun-if-changed=assets/welcome.md");
-    println!("cargo:rerun-if-changed=assets/arto-header.png");
+    println!("cargo:rerun-if-changed=assets/arto-header-welcome.png");
 
     let output = Command::new("pnpm")
         .args(["run", "build:icons"])

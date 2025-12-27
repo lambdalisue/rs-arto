@@ -263,7 +263,7 @@ rsx! {
 
 **✅ Do:**
 ```rust
-const ICON: Asset = asset!("/extras/app-icon.png");
+const ICON: Asset = asset!("/assets/app-icon.png");
 
 rsx! {
     img { src: "{ICON}", alt: "App" }
