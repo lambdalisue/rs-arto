@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-pub const MAIN_SCRIPT: Asset = asset!("/assets/dist/main.js");
-pub const MAIN_STYLE: Asset = asset!("/assets/dist/main.css");
+pub static MAIN_SCRIPT: Asset = asset!("assets/dist/main.js");
+pub static MAIN_STYLE: Asset = asset!("assets/dist/main.css");
 
 // Embed header image as base64 at compile time
 const HEADER_IMAGE_BYTES: &[u8] = include_bytes!("../assets/arto-header-welcome.png");
