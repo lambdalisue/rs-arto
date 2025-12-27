@@ -31,9 +31,6 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
-      - run: just setup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: just check
       - run: just fmt && git diff --exit-code
     timeout-minutes: 15
@@ -58,9 +55,6 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
-      - run: just setup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: just test
     timeout-minutes: 15
 
@@ -85,9 +79,6 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: dioxus-cli@0.7
-      - run: just setup
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Apply version
         if: ${{ github.event_name == 'release' }}
         run: |
