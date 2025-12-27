@@ -27,9 +27,15 @@
           inherit (pkgs) lib;
           craneLib = crane.mkLib pkgs;
 
+          # Package metadata - single source of truth for version
+          packageMeta = {
+            pname = "arto";
+            version = "0.0.0";
+          };
+
           renderer-assets = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
-            pname = "${arto.pname}-renderer-assets";
-            inherit (arto) version;
+            pname = "${packageMeta.pname}-renderer-assets";
+            inherit (packageMeta) version;
             src = ./renderer;
 
             nativeBuildInputs = [
@@ -40,6 +46,11 @@
 
             pnpmDeps = pkgs.fetchPnpmDeps {
               inherit (finalAttrs) pname version src;
+              # To update this hash when renderer dependencies change:
+              # 1. Change hash to: lib.fakeHash or ""
+              # 2. Run: nix build .#renderer-assets
+              # 3. Copy the expected hash from error message
+              # 4. Update hash value below
               hash = "sha256-c7xJrit853qMnaY54t32kGzVDC79NPtzdiurvJ/cmJI=";
               fetcherVersion = 2;
             };
@@ -73,55 +84,23 @@
 
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-          # Wrapper for codesign that handles directories by recursively signing files.
-          # The sigtool codesign only accepts files, but bundlers like dioxus-cli
-          # call codesign on .app directories. This wrapper detects directory targets
-          # and recursively signs all contained files.
-          codesignWrapper = pkgs.writeShellScriptBin "codesign" ''
-            args=()
-            target=""
+          # Build-time wrappers for macOS commands
+          # See scripts/codesign-wrapper.sh and scripts/xattr-wrapper.sh for details
+          codesignWrapper = pkgs.writeShellScriptBin "codesign" (
+            builtins.replaceStrings
+              [ "@CODESIGN_BIN@" ]
+              [ "${pkgs.darwin.sigtool}/bin/codesign" ]
+              (builtins.readFile ./scripts/codesign-wrapper.sh)
+          );
 
-            # Parse arguments to find the target path (last non-option argument)
-            for arg in "$@"; do
-              if [[ "$arg" != -* ]] && [[ -e "$arg" ]]; then
-                target="$arg"
-              fi
-              args+=("$arg")
-            done
-
-            if [[ -d "$target" ]]; then
-              # For directories, recursively sign all files
-              while IFS= read -r -d $'\0' f; do
-                # Build new args with the file instead of the directory
-                file_args=()
-                for arg in "''${args[@]}"; do
-                  if [[ "$arg" == "$target" ]]; then
-                    file_args+=("$f")
-                  else
-                    file_args+=("$arg")
-                  fi
-                done
-                ${pkgs.darwin.sigtool}/bin/codesign "''${file_args[@]}" 2>/dev/null || true
-              done < <(find "$target" -type f -print0)
-            else
-              exec ${pkgs.darwin.sigtool}/bin/codesign "$@"
-            fi
-          '';
-
-          # Wrapper for xattr that always succeeds without doing anything.
-          # In Nix sandbox, xattr operations on .app bundles may fail due to
-          # permission restrictions. Since we're building in a clean environment,
-          # there are no quarantine attributes to remove anyway.
-          xattrWrapper = pkgs.writeShellScriptBin "xattr" ''
-            # Always succeed without doing anything
-            # dioxus-cli calls 'xattr -cr <path>' to remove quarantine attributes
-            # but in Nix sandbox this is both unnecessary and may fail
-            exit 0
-          '';
+          xattrWrapper = pkgs.writeShellScriptBin "xattr" (
+            builtins.readFile ./scripts/xattr-wrapper.sh
+          );
 
           arto = craneLib.buildPackage (
             commonArgs
             // {
+              inherit (packageMeta) pname version;
               inherit cargoArtifacts;
 
               nativeBuildInputs =
@@ -141,7 +120,8 @@
                 mkdir -p assets/dist
                 cp -r ${renderer-assets}/* assets/dist/
 
-                # Copy extras and LICENSE from project root
+                # Dioxus.toml references "../extras/mac/arto-app.icns" and "../LICENSE"
+                # Copy them from project root to satisfy relative path requirements
                 cp -r ${./extras} ../extras
                 cp ${./LICENSE} ../LICENSE
               '';
@@ -159,8 +139,18 @@
               doNotPostBuildInstallCargoBinaries = true;
 
               installPhaseCommand = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+                # Find .app bundle (path may change with dioxus-cli versions)
+                app_path="target/dx/arto/bundle/macos/bundle/macos/Arto.app"
+
+                if [[ ! -d "$app_path" ]]; then
+                  echo "Error: Expected .app bundle not found at $app_path"
+                  echo "Searching for Arto.app in target/dx..."
+                  find target/dx -name "Arto.app" -type d || true
+                  exit 1
+                fi
+
                 mkdir -p $out/Applications
-                cp -r target/dx/arto/bundle/macos/bundle/macos/Arto.app $out/Applications
+                cp -r "$app_path" $out/Applications/
               '';
             }
           );
