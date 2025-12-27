@@ -176,61 +176,59 @@ pub fn App(
     });
 
     // Listen for tab transfer requests (target-side handler)
-    use_hook(|| {
-        spawn(async move {
-            let mut rx = crate::events::TAB_TRANSFER_REQUEST.subscribe();
-            let current_window_id = window().id();
+    use_future(move || async move {
+        let mut rx = crate::events::TAB_TRANSFER_REQUEST.subscribe();
+        let current_window_id = window().id();
 
-            while let Ok(request) = rx.recv().await {
-                // Only process requests targeted to this window
-                if request.target_window_id != current_window_id {
-                    continue;
-                }
-
-                tracing::debug!(?request, "Received tab transfer request");
-
-                // Phase 1: Prepare - validate request
-                let can_accept = {
-                    // Check if window still exists and is visible
-                    // Could add more checks here:
-                    // - Max tab limit
-                    // - Duplicate tab check
-                    // - etc.
-
-                    window().is_visible()
-                };
-
-                if can_accept {
-                    // Phase 2a: Commit - insert tab and send Ack
-                    let tabs_len = state.tabs.read().len();
-                    let insert_index = state.insert_tab(request.tab.clone(), tabs_len);
-                    state.switch_to_tab(insert_index);
-
-                    // Focus this window after receiving the tab
-                    window().set_focus();
-
-                    crate::events::TAB_TRANSFER_RESPONSE
-                        .send(crate::events::TabTransferResponse::Ack {
-                            request_id: request.request_id,
-                            source_window_id: request.source_window_id,
-                        })
-                        .ok();
-
-                    tracing::info!("Tab transfer accepted and committed");
-                } else {
-                    // Phase 2b: Rollback - send Nack
-                    crate::events::TAB_TRANSFER_RESPONSE
-                        .send(crate::events::TabTransferResponse::Nack {
-                            request_id: request.request_id,
-                            source_window_id: request.source_window_id,
-                            reason: "Window is not ready to accept tabs".to_string(),
-                        })
-                        .ok();
-
-                    tracing::warn!("Tab transfer rejected");
-                }
+        while let Ok(request) = rx.recv().await {
+            // Only process requests targeted to this window
+            if request.target_window_id != current_window_id {
+                continue;
             }
-        });
+
+            tracing::debug!(?request, "Received tab transfer request");
+
+            // Phase 1: Prepare - validate request
+            let can_accept = {
+                // Check if window still exists and is visible
+                // Could add more checks here:
+                // - Max tab limit
+                // - Duplicate tab check
+                // - etc.
+
+                window().is_visible()
+            };
+
+            if can_accept {
+                // Phase 2a: Commit - insert tab and send Ack
+                let tabs_len = state.tabs.read().len();
+                let insert_index = state.insert_tab(request.tab.clone(), tabs_len);
+                state.switch_to_tab(insert_index);
+
+                // Focus this window after receiving the tab
+                window().set_focus();
+
+                crate::events::TAB_TRANSFER_RESPONSE
+                    .send(crate::events::TabTransferResponse::Ack {
+                        request_id: request.request_id,
+                        source_window_id: request.source_window_id,
+                    })
+                    .ok();
+
+                tracing::info!("Tab transfer accepted and committed");
+            } else {
+                // Phase 2b: Rollback - send Nack
+                crate::events::TAB_TRANSFER_RESPONSE
+                    .send(crate::events::TabTransferResponse::Nack {
+                        request_id: request.request_id,
+                        source_window_id: request.source_window_id,
+                        reason: "Window is not ready to accept tabs".to_string(),
+                    })
+                    .ok();
+
+                tracing::warn!("Tab transfer rejected");
+            }
+        }
     });
 
     // Save state and close child windows when this window closes
@@ -356,39 +354,35 @@ fn sync_window_metrics(
 
 /// Setup listener for file open broadcasts from the background process
 fn setup_file_open_listener(mut state: AppState) {
-    use_effect(move || {
+    use_future(move || async move {
         let mut rx = FILE_OPEN_BROADCAST.subscribe();
 
-        spawn(async move {
-            while let Ok(file) = rx.recv().await {
-                // Only handle in the focused window
-                if window().is_focused() {
-                    tracing::info!("Opening file from broadcast: {:?}", file);
-                    state.open_file(file);
-                }
+        while let Ok(file) = rx.recv().await {
+            // Only handle in the focused window
+            if window().is_focused() {
+                tracing::info!("Opening file from broadcast: {:?}", file);
+                state.open_file(file);
             }
-        });
+        }
     });
 }
 
 /// Setup listener for directory open broadcasts from the background process
 fn setup_directory_open_listener(mut state: AppState) {
-    use_effect(move || {
+    use_future(move || async move {
         let mut rx = DIRECTORY_OPEN_BROADCAST.subscribe();
 
-        spawn(async move {
-            while let Ok(dir) = rx.recv().await {
-                // Only handle in the focused window
-                if window().is_focused() {
-                    tracing::info!("Opening directory from broadcast: {:?}", dir);
-                    state.set_root_directory(dir.clone());
-                    // Optionally show the sidebar if it's hidden
-                    if !state.sidebar.read().open {
-                        state.toggle_sidebar();
-                    }
+        while let Ok(dir) = rx.recv().await {
+            // Only handle in the focused window
+            if window().is_focused() {
+                tracing::info!("Opening directory from broadcast: {:?}", dir);
+                state.set_root_directory(dir.clone());
+                // Optionally show the sidebar if it's hidden
+                if !state.sidebar.read().open {
+                    state.toggle_sidebar();
                 }
             }
-        });
+        }
     });
 }
 
