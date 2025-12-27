@@ -14,7 +14,6 @@ function iconSpritePlugin(): Plugin {
       );
 
       const outputPath = path.join(__dirname, "public/icons/tabler-sprite.svg");
-
       const symbols = icons
         .map((name) => {
           const svgPath = path.join(iconsDir, `${name}.svg`);
@@ -31,7 +30,6 @@ function iconSpritePlugin(): Plugin {
 
       fs.mkdirSync(path.dirname(outputPath), { recursive: true });
       fs.writeFileSync(outputPath, sprite);
-      console.log(`✓ Generated icon sprite with ${icons.length} icons`);
     },
   };
 }
@@ -41,7 +39,9 @@ export default defineConfig({
   root: ".",
   plugins: [iconSpritePlugin()],
   build: {
-    outDir: process.env.VITE_OUT_DIR || path.resolve(__dirname, "../desktop/assets/dist"),
+    outDir:
+      process.env.VITE_OUT_DIR ||
+      path.resolve(__dirname, "../desktop/assets/dist"),
     emptyOutDir: true,
     cssCodeSplit: false,
     lib: {
