@@ -6,7 +6,8 @@ use crate::components::icon::{Icon, IconName};
 use crate::config::{Config, CONFIG};
 use crate::state::AppState;
 use dioxus::prelude::*;
-use std::sync::{LazyLock, Mutex};
+use parking_lot::RwLock;
+use std::sync::LazyLock;
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum PreferencesTab {
@@ -20,12 +21,12 @@ pub enum PreferencesTab {
 }
 
 /// Remember the last selected tab in memory
-static LAST_PREFERENCES_TAB: LazyLock<Mutex<PreferencesTab>> =
-    LazyLock::new(|| Mutex::new(PreferencesTab::default()));
+static LAST_PREFERENCES_TAB: LazyLock<RwLock<PreferencesTab>> =
+    LazyLock::new(|| RwLock::new(PreferencesTab::default()));
 
 /// Set the preferences tab to About (called from menu)
 pub fn set_preferences_tab_to_about() {
-    *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::About;
+    *LAST_PREFERENCES_TAB.write() = PreferencesTab::About;
 }
 
 /// Save status for the preferences page
@@ -42,7 +43,7 @@ pub fn PreferencesView() -> Element {
     let state = use_context::<AppState>();
     let mut config = use_signal(Config::default);
     let mut has_changes = use_signal(|| false);
-    let mut active_tab = use_signal(|| *LAST_PREFERENCES_TAB.lock().unwrap());
+    let mut active_tab = use_signal(|| *LAST_PREFERENCES_TAB.read());
     let mut save_status = use_signal(|| SaveStatus::Idle);
 
     // Load initial config on mount (use_hook runs only once)
@@ -88,7 +89,7 @@ pub fn PreferencesView() -> Element {
                         class: if current_tab == PreferencesTab::Theme { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::Theme);
-                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::Theme;
+                            *LAST_PREFERENCES_TAB.write() = PreferencesTab::Theme;
                         },
                         Icon { name: IconName::SunMoon, size: 18 }
                         span { "Theme" }
@@ -97,7 +98,7 @@ pub fn PreferencesView() -> Element {
                         class: if current_tab == PreferencesTab::WindowPosition { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::WindowPosition);
-                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::WindowPosition;
+                            *LAST_PREFERENCES_TAB.write() = PreferencesTab::WindowPosition;
                         },
                         Icon { name: IconName::ArrowsMove, size: 18 }
                         span { "Window Position" }
@@ -106,7 +107,7 @@ pub fn PreferencesView() -> Element {
                         class: if current_tab == PreferencesTab::WindowSize { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::WindowSize);
-                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::WindowSize;
+                            *LAST_PREFERENCES_TAB.write() = PreferencesTab::WindowSize;
                         },
                         Icon { name: IconName::ArrowsDiagonal, size: 18 }
                         span { "Window Size" }
@@ -115,7 +116,7 @@ pub fn PreferencesView() -> Element {
                         class: if current_tab == PreferencesTab::Sidebar { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::Sidebar);
-                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::Sidebar;
+                            *LAST_PREFERENCES_TAB.write() = PreferencesTab::Sidebar;
                         },
                         Icon { name: IconName::Sidebar, size: 18 }
                         span { "Sidebar" }
@@ -124,7 +125,7 @@ pub fn PreferencesView() -> Element {
                         class: if current_tab == PreferencesTab::Directory { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::Directory);
-                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::Directory;
+                            *LAST_PREFERENCES_TAB.write() = PreferencesTab::Directory;
                         },
                         Icon { name: IconName::Folder, size: 18 }
                         span { "Directory" }
@@ -137,7 +138,7 @@ pub fn PreferencesView() -> Element {
                         class: if current_tab == PreferencesTab::About { "nav-tab active" } else { "nav-tab" },
                         onclick: move |_| {
                             active_tab.set(PreferencesTab::About);
-                            *LAST_PREFERENCES_TAB.lock().unwrap() = PreferencesTab::About;
+                            *LAST_PREFERENCES_TAB.write() = PreferencesTab::About;
                         },
                         Icon { name: IconName::InfoCircle, size: 18 }
                         span { "About" }
